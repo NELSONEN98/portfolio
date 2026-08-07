@@ -22,7 +22,7 @@ function getSessionId() {
 
 async function callConvexViaProxy(functionPath, args) {
   try {
-    const response = await fetch(`${CONVEX_PROXY_URL}/api/convex`, {
+    const response = await fetch(CONVEX_PROXY_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ functionPath, args }),
