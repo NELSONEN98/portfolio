@@ -5,72 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gambling Katz // Casino Sucio</title>
 
-  <!-- boil frames: decode them before the title screen paints, or the
-       first loop flashes through blank backgrounds -->
-  <link rel="preload" as="image" href="menu/menu-0.webp" />
-  <link rel="preload" as="image" href="menu/menu-1.webp" />
-  <link rel="preload" as="image" href="menu/menu-2.webp" />
-  <link rel="preload" as="image" href="menu/menu-3.webp" />
-  <link rel="preload" as="image" href="menu/menu-4.webp" />
-  <link rel="preload" as="image" href="menu/menu-5.webp" />
-  <link rel="preload" as="image" href="main-menu/main-0.webp" />
-  <link rel="preload" as="image" href="main-menu/main-1.webp" />
-  <link rel="preload" as="image" href="main-menu/main-2.webp" />
-  <link rel="preload" as="image" href="start/start-0.webp" />
-  <link rel="preload" as="image" href="start/start-1.webp" />
-  <link rel="preload" as="image" href="start/start-2.webp" />
-
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="preload" as="image" href="./menu/menu-0.webp" />
+  <link rel="preload" as="image" href="./menu/menu-1.webp" />
+  <link rel="preload" as="image" href="./menu/menu-2.webp" />
+  <link rel="preload" as="image" href="./menu/menu-3.webp" />
+  <link rel="preload" as="image" href="./menu/menu-4.webp" />
+  <link rel="preload" as="image" href="./menu/menu-5.webp" />
+  <link rel="preload" as="image" href="./main-menu/main-0.webp" />
+  <link rel="preload" as="image" href="./main-menu/main-1.webp" />
+  <link rel="preload" as="image" href="./main-menu/main-2.webp" />
+  <link rel="preload" as="image" href="./start/start-0.webp" />
+  <link rel="preload" as="image" href="./start/start-1.webp" />
+  <link rel="preload" as="image" href="./start/start-2.webp" />
+  <script type="module" crossorigin src="./assets/index-BFs03xxt.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CzihGFg3.css">
 </head>
 <body>
   <div class="table">
-
-    <!-- ambient layers -->
     <div class="smoke">
       <div class="smoke-wisp"></div>
       <div class="smoke-wisp"></div>
       <div class="smoke-wisp"></div>
     </div>
 
-    <!-- ============== TITLE ============== -->
     <section class="screen title-screen active" id="screen-title">
       <div class="title-art" id="title-art"></div>
-      <!-- The label lives inside the artwork, so the button needs an
-           accessible name of its own or a screen reader announces "button". -->
       <button class="title-start" id="btn-start" aria-label="Iniciar juego">
         <span class="start-art" aria-hidden="true"></span>
       </button>
     </section>
 
-    <!-- ============== MAIN MENU ============== -->
-    <!-- The artwork carries the GAMBLING KATZ title and leaves the middle
-         band open; the options sit in that gap. -->
     <section class="screen menu-screen" id="screen-menu">
       <div class="menu-art" id="menu-art"></div>
-      <!-- filled by renderMenu() from MENU_ITEMS in script.js -->
       <nav class="menu-options" id="menu-options" aria-label="Menú principal"></nav>
       <button class="btn-nav" id="btn-menu-back">‹ Volver</button>
     </section>
 
-    <!-- ============== ROOM CHOICE ============== -->
     <section class="screen room-choice-screen" id="screen-room-choice">
       <div class="room-choice-header">
         <button class="btn-nav" id="btn-room-back">‹ Volver al menú</button>
         <h2>DUELO ONLINE</h2>
       </div>
-
       <div class="room-choice-content" id="room-choice-content">
         <div class="room-choice-option">
           <button class="btn-nav" id="btn-create-room">+ CREAR SALA</button>
           <p>Genera un código y comparte con tu rival</p>
         </div>
-
         <div class="room-choice-option">
           <button class="btn-nav" id="btn-join-room">UNIRSE A SALA</button>
           <input type="text" id="room-code" placeholder="Pegá el código aquí" />
         </div>
       </div>
-
       <div class="room-waiting" id="room-waiting" style="display: none;">
         <div class="room-code">Código: <span id="display-room-code"></span></div>
         <p>Esperando al otro jugador...</p>
@@ -78,7 +63,6 @@
       </div>
     </section>
 
-    <!-- ============== CHARACTER SELECT ============== -->
     <section class="screen select-screen" id="screen-select">
       <div class="select-header" id="select-header">
         <div class="prompt-title">ELIGE TU GATO APOSTADOR</div>
@@ -90,16 +74,9 @@
       </div>
     </section>
 
-    <!-- ============== VERSUS SCREEN ============== -->
-    <!-- Three parts, nothing else: two fighters in opposite corners, the
-         pool table holding the die, and the two controls pinned to the
-         bottom edge where a thumb reaches them. -->
     <section class="screen versus-screen" id="screen-game">
-
-      <!-- Fighter 1 — top-left corner -->
       <div class="fighter f1" id="fighter-0">
         <div class="fighter-frame">
-          <!-- data-cat is written by renderGameUI(); the boil is CSS -->
           <div class="fighter-art boil"></div>
           <div class="f-name" id="name-0">—</div>
         </div>
@@ -109,7 +86,6 @@
         </div>
       </div>
 
-      <!-- Pool table — centre band only, never full bleed -->
       <div class="pool-table">
         <div class="pool-felt">
           <span class="pocket pk-tl"></span>
@@ -118,7 +94,6 @@
           <span class="pocket pk-bl"></span>
           <span class="pocket pk-bc"></span>
           <span class="pocket pk-br"></span>
-
           <div class="dice-arena">
             <div class="pool-goal">primero a <span class="num" id="goal-num">50</span></div>
             <div class="dice-3d" id="dice-3d">
@@ -134,10 +109,8 @@
         </div>
       </div>
 
-      <!-- Fighter 2 — below the table; bottom-right corner once there is room -->
       <div class="fighter f2" id="fighter-1">
         <div class="fighter-frame">
-          <!-- data-cat is written by renderGameUI(); the boil is CSS -->
           <div class="fighter-art boil"></div>
           <div class="f-name" id="name-1">—</div>
         </div>
@@ -153,7 +126,6 @@
       </div>
     </section>
 
-    <!-- ============== GAME OVER SCREEN ============== -->
     <section class="screen gameover-screen" id="screen-gameover">
       <div class="gameover-banner">
         <div class="tag">— la casa ya tiene ganador —</div>
@@ -162,14 +134,14 @@
       <div class="gameover-stage">
         <div class="go-winner">
           <div class="go-label">★ GANADOR ★</div>
-          <div class="go-portrait"><img id="go-winner-img" src="cat1/frame0000.png" alt="" /></div>
+          <div class="go-portrait"><img id="go-winner-img" src="./cat1/frame0000.png" alt="" /></div>
           <div class="go-name" id="go-winner-name">—</div>
           <div class="go-score" id="go-winner-score">0</div>
           <div class="go-quote" id="go-winner-quote"></div>
         </div>
         <div class="go-loser">
           <div class="go-label">† PERDEDOR †</div>
-          <div class="go-portrait"><img id="go-loser-img" src="cat2/frame0000.png" alt="" /></div>
+          <div class="go-portrait"><img id="go-loser-img" src="./cat2/frame0000.png" alt="" /></div>
           <div class="go-name" id="go-loser-name">—</div>
           <div class="go-score" id="go-loser-score">0</div>
           <div class="go-quote" id="go-loser-quote"></div>
@@ -181,10 +153,8 @@
       </div>
     </section>
 
-    <!-- particles (over everything) -->
     <div class="particle-layer" id="particles"></div>
 
-    <!-- ============== RULES MODAL ============== -->
     <div class="rules-overlay" id="rules-overlay">
       <div class="rules-modal">
         <div class="rules-header">
@@ -243,8 +213,6 @@
     </div>
   </div>
 
-
-  <!-- tweaks panel -->
   <div class="tweaks" id="tweaks">
     <h3>AJUSTES</h3>
     <label>Puntaje objetivo: <span id="tweak-goal-val">50</span></label>
@@ -256,7 +224,5 @@
     <button id="tweak-particles">PARTÍCULAS</button>
   </div>
 
-  <script src="./convex-client.js"></script>
-  <script src="./script.js"></script>
 </body>
 </html>
