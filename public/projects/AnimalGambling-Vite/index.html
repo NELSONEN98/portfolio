@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gambling Katz // Casino Sucio</title>
+
+  <link rel="preload" as="image" href="/menu/menu-0.webp" />
+  <link rel="preload" as="image" href="/menu/menu-1.webp" />
+  <link rel="preload" as="image" href="/menu/menu-2.webp" />
+  <link rel="preload" as="image" href="/menu/menu-3.webp" />
+  <link rel="preload" as="image" href="/menu/menu-4.webp" />
+  <link rel="preload" as="image" href="/menu/menu-5.webp" />
+  <link rel="preload" as="image" href="/main-menu/main-0.webp" />
+  <link rel="preload" as="image" href="/main-menu/main-1.webp" />
+  <link rel="preload" as="image" href="/main-menu/main-2.webp" />
+  <link rel="preload" as="image" href="/start/start-0.webp" />
+  <link rel="preload" as="image" href="/start/start-1.webp" />
+  <link rel="preload" as="image" href="/start/start-2.webp" />
+</head>
+<body>
+  <div class="table">
+    <div class="smoke">
+      <div class="smoke-wisp"></div>
+      <div class="smoke-wisp"></div>
+      <div class="smoke-wisp"></div>
+    </div>
+
+    <section class="screen title-screen active" id="screen-title">
+      <div class="title-art" id="title-art"></div>
+      <button class="title-start" id="btn-start" aria-label="Iniciar juego">
+        <span class="start-art" aria-hidden="true"></span>
+      </button>
+    </section>
+
+    <section class="screen menu-screen" id="screen-menu">
+      <div class="menu-art" id="menu-art"></div>
+      <nav class="menu-options" id="menu-options" aria-label="Menú principal"></nav>
+      <button class="btn-nav" id="btn-menu-back">‹ Volver</button>
+    </section>
+
+    <section class="screen room-choice-screen" id="screen-room-choice">
+      <div class="room-choice-header">
+        <button class="btn-nav" id="btn-room-back">‹ Volver al menú</button>
+        <h2>DUELO ONLINE</h2>
+      </div>
+      <div class="room-choice-content" id="room-choice-content">
+        <div class="room-choice-option">
+          <button class="btn-nav" id="btn-create-room">+ CREAR SALA</button>
+          <p>Genera un código y comparte con tu rival</p>
+        </div>
+        <div class="room-choice-option">
+          <button class="btn-nav" id="btn-join-room">UNIRSE A SALA</button>
+          <input type="text" id="room-code" placeholder="Pegá el código aquí" />
+        </div>
+      </div>
+      <div class="room-waiting" id="room-waiting" style="display: none;">
+        <div class="room-code">Código: <span id="display-room-code"></span></div>
+        <p>Esperando al otro jugador...</p>
+        <button class="btn-nav" id="btn-cancel-wait">Cancelar</button>
+      </div>
+    </section>
+
+    <section class="screen select-screen" id="screen-select">
+      <div class="select-header" id="select-header">
+        <div class="prompt-title">ELIGE TU GATO APOSTADOR</div>
+      </div>
+      <div class="char-grid" id="char-grid"></div>
+      <div class="select-footer">
+        <button class="btn-nav" id="btn-select-back-top">‹ Volver al menú</button>
+        <button class="btn-nav" id="btn-play" disabled>Jugar</button>
+      </div>
+    </section>
+
+    <section class="screen versus-screen" id="screen-game">
+      <div class="fighter f1" id="fighter-0">
+        <div class="fighter-frame">
+          <div class="fighter-art boil"></div>
+          <div class="f-name" id="name-0">—</div>
+        </div>
+        <div class="fighter-readout">
+          <div class="f-score" id="score-0">0</div>
+          <div class="f-current">+<span id="current-0">0</span></div>
+        </div>
+      </div>
+
+      <div class="pool-table">
+        <div class="pool-felt">
+          <span class="pocket pk-tl"></span>
+          <span class="pocket pk-tc"></span>
+          <span class="pocket pk-tr"></span>
+          <span class="pocket pk-bl"></span>
+          <span class="pocket pk-bc"></span>
+          <span class="pocket pk-br"></span>
+          <div class="dice-arena">
+            <div class="pool-goal">primero a <span class="num" id="goal-num">50</span></div>
+            <div class="dice-3d" id="dice-3d">
+              <div class="dice-face face-1"><div class="pip"></div></div>
+              <div class="dice-face face-2"><div class="pip"></div><div class="pip"></div></div>
+              <div class="dice-face face-3"><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+              <div class="dice-face face-4"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+              <div class="dice-face face-5"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+              <div class="dice-face face-6"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+            </div>
+            <div class="snake-eyes-warning" id="snake-warn">× TE QUEMASTE ×</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fighter f2" id="fighter-1">
+        <div class="fighter-frame">
+          <div class="fighter-art boil"></div>
+          <div class="f-name" id="name-1">—</div>
+        </div>
+        <div class="fighter-readout">
+          <div class="f-score" id="score-1">0</div>
+          <div class="f-current">+<span id="current-1">0</span></div>
+        </div>
+      </div>
+
+      <div class="versus-controls">
+        <button class="btn-nav" id="btn-roll">Tirar dado</button>
+        <button class="btn-nav secondary" id="btn-hold">Plantarse</button>
+      </div>
+    </section>
+
+    <section class="screen gameover-screen" id="screen-gameover">
+      <div class="gameover-banner">
+        <div class="tag">— la casa ya tiene ganador —</div>
+        <div class="big">SE ACABÓ</div>
+      </div>
+      <div class="gameover-stage">
+        <div class="go-winner">
+          <div class="go-label">★ GANADOR ★</div>
+          <div class="go-portrait"><img id="go-winner-img" src="/cat1/frame0000.png" alt="" /></div>
+          <div class="go-name" id="go-winner-name">—</div>
+          <div class="go-score" id="go-winner-score">0</div>
+          <div class="go-quote" id="go-winner-quote"></div>
+        </div>
+        <div class="go-loser">
+          <div class="go-label">† PERDEDOR †</div>
+          <div class="go-portrait"><img id="go-loser-img" src="/cat2/frame0000.png" alt="" /></div>
+          <div class="go-name" id="go-loser-name">—</div>
+          <div class="go-score" id="go-loser-score">0</div>
+          <div class="go-quote" id="go-loser-quote"></div>
+        </div>
+      </div>
+      <div class="gameover-actions">
+        <button class="btn primary" id="btn-again">⟲ Revancha</button>
+        <button class="btn danger" id="btn-gameover-new">× Otros jugadores</button>
+      </div>
+    </section>
+
+    <div class="particle-layer" id="particles"></div>
+
+    <div class="rules-overlay" id="rules-overlay">
+      <div class="rules-modal">
+        <div class="rules-header">
+          <div class="rules-tag">— las únicas reglas que importan —</div>
+          <div class="rules-title">CÓMO SE JUEGA</div>
+          <button class="rules-close" id="btn-rules-close">✕</button>
+        </div>
+        <div class="rules-body">
+          <div class="rules-rule">
+            <div class="rule-num">01</div>
+            <div class="rule-content">
+              <div class="rule-title">EL JUEGO</div>
+              <div class="rule-text">Dos degenerados. Un dado. Se tira por turnos hasta que alguien llega al objetivo. El que pierde paga las copas.</div>
+            </div>
+          </div>
+          <div class="rules-rule">
+            <div class="rule-num">02</div>
+            <div class="rule-content">
+              <div class="rule-title">TIRAR <span class="rule-key">[ESPACIO]</span></div>
+              <div class="rule-text">Tirá el dado. El resultado se suma al total de tu turno. Seguí tirando para acumular.</div>
+            </div>
+          </div>
+          <div class="rules-rule bust">
+            <div class="rule-num">03</div>
+            <div class="rule-content">
+              <div class="rule-title">QUEMARSE <span class="rule-badge">× sacar un 1 ×</span></div>
+              <div class="rule-text">Ojo de víbora. Perdés todo lo que acumulaste en el turno. Nada. Cero. Pasa el turno.</div>
+            </div>
+          </div>
+          <div class="rules-rule">
+            <div class="rule-num">04</div>
+            <div class="rule-content">
+              <div class="rule-title">PLANTARSE <span class="rule-key">[ENTER]</span></div>
+              <div class="rule-text">Guardás lo del turno en tu puntaje total y pasás. La jugada segura — si sos cagón.</div>
+            </div>
+          </div>
+          <div class="rules-rule win">
+            <div class="rule-num">05</div>
+            <div class="rule-content">
+              <div class="rule-title">GANAR</div>
+              <div class="rule-text">Gana el primero que llegue al objetivo o lo pase. La casa paga. El que pierde paga con vergüenza.</div>
+            </div>
+          </div>
+        </div>
+        <div class="rules-footer">
+          <div class="rules-chips-deco">
+            <div class="chip gold"></div>
+            <div class="chip red"></div>
+            <div class="chip blue"></div>
+            <div class="chip red"></div>
+            <div class="chip gold"></div>
+          </div>
+          <div class="rules-footer-text">— suerte. la vas a necesitar. —</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tweaks" id="tweaks">
+    <h3>AJUSTES</h3>
+    <label>Puntaje objetivo: <span id="tweak-goal-val">50</span></label>
+    <input type="range" id="tweak-goal" min="10" max="100" step="5" value="50" />
+    <label>Opacidad del humo: <span id="tweak-smoke-val">0.35</span></label>
+    <input type="range" id="tweak-smoke" min="0" max="1" step="0.05" value="0.35" />
+    <label>Efectos</label>
+    <button id="tweak-scanlines">LÍNEAS DE BARRIDO</button>
+    <button id="tweak-particles">PARTÍCULAS</button>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
