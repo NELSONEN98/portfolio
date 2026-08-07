@@ -1,15 +1,5 @@
 
 "use strict";
-import {
-  createOnlineRoom,
-  updatePlayerCharacter,
-  joinOnlineRoom,
-  getRoom,
-  watchRoom,
-  convexRollDice,
-  convexHoldScore,
-  getSessionId,
-} from './convex-client.js';
  
 /* ============================================
    GAMBLING KATZ — game logic
