@@ -6,27 +6,7 @@ export const createRoom = mutation({
     sessionId: v.string(),
   },
   async handler(ctx, args) {
-    const roomId = crypto.getRandomValues(new Uint8Array(6))
-      .reduce((s, b) => s + b.toString(16).padStart(2, '0'), '')
-      .toUpperCase()
-      .slice(0, 6);
-
-    const room = await ctx.db.insert("rooms", {
-      roomId,
-      player1: {
-        sessionId: args.sessionId,
-        name: null,
-        catId: null,
-        score: 0,
-        current: 0,
-      },
-      player2: null,
-      turn: "player1",
-      status: "waiting",
-      createdAt: Date.now(),
-      expiresAt: Date.now() + 1000 * 60 * 30,
-    });
-
+    const roomId = "ABC123";
     return { roomId };
   },
 });
