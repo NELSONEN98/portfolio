@@ -283,12 +283,17 @@ function pickCharacter(idx) {
 /* There is no image src to set: the boil is CSS, selected by data-cat.
    Writing the attribute is the whole handoff from "who was picked" to
    "which 7 drawings cycle in that corner". */
-function renderGameUI() {
+function paintFighters() {
   for (let i = 0; i < 2; i++) {
     const p = state.players[i];
+    if (!p) continue;
     $(`#name-${i}`).textContent = p.char.name;
     $(`#fighter-${i} .fighter-art`).dataset.cat = p.char.id;
   }
+}
+
+function renderGameUI() {
+  paintFighters();
   updateScores();
   updateActiveFighter();
   $("#goal-num").textContent = state.goal;
@@ -299,50 +304,55 @@ function renderGameUI() {
   }
 }
 
-async function syncGameStateOnline() {
-  try {
-    const roomId = sessionStorage.getItem("roomId");
+/* El rival elige su gato en su propia pantalla; hasta que la sala lo
+   informa, de este lado se lo ve como el placeholder que puso startGame. */
+function charFromCatId(catId) {
+  return ROSTER.find((c) => c.id === catId) || null;
+}
 
-    watchRoom(roomId, (room) => {
-      if (!room) return;
+/* Una revancha vuelve a entrar a la pantalla de juego, y sin esto el poll
+   anterior seguía vivo: dos sondeos escribiendo el mismo estado. */
+let unwatchRoom = null;
 
-      // Update player states from room
-      if (room.player1) {
-        state.players[0] = {
-          char: state.players[0].char,
-          score: room.player1.score,
-          current: room.player1.current,
-        };
-      }
-      if (room.player2) {
-        state.players[1] = {
-          char: state.players[1].char,
-          score: room.player2.score,
-          current: room.player2.current,
-        };
-      }
+function syncGameStateOnline() {
+  const roomId = sessionStorage.getItem("roomId");
+  if (!roomId) return;
 
-      // Determine active player based on turn
-      if (room.turn === "player1") {
-        state.active = 0;
-      } else {
-        state.active = 1;
-      }
+  if (unwatchRoom) unwatchRoom();
 
-      // Check win condition
-      if (room.status === "finished") {
-        const winner = room.player1.score >= state.goal ? 0 : 1;
-        if (!state.finished) {
-          winGame(winner);
-        }
-      }
+  unwatchRoom = watchRoom(roomId, (room) => {
+    if (!room) return;
 
-      updateScores();
-      updateActiveFighter();
+    /* El objetivo lo fija el backend — el slider de ajustes no manda en
+       online, y mostrar 100 mientras la sala corta en 50 es mentirle al
+       jugador. */
+    if (typeof room.goal === "number") {
+      state.goal = room.goal;
+      $("#goal-num").textContent = room.goal;
+    }
+
+    [room.player1, room.player2].forEach((side, i) => {
+      const p = state.players[i];
+      if (!side || !p) return;
+      p.score = side.score;
+      p.current = side.current;
+      const char = charFromCatId(side.catId);
+      if (char && p.char.id !== char.id) p.char = char;
     });
-  } catch (error) {
-    console.error("Error syncing game state:", error);
-  }
+
+    state.active = room.turn === "player1" ? 0 : 1;
+
+    paintFighters();
+    updateScores();
+    updateActiveFighter();
+
+    if (room.status === "finished" && !state.finished) {
+      unwatchRoom();
+      unwatchRoom = null;
+      const p2Score = room.player2 ? room.player2.score : 0;
+      winGame(room.player1.score >= p2Score ? 0 : 1);
+    }
+  });
 }
 
 function updateScores() {
@@ -712,9 +722,10 @@ async function startGame() {
   if (state.gameMode === "online") {
     try {
       const roomId = sessionStorage.getItem("roomId");
-      const playerName = ROSTER[state.selectedCatP1].name;
-      const catId = `cat${state.selectedCatP1 + 1}`;
-      await updatePlayerCharacter(roomId, playerName, catId);
+      /* El id sale del ROSTER, no de la posición: `cat${idx+1}` sólo
+         funciona mientras el orden del array no cambie. */
+      const pick = ROSTER[state.selectedCatP1];
+      await updatePlayerCharacter(roomId, pick.name, pick.id);
     } catch (error) {
       console.error("Error updating character in room:", error);
     }
@@ -843,10 +854,9 @@ async function handleJoinRoom() {
       return;
     }
 
-    const playerName = ROSTER[state.selectedCatP1].name;
-    const catId = `cat${state.selectedCatP1 + 1}`;
-
-    await joinOnlineRoom(roomId, playerName, catId);
+    /* El gato se elige en la pantalla siguiente: acá todavía no hay nada
+       que mandar, y leer ROSTER[null] reventaba el "Unirse". */
+    await joinOnlineRoom(roomId);
 
     sessionStorage.setItem("roomId", roomId);
     switchScreen("select");

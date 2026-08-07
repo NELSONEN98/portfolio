@@ -45,15 +45,10 @@ async function updatePlayerCharacter(roomId, playerName, catId) {
   }
 }
 
-async function joinOnlineRoom(roomId, playerName, catId) {
+async function joinOnlineRoom(roomId) {
   const sessionId = getSessionId();
   try {
-    const result = await convex.mutation("rooms:joinRoom", {
-      roomId,
-      sessionId,
-      playerName,
-      catId,
-    });
+    const result = await convex.mutation("rooms:joinRoom", { roomId, sessionId });
     return result.roomId;
   } catch (error) {
     console.error("Error joining room:", error);
