@@ -1,2 +1,2 @@
 [functions]
-  directory = "public/projects/AnimalGambling/netlify/functions"
+  directory = "public/projects/AnimalGambling-Vite/netlify/functions"
