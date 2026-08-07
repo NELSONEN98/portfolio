@@ -1,8 +1,0 @@
-[functions]
-  directory = "netlify/functions"
-
-[[redirects]]
-  from = "/api/convex-proxy"
-  to = "/.netlify/functions/convex-proxy"
-  status = 200
-  force = false
