@@ -21,7 +21,7 @@ export const BUST = 1;
    marcador nunca llegaba a 100 por progresión: sólo se ganaba por rachas o
    robando. Con 5 puntos y tres casillas el neto queda cómodamente
    positivo. */
-export const PENALTY_POINTS = 5;
+export const PENALTY_POINTS = 6;
 
 /* Con la maldición encima el dado del rival no pasa de 5: le saca el mejor
    resultado sin quitarle el riesgo del 1. */
@@ -101,10 +101,12 @@ export const BOARD_COLS = 9;
 export const BOARD_ROWS = 8;
 export const BOARD_SIZE = 2 * BOARD_COLS + 2 * BOARD_ROWS - 4;
 
-/* Tres de cada una sobre 30 casillas. Con seis se pisaba alguna casi una
-   vez por turno y el recorrido era más castigo que camino. */
+/* Sobre 30 casillas. Con seis penitencias se pisaba alguna casi una vez por
+   turno y el recorrido era más castigo que camino; con tres quedaba
+   inofensivo. Un bonus de más que penitencias inclina el tablero apenas a
+   favor del que avanza. */
 export const PENALTY_COUNT = 3;
-export const BONUS_COUNT = 3;
+export const BONUS_COUNT = 4;
 
 /* El tablero se sortea por partida, así que deja de ser constante: pasa a
    ser estado de la sala. Si cada lado lo generara por su cuenta verían
