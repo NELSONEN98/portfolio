@@ -1,5 +1,5 @@
 import { v, ConvexError } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 
 const GOAL = 50;
@@ -125,6 +125,72 @@ export const joinRoom = mutation({
   },
 });
 
+/* Irse es parte del juego: sin esto cada "volver al menú" dejaba una sala
+   viva para siempre, y el mismo jugador terminaba figurando en cuatro. */
+export const leaveRoom = mutation({
+  args: {
+    roomId: v.string(),
+    sessionId: v.string(),
+  },
+  async handler(ctx, args) {
+    const room = await findRoom(ctx, args.roomId);
+    /* Salir de algo que ya no está no es un error: el botón de volver no
+       debería explotar porque el rival cerró la sala primero. */
+    if (!room) return { ok: true };
+
+    const me = whoIs(room, args.sessionId);
+    if (!me) return { ok: true };
+
+    /* Nadie llegó a entrar: la sala no le sirve a nadie más. */
+    if (room.status === "waiting") {
+      await ctx.db.delete(room._id);
+      return { ok: true, deleted: true };
+    }
+
+    if (room.status === "playing") {
+      await ctx.db.patch(room._id, {
+        status: "finished",
+        winner: me.other,
+        endedByAbandon: true,
+      });
+
+      await ctx.db.insert("gameEvents", {
+        roomId: args.roomId,
+        sessionId: args.sessionId,
+        action: "abandon",
+        payload: { winner: me.other },
+        timestamp: Date.now(),
+      });
+    }
+
+    return { ok: true };
+  },
+});
+
+/* El TTL estaba escrito en cada sala desde el principio pero nadie lo leía.
+   Lo corre el cron de crons.ts. */
+export const cleanupExpired = internalMutation({
+  args: {},
+  async handler(ctx) {
+    const now = Date.now();
+    const stale = await ctx.db
+      .query("rooms")
+      .withIndex("by_expiresAt", (q) => q.lt("expiresAt", now))
+      .take(200);
+
+    for (const room of stale) {
+      const events = await ctx.db
+        .query("gameEvents")
+        .withIndex("by_roomId", (q) => q.eq("roomId", room.roomId))
+        .collect();
+      for (const e of events) await ctx.db.delete(e._id);
+      await ctx.db.delete(room._id);
+    }
+
+    return { removed: stale.length };
+  },
+});
+
 export const getRoom = query({
   args: { roomId: v.string() },
   async handler(ctx, args) {
@@ -209,6 +275,7 @@ export const holdScore = mutation({
       await ctx.db.patch(room._id, {
         [me.key]: { ...me.player, score: newScore, current: 0 },
         status: "finished",
+        winner: me.key,
       });
       return { newScore, gameFinished: true, winner: me.key };
     }

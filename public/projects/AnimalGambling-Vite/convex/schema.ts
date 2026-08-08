@@ -20,9 +20,17 @@ export default defineSchema({
     })),
     turn: v.string(),
     status: v.string(),
+    /* Quién ganó, dicho por el backend. Deducirlo comparando puntajes del
+       lado del cliente falla justo en el abandono, donde el que se queda
+       puede tener menos. */
+    winner: v.optional(v.string()),
+    endedByAbandon: v.optional(v.boolean()),
     createdAt: v.number(),
     expiresAt: v.number(),
-  }).index("by_roomId", ["roomId"]),
+  })
+    .index("by_roomId", ["roomId"])
+    // Para que el cron de limpieza no recorra la tabla entera.
+    .index("by_expiresAt", ["expiresAt"]),
 
   gameEvents: defineTable({
     roomId: v.string(),

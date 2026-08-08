@@ -56,6 +56,18 @@ async function joinOnlineRoom(roomId) {
   }
 }
 
+/* Se llama en caminos de salida (volver al menú, cerrar la pestaña), donde
+   fallar no debe frenar la navegación: si no sale, el cron limpia. */
+async function leaveOnlineRoom(roomId) {
+  if (!roomId) return;
+  const sessionId = getSessionId();
+  try {
+    await convex.mutation("rooms:leaveRoom", { roomId, sessionId });
+  } catch (error) {
+    console.error("Error leaving room:", error);
+  }
+}
+
 async function getRoom(roomId) {
   try {
     return await convex.query("rooms:getRoom", { roomId });
@@ -122,6 +134,7 @@ export {
   createOnlineRoom,
   updatePlayerCharacter,
   joinOnlineRoom,
+  leaveOnlineRoom,
   getRoom,
   watchRoom,
   convexRollDice,

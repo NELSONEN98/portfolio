@@ -4,6 +4,7 @@ import {
   createOnlineRoom,
   updatePlayerCharacter,
   joinOnlineRoom,
+  leaveOnlineRoom,
   getRoom,
   watchRoom,
   convexRollDice,
@@ -327,6 +328,19 @@ function stopWatchingRoom() {
   unwatchRoom = null;
 }
 
+/* Soltar la sala al volver atrás. Va en un solo lugar y no en cada botón
+   porque los caminos de salida son varios — cancelar la espera, volver
+   desde selección, pedir otros jugadores — y el que se olvide de llamar
+   acá es el que deja la sala colgada. */
+function leaveCurrentRoom() {
+  const roomId = sessionStorage.getItem("roomId");
+  if (!roomId) return;
+  sessionStorage.removeItem("roomId");
+  state.wonByAbandon = false;
+  // Sin await: la navegación no espera a la red. Si falla, limpia el cron.
+  leaveOnlineRoom(roomId);
+}
+
 function syncGameStateOnline() {
   const roomId = sessionStorage.getItem("roomId");
   if (!roomId) return;
@@ -368,8 +382,11 @@ function syncGameStateOnline() {
 
     if (room.status === "finished" && !state.finished) {
       stopWatchingRoom();
-      const p2Score = room.player2 ? room.player2.score : 0;
-      winGame(room.player1.score >= p2Score ? 0 : 1);
+      /* El ganador lo dice el backend. Deducirlo por puntaje se equivocaba
+         justo en el abandono, donde el que se queda suele ir perdiendo. */
+      const winnerIdx = room.winner === "player2" ? 1 : 0;
+      state.wonByAbandon = Boolean(room.endedByAbandon);
+      winGame(winnerIdx);
     }
   });
 }
@@ -592,7 +609,20 @@ function showGameOver(winnerIdx) {
   $("#go-loser-img").src = loser.char.img;
   $("#go-loser-name").textContent = loser.char.name;
   $("#go-loser-score").textContent = loser.score;
-  $("#go-loser-quote").textContent = `"${loser.char.loseQuote}"`;
+  $("#go-loser-quote").textContent = state.wonByAbandon
+    ? '"me borré."'
+    : `"${loser.char.loseQuote}"`;
+
+  $(".gameover-banner .tag").textContent = state.wonByAbandon
+    ? "— se levantó de la mesa —"
+    : "— la casa ya tiene ganador —";
+
+  /* Una revancha online necesita que los dos acepten y que la sala se
+     reinicie; la de acá reusa los picks locales y contra una sala
+     terminada el backend rechaza cada tirada. */
+  $("#btn-again").style.display = state.gameMode === "online" ? "none" : "";
+  $("#btn-gameover-new").textContent =
+    state.gameMode === "online" ? "× Volver al menú" : "× Otros jugadores";
 
   switchScreen("gameover");
   setTimeout(() => launchParticles(60), 200);
@@ -656,6 +686,10 @@ function applyScreen(name) {
   /* Fuera del versus no hay partida que sincronizar. renderGameUI lo vuelve
      a levantar al entrar. */
   if (name !== "game") stopWatchingRoom();
+
+  /* Menú y título son los dos destinos donde ya no estás en ninguna sala.
+     Selección y versus no cuentan: ahí seguís adentro. */
+  if (name === "menu" || name === "title") leaveCurrentRoom();
 
   // Reset select screen when entering
   if (name === "select") {
@@ -801,7 +835,9 @@ function fullReset() {
   $$(".fighter").forEach((el) => el.classList.remove("winner", "loser", "active"));
 
   updateSelectHeader();
-  switchScreen("select");
+  /* En online la sala murió con la partida: volver a elegir personaje sin
+     sala nueva deja la pantalla de selección sin nada detrás. */
+  switchScreen(state.gameMode === "online" ? "menu" : "select");
 }
 
 /* ============================================
@@ -907,7 +943,8 @@ async function handleJoinRoom() {
 }
 
 function handleCancelWait() {
-  sessionStorage.removeItem("roomId");
+  /* El roomId NO se borra acá: switchScreen("menu") dispara
+     leaveCurrentRoom, que lo necesita para avisarle al backend. */
   $("#room-choice-content").style.display = "flex";
   $("#room-waiting").style.display = "none";
   $("#room-code").value = "";
