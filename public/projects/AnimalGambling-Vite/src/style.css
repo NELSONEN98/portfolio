@@ -688,6 +688,32 @@ body {
     0 1.2rem 2.4rem rgba(0, 0, 0, 0.5);
 }
 
+/* Maldito: el marco pasa a morado mientras duren los turnos, esté o no en
+   turno. Pisa al dorado y al blanco a propósito — que te limiten el dado
+   es más importante de saber que de quién es el turno, y el morado es el
+   mismo color de la carta que lo causó. */
+.fighter.cursed .fighter-frame,
+.fighter.cursed.active .fighter-frame {
+  box-shadow:
+    0 0 0 0.3rem var(--c-purple),
+    0 0 3rem rgba(91, 45, 142, 0.7),
+    0 1.6rem 2.8rem rgba(0, 0, 0, 0.55);
+}
+
+/* Un latido lento para que se lea como un estado que está corriendo y no
+   como otro color fijo más. */
+.fighter.cursed .fighter-frame {
+  animation: cursed-pulse 2.2s ease-in-out infinite;
+}
+@keyframes cursed-pulse {
+  0%, 100% { box-shadow: 0 0 0 0.3rem var(--c-purple), 0 0 2rem rgba(91, 45, 142, 0.55), 0 1.6rem 2.8rem rgba(0, 0, 0, 0.55); }
+  50%      { box-shadow: 0 0 0 0.3rem var(--c-purple), 0 0 4rem rgba(91, 45, 142, 0.95), 0 1.6rem 2.8rem rgba(0, 0, 0, 0.55); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fighter.cursed .fighter-frame { animation: none; }
+}
+
 /* Además del dorado, el que está en turno se levanta y prende. */
 .fighter.active .fighter-frame {
   transform: translateY(-0.6rem);

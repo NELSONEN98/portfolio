@@ -80,7 +80,7 @@ function freshPlayer(sessionId: string) {
     score: 0,
     current: 0,
     pos: 0,
-    hand: startingHand(rand),
+    hand: startingHand(),
     pendingCard: null,
     pendingCards: [],
     curseTurns: 0,

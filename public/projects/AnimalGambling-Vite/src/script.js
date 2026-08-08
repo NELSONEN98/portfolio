@@ -289,7 +289,7 @@ function newPlayer(char) {
     score: 0,
     current: 0,
     pos: 0,
-    hand: startingHand(() => Math.random()),
+    hand: startingHand(),
     pendingCards: [],
     curseTurns: 0,
     doubleNext: false,
@@ -859,7 +859,12 @@ function updateScores() {
 
 function updateActiveFighter() {
   for (let i = 0; i < 2; i++) {
-    $(`#fighter-${i}`).classList.toggle("active", i === state.active && state.playing);
+    const el = $(`#fighter-${i}`);
+    el.classList.toggle("active", i === state.active && state.playing);
+    /* El marco morado mientras dura la maldición. Va acá y no en
+       applySides porque el contador baja al terminar cada turno, y esta
+       función corre en cada actualización del marcador. */
+    el.classList.toggle("cursed", (state.players[i]?.curseTurns ?? 0) > 0);
   }
 }
 
@@ -1794,6 +1799,16 @@ function rulesHTML() {
 
   const robos = STEAL_VALUES.map((v) => `−${v}`).join(", ");
 
+  /* La mano de arranque se lee de la regla, no se describe a mano: si
+     cambia, el texto cambia con ella. */
+  const conteo = startingHand().reduce((acc, c) => {
+    acc[c.type] = (acc[c.type] ?? 0) + 1;
+    return acc;
+  }, {});
+  const manoInicial = Object.entries(conteo)
+    .map(([tipo, n]) => `${n} de ${CARD_LABEL[tipo].toLowerCase()}`)
+    .join(", ");
+
   return [
     paso("01", "EL JUEGO",
       `Dos gatos, un dado y una mesa. Gana el primero que llega a
@@ -1823,9 +1838,10 @@ function rulesHTML() {
        </div>`),
 
     paso("06", "LAS CARTAS",
-      `Arrancás con dos de robo y una de defensa. Sólo podés jugarlas en tu
-       turno y una por vez: la carta queda <b>boca abajo</b> sobre la mesa
-       y recién se revela cuando te plantás.`,
+      `Arrancás con ${manoInicial}. Sólo podés jugarlas en tu turno, y podés
+       poner <b>varias en el mismo turno</b>: quedan <b>boca abajo</b> sobre
+       la mesa y se revelan recién cuando te plantás. Cada defensa del rival
+       tapa una sola, así que acumular sirve.`,
       `<div class="rule-items">
          ${carta(CARD.STEAL,
            `Le saca puntos al rival y te los suma. Vienen de ${robos}, y no

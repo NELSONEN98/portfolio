@@ -173,11 +173,16 @@ export function makeCard(type: CardType, value: number | undefined, seed: number
     : { uid: `${type}${value}-${seed}`, type, value };
 }
 
-/* Mano inicial: dos de robo y una de defensa, como pidió el diseño. Los
-   valores de robo salen al azar de los tres posibles. */
-export function startingHand(rand: () => number): Card[] {
-  const steals = [0, 1].map((i) => makeCard(CARD.STEAL, randomStealValue(rand), i));
-  return [...steals, makeCard(CARD.DEFENSE, undefined, 2)];
+/* Mano inicial fija: un robo chico, una defensa y una maldición. Que sea
+   siempre la misma iguala el arranque —nadie empieza con mejor mano— y
+   pone las tres mecánicas en juego desde el primer turno. Los robos
+   grandes hay que salir a buscarlos a las casillas de bonus. */
+export function startingHand(): Card[] {
+  return [
+    makeCard(CARD.STEAL, STEAL_VALUES[0], 0),
+    makeCard(CARD.DEFENSE, undefined, 1),
+    makeCard(CARD.CURSE, undefined, 2),
+  ];
 }
 
 /* Lo que entrega una casilla de bonus. El robo pesa más que el resto
