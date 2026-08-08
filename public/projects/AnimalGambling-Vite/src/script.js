@@ -172,8 +172,16 @@ const TWEAK_DEFAULS = /*EDITMODE-BEGIN*/{
   "goalScore": 50,
   "smokeOpacity": 0.35,
   "scanlines": true,
-  "particles": true
+  "particles": true,
+  "uiShift": 0
 }/*EDITMODE-END*/;
+
+/* La animación del dado dura 0.7s, definida en .dice-3d.rolling. La cara se
+   revela 50ms antes de que termine, para que el corte caiga todavía dentro
+   del movimiento. Si cambia una duración hay que cambiar la otra: quedaron
+   desfasadas cuando el CSS se acortó de 1.2s y el dado se quedaba quieto
+   medio segundo antes de mostrar el número. */
+const DICE_ROLL_MS = 650;
 
 const state = {
   screen: "title", // "title" | "select" | "game" | "gameover"
@@ -309,23 +317,12 @@ function paintFighters() {
   }
 }
 
-/* Quién es cada lado, para el CSS. En online el jugador va abajo y en
-   dorado, el rival arriba y en blanco; como f1 es el de arriba, cuando te
-   tocó ser player1 hay que dar vuelta las posiciones.
-
-   En local no hay "vos" y "el otro" —los dos miran la misma pantalla—, así
-   que P1 se queda arriba como siempre y sólo hereda el par de colores. */
+/* En online el jugador tiene que verse siempre abajo. Como f1 es el de
+   arriba, al que le tocó ser player1 se le dan vuelta las dos posiciones.
+   En local no aplica: los dos miran la misma pantalla. */
 function applySides() {
   const online = state.gameMode === "online";
-  const me = online ? state.mySide : 0;
-
-  screens.game.classList.toggle("flip", online && me === 0);
-
-  for (let i = 0; i < 2; i++) {
-    const el = $(`#fighter-${i}`);
-    el.classList.toggle("is-me", i === me);
-    el.classList.toggle("is-rival", i !== me);
-  }
+  screens.game.classList.toggle("flip", online && state.mySide === 0);
 }
 
 function renderGameUI() {
@@ -540,7 +537,7 @@ function rollDiceLocal() {
       setRolling(false);
       if (p.score + p.current >= state.goal) holdScore();
     }
-  }, 1150);
+  }, DICE_ROLL_MS);
 }
 
 function animateDiceRoll(roll, isBust) {
@@ -561,7 +558,7 @@ function animateDiceRoll(roll, isBust) {
     } else {
       setRolling(false);
     }
-  }, 1150);
+  }, DICE_ROLL_MS);
 }
 
 function showSnakeEyes() {
@@ -1039,7 +1036,14 @@ function closeRules() {
 /* ============================================
    TWEAKS
    ============================================ */
+/* Sube o baja peleadores, puntajes y controles sin mover la mesa. En rem,
+   así acompaña la escala tipográfica de cada breakpoint. */
+function applyUiShift() {
+  screens.game.style.setProperty("--ui-shift", `${TWEAK_DEFAULS.uiShift}rem`);
+}
+
 function applyTweaks() {
+  applyUiShift();
   const smoke = $(".smoke");
   if (smoke) smoke.style.opacity = TWEAK_DEFAULS.smokeOpacity;
 
@@ -1070,6 +1074,18 @@ function setupTweaks() {
     const goalEl = $("#goal-num");
     if (goalEl) goalEl.textContent = v;
     postTweak({ goalScore: v });
+  });
+
+  const shiftInput = $("#tweak-shift");
+  const shiftOut = $("#tweak-shift-val");
+  shiftInput.value = TWEAK_DEFAULS.uiShift;
+  shiftOut.textContent = TWEAK_DEFAULS.uiShift;
+  shiftInput.addEventListener("input", () => {
+    const v = parseFloat(shiftInput.value);
+    TWEAK_DEFAULS.uiShift = v;
+    shiftOut.textContent = v;
+    applyUiShift();
+    postTweak({ uiShift: v });
   });
 
   const smokeInput = $("#tweak-smoke");

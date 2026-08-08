@@ -454,6 +454,11 @@ body {
   gap: clamp(0.3rem, 1vh, 0.9rem);
   /* Ahora sobra alto en lugar de repartirse: el bloque entero se centra. */
   align-content: center;
+
+  /* Cuánto bajan peleadores, puntajes y controles respecto de la mesa. Lo
+     mueve el slider del panel de ajustes; la mesa se queda donde está,
+     que es lo que hace que el desplazamiento se note. */
+  --ui-shift: 0rem;
   padding:
     clamp(0.6rem, 1.5vh, 1.6rem)
     clamp(1.2rem, 3vw, 4rem)
@@ -474,6 +479,9 @@ body {
   align-items: center;
   gap: clamp(1rem, 3vw, 2.4rem);
   min-width: 0;
+  /* El desplazamiento va acá y no en .fighter-frame: ese ya usa transform
+     para levantarse en su turno y se pisarían. */
+  transform: translateY(var(--ui-shift));
 }
 .fighter.f1 { grid-area: f1; justify-self: start; }
 /* mirrored, so the two readouts sit on opposite sides of the table */
@@ -652,17 +660,16 @@ body {
   90%  { background-image: url("cat4/frame0009.webp"); }
 }
 
-/* El color dice de quién es cada lado, no qué posición ocupa: el tuyo
-   siempre dorado, el del rival siempre blanco. Antes era f1 ámbar y f2
-   cyan, y en online el color te cambiaba según te hubiera tocado crear la
-   sala o entrar. Cada fighter lleva el suyo y el resto lo hereda. */
-.fighter.is-me {
+/* El dorado es el turno: lo lleva el que tira, y el que espera queda en
+   blanco. Borde y número salen los dos de --side, así que el jugador ve
+   una sola señal repetida en vez de dos cosas que interpretar. */
+.fighter {
+  --side: #fff;
+  --side-glow: rgba(255, 255, 255, 0.3);
+}
+.fighter.active {
   --side: var(--c-gold);
   --side-glow: rgba(228, 167, 0, 0.45);
-}
-.fighter.is-rival {
-  --side: #fff;
-  --side-glow: rgba(255, 255, 255, 0.35);
 }
 
 .fighter .fighter-frame {
@@ -671,9 +678,7 @@ body {
     0 1.2rem 2.4rem rgba(0, 0, 0, 0.5);
 }
 
-/* De quién es el turno tiene que leerse de un vistazo. Como el color ya
-   está tomado para identificar al jugador, el turno lo marcan el brillo y
-   la elevación. */
+/* Además del dorado, el que está en turno se levanta y prende. */
 .fighter.active .fighter-frame {
   transform: translateY(-0.6rem);
   box-shadow:
@@ -904,6 +909,7 @@ body {
   /* Aire propio: los botones son de la interfaz, no de la mesa, y pegados
      al peleador de abajo se leían como parte de él. */
   margin-top: clamp(1rem, 3vh, 2.6rem);
+  transform: translateY(var(--ui-shift));
 }
 .versus-controls .btn,
 .versus-controls .btn-nav {
@@ -1046,7 +1052,7 @@ body {
   image-rendering: auto;
 }
 .dice-3d.rolling {
-  animation: dice-roll 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: dice-roll 0.7s cubic-bezier(0.4, 0, 0.2, 1);
 }
 /* Hop height rides on --die too — a fixed 6rem arc that looked right on
    desktop threw the die clean off a phone-sized felt. */
