@@ -942,6 +942,44 @@ body {
   --bulb-gap: clamp(1.5rem, 4vmin, 2.5rem);
 }
 
+/* ============================================
+   PRELOADER
+   ============================================ */
+/* Tapa todo hasta que el juego esté listo. Por encima de las líneas de
+   barrido y del panel de ajustes, que son las capas más altas: mientras
+   carga no tiene que asomar nada. */
+#preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+/* Se desvanece y deja de estorbar antes de terminar de irse. */
+#preloader.done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.preloader-text {
+  font-family: var(--display);
+  font-size: clamp(1.8rem, 6vmin, 4rem);
+  line-height: 1.35;
+  text-align: center;
+  color: var(--c-black);
+  letter-spacing: 0.08em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #preloader { transition: none; }
+}
+
 /* Puerta a las reglas, arriba a la derecha. Redondo y chico: es una ayuda
    a mano, no una acción del juego, y por eso no usa .btn-nav —los dos
    botones dorados de abajo son los que se aprietan para jugar.

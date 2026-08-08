@@ -168,6 +168,43 @@ function warmRosterFrames() {
   });
 }
 
+/* ============================================
+   PRELOADER
+   ============================================ */
+/* Se va cuando el juego está realmente listo, no cuando corre este
+   archivo. Espera dos cosas:
+
+   - la fuente: si el preloader se fuera antes, el nombre aparecería en la
+     tipografía de respaldo y saltaría a Bungee a la vista de todos;
+   - el evento load, que es cuando terminaron las imágenes del título.
+
+   Y un mínimo en pantalla: un preloader que aparece cien milisegundos y se
+   va parece un parpadeo defectuoso, no una presentación. */
+const PRELOADER_MIN_MS = 1100;
+const bootedAt = performance.now();
+
+function hidePreloader() {
+  const el = document.getElementById("preloader");
+  if (!el) return;
+
+  const resta = Math.max(0, PRELOADER_MIN_MS - (performance.now() - bootedAt));
+  setTimeout(() => {
+    el.classList.add("done");
+    /* Se saca del DOM al terminar de desvanecerse. El respaldo por tiempo
+       cubre el caso en que la transición no dispare —pasa si la pestaña
+       estaba en segundo plano— y el cartel quedaría tapando el juego. */
+    el.addEventListener("transitionend", () => el.remove(), { once: true });
+    setTimeout(() => el.remove(), 900);
+  }, resta);
+}
+
+Promise.all([
+  document.fonts ? document.fonts.ready : Promise.resolve(),
+  document.readyState === "complete"
+    ? Promise.resolve()
+    : new Promise((listo) => window.addEventListener("load", listo, { once: true })),
+]).then(hidePreloader);
+
 /* Los 38 dibujos de los gatos pesan casi un mega. Esperar al click dejaba
    la selección llena de agujeros mientras bajaban; arrancarlos antes los
    ponía a competir con el título. El evento `load` es justo el medio: el

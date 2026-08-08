@@ -20,10 +20,19 @@
   <link rel="preload" as="image" href="./main-menu/main-0.webp" fetchpriority="low" />
   <link rel="preload" as="image" href="./main-menu/main-1.webp" fetchpriority="low" />
   <link rel="preload" as="image" href="./main-menu/main-2.webp" fetchpriority="low" />
-  <script type="module" crossorigin src="./index-W4iDtnNs.js"></script>
-  <link rel="stylesheet" crossorigin href="./index-TDuVH-On.css">
+  <script type="module" crossorigin src="./index-BZtwmijb.js"></script>
+  <link rel="stylesheet" crossorigin href="./index-DTlobHgz.css">
 </head>
 <body>
+  <!-- Primero en el body para que se pinte antes que nada. El fondo va
+       también en línea: si el CSS tarda un instante, lo que se ve es
+       blanco y no un destello del juego. -->
+  <div id="preloader" style="background:#fff">
+    <div class="preloader-text">
+      La mini tarberna<br />GAMES
+    </div>
+  </div>
+
   <div class="table">
     <div class="smoke">
       <div class="smoke-wisp"></div>

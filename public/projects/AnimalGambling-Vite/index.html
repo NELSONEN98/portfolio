@@ -22,6 +22,15 @@
   <link rel="preload" as="image" href="./main-menu/main-2.webp" fetchpriority="low" />
 </head>
 <body>
+  <!-- Primero en el body para que se pinte antes que nada. El fondo va
+       también en línea: si el CSS tarda un instante, lo que se ve es
+       blanco y no un destello del juego. -->
+  <div id="preloader" style="background:#fff">
+    <div class="preloader-text">
+      La mini tarberna<br />GAMES
+    </div>
+  </div>
+
   <div class="table">
     <div class="smoke">
       <div class="smoke-wisp"></div>
