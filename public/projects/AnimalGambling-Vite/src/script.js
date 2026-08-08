@@ -920,9 +920,19 @@ async function rollDiceOnline() {
       /* El puntaje del backend puede haber bajado por una penitencia. */
       if (typeof result.score === "number") me.score = result.score;
       me.current = result.isBust ? 0 : result.newCurrent;
-      if (result.isBust) state.active = state.mySide === 0 ? 1 : 0;
+      if (result.isBust) {
+        state.active = state.mySide === 0 ? 1 : 0;
+        /* La carta puesta vuelve a la mano. El servidor ya la devolvió;
+           esto es para no esperar hasta el próximo sondeo. */
+        if (me.pendingCard) {
+          me.hand = [...(me.hand ?? []), me.pendingCard];
+          me.pendingCard = null;
+          notify("Te quemaste — tu carta vuelve a la mano");
+        }
+      }
       updateScores();
       updateActiveFighter();
+      renderHand();
 
       /* Plantarse solo al alcanzar el objetivo, igual que en local: sin
          esto el online te dejaba seguir tirando con la partida ya ganada,
@@ -988,7 +998,10 @@ function applyLandingLocal(p, steps) {
     p.score = applyPenalty(p.score);
     notify(`Penitencia — ${p.char.name} pierde ${PENALTY_POINTS}`, "error");
   } else if (square === SQUARE.BONUS) {
-    if ((p.hand?.length ?? 0) < HAND_LIMIT) {
+    /* La carta que está sobre la mesa cuenta para el límite: puede volver
+       a la mano al quemarse, y sin contarla quedaría una de más. */
+    const ocupadas = (p.hand?.length ?? 0) + (p.pendingCard ? 1 : 0);
+    if (ocupadas < HAND_LIMIT) {
       p.hand = [...(p.hand ?? []), randomBonusCard(rand, Date.now())];
       notify(`Bonus — carta nueva para ${p.char.name}`);
     } else {
@@ -1051,6 +1064,15 @@ function rollDiceLocal() {
     applyLandingLocal(p, outcome.isBust ? outcome.dice.length : outcome.gained);
 
     if (outcome.isBust) {
+      /* La carta que estaba boca abajo vuelve a la mano sin revelarse:
+         quemarse ya cuesta el turno entero, no tiene por qué costar
+         también la carta. */
+      if (p.pendingCard) {
+        p.hand = [...(p.hand ?? []), p.pendingCard];
+        p.pendingCard = null;
+        notify("Te quemaste — tu carta vuelve a la mano");
+        renderHand();
+      }
       p.current = 0;
       updateScores();
       /* El cambio de jugador espera al cartel de quemado, que dura lo

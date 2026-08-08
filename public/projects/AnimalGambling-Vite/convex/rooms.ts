@@ -284,12 +284,14 @@ export const rollDice = mutation({
     if (square === SQUARE.PENALTY) {
       score = applyPenalty(score);
       landed = SQUARE.PENALTY;
-    } else if (square === SQUARE.BONUS && hand.length < HAND_LIMIT) {
-      hand = [...hand, randomBonusCard(rand, Date.now())];
-      landed = SQUARE.BONUS;
     } else if (square === SQUARE.BONUS) {
-      // Mano llena: la casilla se pisa igual pero no entrega nada.
       landed = SQUARE.BONUS;
+      /* La carta que está sobre la mesa cuenta para el límite: puede
+         volver a la mano al quemarse, y sin contarla la mano terminaría
+         con una de más. */
+      const ocupadas = hand.length + (mine.pendingCard ? 1 : 0);
+      // Mano llena: la casilla se pisa igual pero no entrega nada.
+      if (ocupadas < HAND_LIMIT) hand = [...hand, randomBonusCard(rand, Date.now())];
     }
 
     await ctx.db.insert("gameEvents", {
@@ -303,6 +305,7 @@ export const rollDice = mutation({
         isBust: outcome.isBust,
         pos,
         landed,
+        cardReturned: Boolean(outcome.isBust && mine.pendingCard),
       },
       timestamp: Date.now(),
     });
@@ -318,10 +321,16 @@ export const rollDice = mutation({
 
     /* Ojo de víbora: se pierde lo acumulado del turno y pasa el otro. */
     if (outcome.isBust) {
+      /* La carta que estaba boca abajo vuelve a la mano sin revelarse:
+         quemarse ya cuesta el turno entero, no tiene por qué costar
+         también la carta. */
+      const devuelta = mine.pendingCard ? [...hand, mine.pendingCard] : hand;
       await ctx.db.patch(room._id, {
         turn: me.other,
         [me.key]: {
           ...base,
+          hand: devuelta,
+          pendingCard: null,
           current: 0,
           /* La maldición se mide en turnos, no en tiradas: acá termina uno.
              Descontándola en cada tirada duraba 1,4 turnos en vez de 3,
