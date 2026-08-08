@@ -464,7 +464,7 @@ body {
      Subir este número los aleja, bajarlo los junta; acepta negativos
      hasta superponerlos. Va aparte del `gap` de arriba porque ese aplica
      a las cuatro filas por igual y movía también los botones. */
-  --table-gap: 0rem;
+  --table-gap: 4rem;
   padding:
     clamp(0.6rem, 1.5vh, 1.6rem)
     clamp(1.2rem, 3vw, 4rem)
