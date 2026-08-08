@@ -70,14 +70,27 @@ function watchRoom(roomId, callback) {
 
   async function poll() {
     if (unsubscribed) return;
+
+    let room;
     try {
-      const room = await getRoom(roomId);
-      callback(room);
-      setTimeout(poll, 2000);
+      room = await getRoom(roomId);
     } catch (error) {
       console.error("Error polling room:", error);
       setTimeout(poll, 5000);
+      return;
     }
+
+    /* Que falle el callback es un bug de la UI, no de la red. Mezclarlos
+       hacía que un TypeError se leyera como problema de conexión y que el
+       sondeo se frenara a 5s por la razón equivocada. */
+    try {
+      callback(room);
+    } catch (error) {
+      console.error("watchRoom callback failed:", error);
+    }
+
+    // El callback puede haber cortado la suscripción (partida terminada).
+    if (!unsubscribed) setTimeout(poll, 2000);
   }
 
   poll();

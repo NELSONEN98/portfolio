@@ -318,11 +318,20 @@ function charFromCatId(catId) {
    anterior seguía vivo: dos sondeos escribiendo el mismo estado. */
 let unwatchRoom = null;
 
+/* Salir del versus tiene que apagar el sondeo. Al volver a selección los
+   jugadores se ponen en null, y un poll huérfano seguía escribiendo
+   puntajes sobre ellos cada dos segundos. */
+function stopWatchingRoom() {
+  if (!unwatchRoom) return;
+  unwatchRoom();
+  unwatchRoom = null;
+}
+
 function syncGameStateOnline() {
   const roomId = sessionStorage.getItem("roomId");
   if (!roomId) return;
 
-  if (unwatchRoom) unwatchRoom();
+  stopWatchingRoom();
 
   unwatchRoom = watchRoom(roomId, (room) => {
     if (!room) return;
@@ -358,8 +367,7 @@ function syncGameStateOnline() {
     updateControls();
 
     if (room.status === "finished" && !state.finished) {
-      unwatchRoom();
-      unwatchRoom = null;
+      stopWatchingRoom();
       const p2Score = room.player2 ? room.player2.score : 0;
       winGame(room.player1.score >= p2Score ? 0 : 1);
     }
@@ -369,6 +377,7 @@ function syncGameStateOnline() {
 function updateScores() {
   for (let i = 0; i < 2; i++) {
     const p = state.players[i];
+    if (!p) continue;
     $(`#score-${i}`).textContent = p.score;
     $(`#current-${i}`).textContent = p.current;
   }
@@ -643,6 +652,10 @@ function applyScreen(name) {
   // versus: the felt is a real object mid-screen, so the full-bleed one goes
   table.classList.toggle("on-versus", name === "game");
   closeRules();
+
+  /* Fuera del versus no hay partida que sincronizar. renderGameUI lo vuelve
+     a levantar al entrar. */
+  if (name !== "game") stopWatchingRoom();
 
   // Reset select screen when entering
   if (name === "select") {
