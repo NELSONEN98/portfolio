@@ -771,6 +771,64 @@ body {
   animation: num-bump 0.38s ease-out;
 }
 
+/* El golpe va a la izquierda del marcador, fuera del flujo: si ocupara
+   lugar, el número grande se correría cada vez que aparece. */
+.score-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.f-hit {
+  position: absolute;
+  right: 100%;
+  margin-right: 0.4rem;
+  top: 50%;
+
+  font-family: var(--display);
+  font-size: clamp(1.6rem, 4vmin, 2.8rem);
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--c-red);
+  text-shadow: 0 0 1.2rem rgba(199, 0, 0, 0.8);
+
+  opacity: 0;
+  pointer-events: none;
+}
+
+.f-hit.show {
+  animation: hit-float 1.5s ease-out;
+}
+
+/* Sube y se desvanece: el movimiento hacia arriba lo despega del número
+   que está contando abajo, para que se lean como dos cosas. */
+@keyframes hit-float {
+  0%   { opacity: 0; transform: translateY(0.6rem) scale(0.7); }
+  18%  { opacity: 1; transform: translateY(-0.2rem) scale(1.12); }
+  55%  { opacity: 1; transform: translateY(-0.9rem) scale(1); }
+  100% { opacity: 0; transform: translateY(-2rem) scale(0.95); }
+}
+
+/* En el lado de abajo el marcador está alineado al otro borde, así que el
+   golpe se pasa al lado opuesto para no salirse de la pantalla. */
+.fighter.f2 .f-hit,
+.versus-screen.flip .fighter.f1 .f-hit {
+  right: auto;
+  left: 100%;
+  margin-right: 0;
+  margin-left: 0.4rem;
+}
+.versus-screen.flip .fighter.f2 .f-hit {
+  right: 100%;
+  left: auto;
+  margin-right: 0.4rem;
+  margin-left: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .f-hit.show { animation: hit-float 1.5s steps(1, end); }
+}
+
 /* Mientras el número baja va en rojo: penitencia y robo se distinguen de
    un turno bueno sin leer la cifra. Pisa al color del lado a propósito. */
 .f-score.down,

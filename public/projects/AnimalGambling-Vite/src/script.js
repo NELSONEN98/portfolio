@@ -753,6 +753,25 @@ const numberTarget = new Map();
 const numberFrame = new Map();
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+/* Cuánto se perdió, al lado del marcador. El número grande contando hacia
+   abajo dice que algo pasó, pero no cuánto: para saberlo habría que
+   acordarse del valor anterior. */
+function showHit(scoreEl, amount) {
+  if (amount <= 0) return;
+  const hit = scoreEl.parentElement?.querySelector(".f-hit");
+  if (!hit) return;
+
+  hit.textContent = `−${amount}`;
+  hit.classList.remove("show");
+  void hit.offsetWidth;
+  hit.classList.add("show");
+  /* La clase se saca al terminar: si queda puesta, volver a entrar a la
+     pantalla reinicia la animación y aparece un golpe que no existió. */
+  hit.addEventListener("animationend", () => hit.classList.remove("show"), {
+    once: true,
+  });
+}
+
 function animateNumber(el, to) {
   const from = numberTarget.has(el) ? numberTarget.get(el) : to;
   numberTarget.set(el, to);
@@ -779,7 +798,13 @@ function animateNumber(el, to) {
   el.classList.remove("bump", "down");
   void el.offsetWidth;
   el.classList.add("bump");
-  if (goingDown) el.classList.add("down");
+  if (goingDown) {
+    el.classList.add("down");
+    /* Acá se entera cualquier baja del marcador, venga de una penitencia o
+       de un robo: es el único punto por donde pasan todas, en local y en
+       online. Instrumentar cada causa por separado dejaría alguna afuera. */
+    if (el.classList.contains("f-score")) showHit(el, from - to);
+  }
 
   const step = (now) => {
     const p = Math.min((now - t0) / dur, 1);
