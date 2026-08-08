@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 
@@ -81,10 +81,10 @@ export const updatePlayerCharacter = mutation({
   },
   async handler(ctx, args) {
     const room = await findRoom(ctx, args.roomId);
-    if (!room) throw new Error("Room not found");
+    if (!room) throw new ConvexError("Room not found");
 
     const me = whoIs(room, args.sessionId);
-    if (!me) throw new Error("You are not in this room");
+    if (!me) throw new ConvexError("You are not in this room");
 
     await ctx.db.patch(room._id, {
       [me.key]: { ...me.player, name: args.playerName, catId: args.catId },
@@ -101,13 +101,13 @@ export const joinRoom = mutation({
   },
   async handler(ctx, args) {
     const room = await findRoom(ctx, args.roomId);
-    if (!room) throw new Error("Room not found");
+    if (!room) throw new ConvexError("Room not found");
 
     /* Recargar la página no debería costarte la sala: si el que entra ya
        está adentro, esto es un no-op en vez de un error. */
     if (whoIs(room, args.sessionId)) return { roomId: args.roomId };
 
-    if (room.status !== "waiting") throw new Error("Room full or finished");
+    if (room.status !== "waiting") throw new ConvexError("Room full or finished");
 
     await ctx.db.patch(room._id, {
       player2: {
@@ -142,12 +142,12 @@ export const rollDice = mutation({
   },
   async handler(ctx, args) {
     const room = await findRoom(ctx, args.roomId);
-    if (!room) throw new Error("Room not found");
-    if (room.status !== "playing") throw new Error("Game not active");
+    if (!room) throw new ConvexError("Room not found");
+    if (room.status !== "playing") throw new ConvexError("Game not active");
 
     const me = whoIs(room, args.sessionId);
-    if (!me) throw new Error("You are not in this room");
-    if (room.turn !== me.key) throw new Error("Not your turn");
+    if (!me) throw new ConvexError("You are not in this room");
+    if (room.turn !== me.key) throw new ConvexError("Not your turn");
 
     const roll = Math.floor(Math.random() * 6) + 1;
     const isBust = roll === 1;
@@ -185,14 +185,14 @@ export const holdScore = mutation({
   },
   async handler(ctx, args) {
     const room = await findRoom(ctx, args.roomId);
-    if (!room) throw new Error("Room not found");
-    if (room.status !== "playing") throw new Error("Game not active");
+    if (!room) throw new ConvexError("Room not found");
+    if (room.status !== "playing") throw new ConvexError("Game not active");
 
     const me = whoIs(room, args.sessionId);
-    if (!me) throw new Error("You are not in this room");
+    if (!me) throw new ConvexError("You are not in this room");
     /* Sin esto el rival podía plantarse durante tu turno y llevarse tu
        acumulado. */
-    if (room.turn !== me.key) throw new Error("Not your turn");
+    if (room.turn !== me.key) throw new ConvexError("Not your turn");
 
     const newScore = me.player.score + me.player.current;
     const gameFinished = newScore >= GOAL;

@@ -165,6 +165,9 @@ const state = {
   screen: "title", // "title" | "select" | "game" | "gameover"
   gameMode: "local", // "local" | "online"
   picking: 0, // which player is picking (0 or 1)
+  /* En online la pantalla muestra a los dos, pero vos sos uno solo: sin
+     esto los controles quedaban vivos en el turno del rival. */
+  mySide: 0,
   players: [null, null], // each: { char, score, current }
   selectedCatP1: null,
   selectedCatP2: null,
@@ -296,6 +299,7 @@ function renderGameUI() {
   paintFighters();
   updateScores();
   updateActiveFighter();
+  updateControls();
   $("#goal-num").textContent = state.goal;
 
   // Setup real-time sync for online mode
@@ -331,6 +335,12 @@ function syncGameStateOnline() {
       $("#goal-num").textContent = room.goal;
     }
 
+    /* Cuál de los dos sos: la sala es la misma para ambos, lo único que
+       distingue es el sessionId. */
+    const mySession = getSessionId();
+    if (room.player1.sessionId === mySession) state.mySide = 0;
+    else if (room.player2 && room.player2.sessionId === mySession) state.mySide = 1;
+
     [room.player1, room.player2].forEach((side, i) => {
       const p = state.players[i];
       if (!side || !p) return;
@@ -345,6 +355,7 @@ function syncGameStateOnline() {
     paintFighters();
     updateScores();
     updateActiveFighter();
+    updateControls();
 
     if (room.status === "finished" && !state.finished) {
       unwatchRoom();
@@ -392,12 +403,27 @@ function setDiceFace(n) {
    bypasses button state entirely, so guarding on `disabled` guards nothing. */
 function setRolling(rolling) {
   state.rolling = rolling;
-  $("#btn-roll").disabled = rolling;
-  $("#btn-hold").disabled = rolling;
+  updateControls();
+}
+
+/* En local los dos comparten pantalla y el turno lo lleva el juego. En
+   online cada uno maneja un solo lado. */
+function isMyTurn() {
+  return state.gameMode !== "online" || state.active === state.mySide;
+}
+
+function updateControls() {
+  const blocked = state.rolling || !isMyTurn();
+  $("#btn-roll").disabled = blocked;
+  $("#btn-hold").disabled = blocked;
 }
 
 function rollDice() {
   if (!state.playing || state.rolling) return;
+  /* El teclado no pasa por el botón, así que el disabled no alcanza: sin
+     esto el backend respondía "Not your turn", que en producción Convex
+     enmascara como "Server Error". */
+  if (!isMyTurn()) return;
 
   if (state.gameMode === "online") {
     rollDiceOnline();
@@ -483,6 +509,7 @@ function showSnakeEyes() {
 
 function holdScore() {
   if (!state.playing || state.rolling) return;
+  if (!isMyTurn()) return;
 
   if (state.gameMode === "online") {
     holdScoreOnline();
