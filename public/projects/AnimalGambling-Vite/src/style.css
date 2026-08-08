@@ -187,29 +187,25 @@ body {
   padding: 3rem;
   background: #000;
   height: 100%;
-  /* Ancla del botón de volver, que va suelto en la esquina. */
-  position: relative;
 }
 
-/* Fuera del flujo: si contara para el centrado, empujaría el título y las
-   opciones hacia arriba. */
+/* Último y separado del resto. Va en el flujo — como absoluto quedaba
+   flotando sin relación con el bloque centrado. El margen extra sobre el
+   gap de la pantalla es lo que lo saca del grupo de opciones: volver no
+   es una tercera forma de entrar a una sala. */
 .room-choice-back {
-  position: absolute;
-  left: 3rem;
-  bottom: 3rem;
+  align-self: flex-start;
+  margin-top: 2rem;
 }
 
-/* Al estar fuera del flujo no reserva su propio lugar. En pantallas bajas
-   el contenido centrado le pasaba por encima, así que el espacio se lo
-   deja la pantalla. */
 @media (max-width: 768px), (max-height: 640px) {
   .room-choice-screen {
-    padding: 2rem 1.5rem 7rem;
+    padding: 2rem 1.5rem;
+    gap: 2rem;
   }
   .room-choice-back {
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 1.5rem;
+    align-self: center;
+    margin-top: 1rem;
   }
 }
 
