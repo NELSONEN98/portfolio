@@ -76,7 +76,7 @@ const ROSTER = [
     name: "Michi Bizco",
     dir: "cat1",
     frames: 9,
-    img: "cat1/frame0000.png",
+    img: "cat1/frame0000.webp",
     age: "7",
     cond: "Le debe plata a todos los gatos del barrio.",
     quote: "Te dije que tenía un sistema.",
@@ -88,7 +88,7 @@ const ROSTER = [
     name: "Tuco Rayado",
     dir: "cat2",
     frames: 9,
-    img: "cat2/frame0000.png",
+    img: "cat2/frame0000.webp",
     age: "11",
     cond: "Dice que se retiró. Vuelve todas las noches.",
     quote: "Nunca dudé. Ni un segundo.",
@@ -100,7 +100,7 @@ const ROSTER = [
     name: "Feliz Pinto",
     dir: "cat3",
     frames: 10,
-    img: "cat3/frame0000.png",
+    img: "cat3/frame0000.webp",
     age: "5",
     cond: "Cree que esto es un juego. No entiende el dinero.",
     quote: "¡Esto es lo mejor que pasó en mi vida!",
@@ -112,7 +112,7 @@ const ROSTER = [
     name: "Sombra Negra",
     dir: "cat4",
     frames: 10,
-    img: "cat4/frame0000.png",
+    img: "cat4/frame0000.webp",
     age: "??",
     cond: "Nadie sabe de dónde vino. Gana sin hablar.",
     quote: "...",
@@ -122,18 +122,31 @@ const ROSTER = [
 ];
 
 /* The boil swaps background-image every 100ms; a frame that has not been
-   decoded yet paints as a hole. Warming every drawing when the player
-   leaves the title buys two clicks of head start, and keeps them from
-   competing with the title artwork for bandwidth. */
+   decoded yet paints as a hole. */
 let framesWarmed = false;
 function warmRosterFrames() {
   if (framesWarmed) return;
   framesWarmed = true;
   ROSTER.forEach((c) => {
     for (let i = 0; i < c.frames; i++) {
-      new Image().src = `${c.dir}/frame${String(i).padStart(4, "0")}.png`;
+      const img = new Image();
+      /* Baja prioridad: son para dos pantallas más adelante y no deben
+         competir con nada de lo que se está viendo. */
+      img.fetchPriority = "low";
+      img.src = `${c.dir}/frame${String(i).padStart(4, "0")}.webp`;
     }
   });
+}
+
+/* Los 38 dibujos de los gatos pesan casi un mega. Esperar al click dejaba
+   la selección llena de agujeros mientras bajaban; arrancarlos antes los
+   ponía a competir con el título. El evento `load` es justo el medio: el
+   título ya está en pantalla y todavía faltan segundos hasta que el
+   jugador decida entrar. */
+if (document.readyState === "complete") {
+  warmRosterFrames();
+} else {
+  window.addEventListener("load", warmRosterFrames, { once: true });
 }
 
 /* ============================================

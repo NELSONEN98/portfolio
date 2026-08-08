@@ -5,17 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gambling Katz // Casino Sucio</title>
 
-  <link rel="preload" as="image" href="./menu/menu-0.webp" />
+  <!-- El primer frame del título es lo único que se ve al instante; el resto
+       del ciclo recién se necesita a los 0.75s. Pedirlos todos con la misma
+       prioridad hacía que el que se ve compitiera con los cinco que no. -->
+  <link rel="preload" as="image" href="./menu/menu-0.webp" fetchpriority="high" />
   <link rel="preload" as="image" href="./menu/menu-1.webp" />
   <link rel="preload" as="image" href="./menu/menu-2.webp" />
   <link rel="preload" as="image" href="./menu/menu-3.webp" />
   <link rel="preload" as="image" href="./menu/menu-4.webp" />
   <link rel="preload" as="image" href="./menu/menu-5.webp" />
-  <link rel="preload" as="image" href="./main-menu/main-0.webp" />
-  <link rel="preload" as="image" href="./main-menu/main-1.webp" />
-  <link rel="preload" as="image" href="./main-menu/main-2.webp" />
-  <script type="module" crossorigin src="./index-Bl9UCvgd.js"></script>
-  <link rel="stylesheet" crossorigin href="./index-C0tkQTrC.css">
+
+  <!-- El menú principal recién aparece después del click: que no le saque
+       ancho de banda a la pantalla que el jugador está mirando. -->
+  <link rel="preload" as="image" href="./main-menu/main-0.webp" fetchpriority="low" />
+  <link rel="preload" as="image" href="./main-menu/main-1.webp" fetchpriority="low" />
+  <link rel="preload" as="image" href="./main-menu/main-2.webp" fetchpriority="low" />
+  <script type="module" crossorigin src="./index-YEakWrGp.js"></script>
+  <link rel="stylesheet" crossorigin href="./index-_HefChBW.css">
 </head>
 <body>
   <div class="table">
@@ -132,14 +138,14 @@
       <div class="gameover-stage">
         <div class="go-winner">
           <div class="go-label">★ GANADOR ★</div>
-          <div class="go-portrait"><img id="go-winner-img" src="./cat1/frame0000.png" alt="" /></div>
+          <div class="go-portrait"><img id="go-winner-img" src="./cat1/frame0000.webp" alt="" /></div>
           <div class="go-name" id="go-winner-name">—</div>
           <div class="go-score" id="go-winner-score">0</div>
           <div class="go-quote" id="go-winner-quote"></div>
         </div>
         <div class="go-loser">
           <div class="go-label">† PERDEDOR †</div>
-          <div class="go-portrait"><img id="go-loser-img" src="./cat2/frame0000.png" alt="" /></div>
+          <div class="go-portrait"><img id="go-loser-img" src="./cat2/frame0000.webp" alt="" /></div>
           <div class="go-name" id="go-loser-name">—</div>
           <div class="go-score" id="go-loser-score">0</div>
           <div class="go-quote" id="go-loser-quote"></div>

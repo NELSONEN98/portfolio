@@ -556,19 +556,19 @@ body {
 /* 7 drawings on equal holds ≈ 10fps. step-end means no interpolation
    between frames: it snaps, which is the whole point of a boil. */
 .boil[data-cat="cat1"] {
-  background-image: url("cat1/frame0000.png");
+  background-image: url("cat1/frame0000.webp");
   animation: cat1-boil 0.5s step-end infinite;
 }
 .boil[data-cat="cat2"] {
-  background-image: url("cat2/frame0000.png");
+  background-image: url("cat2/frame0000.webp");
   animation: cat2-boil 0.5s step-end infinite;
 }
 .boil[data-cat="cat3"] {
-  background-image: url("cat3/frame0000.png");
+  background-image: url("cat3/frame0000.webp");
   animation: cat3-boil 0.56s step-end infinite;
 }
 .boil[data-cat="cat4"] {
-  background-image: url("cat4/frame0000.png");
+  background-image: url("cat4/frame0000.webp");
   animation: cat4-boil 0.56s step-end infinite;
 }
 
@@ -578,52 +578,52 @@ body {
 .char-card:nth-child(even) .char-art { animation-delay: -0.35s; }
 
 @keyframes cat1-boil {
-  0%      { background-image: url("cat1/frame0000.png"); }
-  11.11%  { background-image: url("cat1/frame0001.png"); }
-  22.22%  { background-image: url("cat1/frame0002.png"); }
-  33.33%  { background-image: url("cat1/frame0003.png"); }
-  44.44%  { background-image: url("cat1/frame0004.png"); }
-  55.56%  { background-image: url("cat1/frame0005.png"); }
-  66.67%  { background-image: url("cat1/frame0006.png"); }
-  77.78%  { background-image: url("cat1/frame0007.png"); }
-  88.89%  { background-image: url("cat1/frame0008.png"); }
+  0%      { background-image: url("cat1/frame0000.webp"); }
+  11.11%  { background-image: url("cat1/frame0001.webp"); }
+  22.22%  { background-image: url("cat1/frame0002.webp"); }
+  33.33%  { background-image: url("cat1/frame0003.webp"); }
+  44.44%  { background-image: url("cat1/frame0004.webp"); }
+  55.56%  { background-image: url("cat1/frame0005.webp"); }
+  66.67%  { background-image: url("cat1/frame0006.webp"); }
+  77.78%  { background-image: url("cat1/frame0007.webp"); }
+  88.89%  { background-image: url("cat1/frame0008.webp"); }
 }
 @keyframes cat2-boil {
-  0%      { background-image: url("cat2/frame0000.png"); }
-  11.11%  { background-image: url("cat2/frame0001.png"); }
-  22.22%  { background-image: url("cat2/frame0002.png"); }
-  33.33%  { background-image: url("cat2/frame0003.png"); }
-  44.44%  { background-image: url("cat2/frame0004.png"); }
-  55.56%  { background-image: url("cat2/frame0005.png"); }
-  66.67%  { background-image: url("cat2/frame0006.png"); }
-  77.78%  { background-image: url("cat2/frame0007.png"); }
-  88.89%  { background-image: url("cat2/frame0008.png"); }
+  0%      { background-image: url("cat2/frame0000.webp"); }
+  11.11%  { background-image: url("cat2/frame0001.webp"); }
+  22.22%  { background-image: url("cat2/frame0002.webp"); }
+  33.33%  { background-image: url("cat2/frame0003.webp"); }
+  44.44%  { background-image: url("cat2/frame0004.webp"); }
+  55.56%  { background-image: url("cat2/frame0005.webp"); }
+  66.67%  { background-image: url("cat2/frame0006.webp"); }
+  77.78%  { background-image: url("cat2/frame0007.webp"); }
+  88.89%  { background-image: url("cat2/frame0008.webp"); }
 }
 
 @keyframes cat3-boil {
-  0%   { background-image: url("cat3/frame0000.png"); }
-  10%  { background-image: url("cat3/frame0001.png"); }
-  20%  { background-image: url("cat3/frame0002.png"); }
-  30%  { background-image: url("cat3/frame0003.png"); }
-  40%  { background-image: url("cat3/frame0004.png"); }
-  50%  { background-image: url("cat3/frame0005.png"); }
-  60%  { background-image: url("cat3/frame0006.png"); }
-  70%  { background-image: url("cat3/frame0007.png"); }
-  80%  { background-image: url("cat3/frame0008.png"); }
-  90%  { background-image: url("cat3/frame0009.png"); }
+  0%   { background-image: url("cat3/frame0000.webp"); }
+  10%  { background-image: url("cat3/frame0001.webp"); }
+  20%  { background-image: url("cat3/frame0002.webp"); }
+  30%  { background-image: url("cat3/frame0003.webp"); }
+  40%  { background-image: url("cat3/frame0004.webp"); }
+  50%  { background-image: url("cat3/frame0005.webp"); }
+  60%  { background-image: url("cat3/frame0006.webp"); }
+  70%  { background-image: url("cat3/frame0007.webp"); }
+  80%  { background-image: url("cat3/frame0008.webp"); }
+  90%  { background-image: url("cat3/frame0009.webp"); }
 }
 
 @keyframes cat4-boil {
-  0%   { background-image: url("cat4/frame0000.png"); }
-  10%  { background-image: url("cat4/frame0001.png"); }
-  20%  { background-image: url("cat4/frame0002.png"); }
-  30%  { background-image: url("cat4/frame0003.png"); }
-  40%  { background-image: url("cat4/frame0004.png"); }
-  50%  { background-image: url("cat4/frame0005.png"); }
-  60%  { background-image: url("cat4/frame0006.png"); }
-  70%  { background-image: url("cat4/frame0007.png"); }
-  80%  { background-image: url("cat4/frame0008.png"); }
-  90%  { background-image: url("cat4/frame0009.png"); }
+  0%   { background-image: url("cat4/frame0000.webp"); }
+  10%  { background-image: url("cat4/frame0001.webp"); }
+  20%  { background-image: url("cat4/frame0002.webp"); }
+  30%  { background-image: url("cat4/frame0003.webp"); }
+  40%  { background-image: url("cat4/frame0004.webp"); }
+  50%  { background-image: url("cat4/frame0005.webp"); }
+  60%  { background-image: url("cat4/frame0006.webp"); }
+  70%  { background-image: url("cat4/frame0007.webp"); }
+  80%  { background-image: url("cat4/frame0008.webp"); }
+  90%  { background-image: url("cat4/frame0009.webp"); }
 }
 
 /* Whose turn it is has to be readable at a glance from across the room —
