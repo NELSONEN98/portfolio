@@ -797,13 +797,13 @@ body {
   /* Empuja arriba y abajo por igual: la mesa se aparta de los dos
      peleadores sin moverse del centro. */
   margin-block: var(--table-gap);
-  /* Más alta que el 2:1 original: el camino de casillas necesita franja
-     propia arriba y abajo sin encimarse con el dado del centro.
-     El techo en dvh baja de 55.2 a 46 para compensar: a 3:2 la mesa crece
-     un tercio de alto, y ahora comparte la pantalla con la fila de cartas
-     que antes no existía. */
-  width: min(100%, 79.2rem, 46dvh);
-  aspect-ratio: 3 / 2;
+  /* Más alta que el 2:1 original: el camino necesita franja propia arriba
+     y abajo sin encimarse con el dado del centro.
+     El 4:3 acompaña a la grilla de 8×7 que forma el camino — con la mesa
+     más chata las casillas de los costados quedaban aplastadas. El techo
+     en dvh baja otra vez para compensar el alto que gana. */
+  width: min(100%, 79.2rem, 43dvh);
+  aspect-ratio: 4 / 3;
   padding: clamp(0.7rem, 1.8vmin, 1.6rem);
   border-radius: clamp(1rem, 2.4vmin, 1.8rem);
   background: linear-gradient(145deg, #5a2e18, #2a120a 42%, #4a2414 72%, #1c0c06);
@@ -826,9 +826,10 @@ body {
    un grid: el recorrido es circular y un grid de 24 celdas obligaría a
    inventar celdas vacías en el medio. */
 /* El recorrido va sobre el fieltro, corrido hacia adentro para no pegarse
-   al filo. Es el borde de una grilla de 8×6: 2·8 + 2·6 − 4 = 24 celdas,
+   al filo. Es el borde de una grilla de 8×7: 2·8 + 2·7 − 4 = 26 celdas,
    justo las casillas del camino. Las del medio quedan vacías y ahí cae el
-   dado. */
+   dado. Si cambia el número de filas o columnas hay que cambiar BOARD en
+   convex/rules.ts: el largo tiene que dar igual. */
 .board-track {
   position: absolute;
   inset: clamp(0.5rem, 1.6vmin, 1.1rem);
@@ -837,7 +838,7 @@ body {
 
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  grid-template-rows: repeat(6, 1fr);
+  grid-template-rows: repeat(7, 1fr);
   gap: 2px;
 }
 
@@ -965,6 +966,19 @@ body {
 .card-value {
   font-size: calc(var(--card-w) * 0.42);
   line-height: 1;
+}
+
+/* El ícono ocupa el lugar del número en las cartas que no llevan valor. */
+.card-icon {
+  display: block;
+  width: calc(var(--card-w) * 0.5);
+  height: calc(var(--card-w) * 0.5);
+}
+.card-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35));
 }
 
 /* Un color por efecto: quitar, proteger, estorbar, y la que sólo te

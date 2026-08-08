@@ -63,17 +63,24 @@ export const SQUARE = {
 
 export type SquareType = (typeof SQUARE)[keyof typeof SQUARE];
 
-/* 24 casillas dando la vuelta a la mesa: 8 arriba, 4 a cada lado, 8 abajo.
-   El camino es circular, así que no hay meta — se gana por puntos y las
+/* 26 casillas dando la vuelta a la mesa: 8 arriba, 5 a cada lado, 8 abajo.
+   Es el borde de una grilla de 8×7 — 2·8 + 2·7 − 4 = 26 — y ese número
+   tiene que coincidir con el que dibuja el cliente.
+
+   El camino es circular, así que no hay meta: se gana por puntos y las
    casillas son lo que le pasa a tu ficha en el camino.
 
    Las trampas y los premios están repartidos sin quedar nunca pegados: dos
    penitencias seguidas hacen que una tirada de 6 se sienta arbitraria. */
 export const BOARD: SquareType[] = [
+  // fila de arriba (8)
   "plain", "bonus", "plain", "penalty", "plain", "plain", "bonus", "plain",
-  "penalty", "plain", "plain", "bonus",
-  "plain", "penalty", "plain", "plain", "bonus", "plain", "penalty", "plain",
-  "plain", "bonus", "plain", "penalty",
+  // costado derecho (5)
+  "penalty", "plain", "bonus", "plain", "penalty",
+  // fila de abajo (8)
+  "plain", "bonus", "plain", "plain", "penalty", "plain", "bonus", "plain",
+  // costado izquierdo (5)
+  "penalty", "plain", "bonus", "plain", "penalty",
 ];
 
 export const BOARD_SIZE = BOARD.length;

@@ -365,7 +365,7 @@ function pickCharacter(idx) {
    que las casillas se toquen entre sí como en un tablero de verdad. Con
    posiciones libres siempre quedaban puntos sueltos separados. */
 const COLS = 8;
-const ROWS = 6;
+const ROWS = 7;
 
 function squareCell(i) {
   const n = ((i % BOARD_SIZE) + BOARD_SIZE) % BOARD_SIZE;
@@ -394,8 +394,21 @@ function cellCenter(i) {
    estrella premio sin depender del color, que es lo que necesita quien no
    distingue rojo de azul. */
 const SQUARE_ICON = {
-  penalty: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>`,
+  /* Calavera. Los ojos y la nariz son huecos del mismo path con
+     fill-rule evenodd, no formas encima: así el ícono sigue siendo una
+     sola silueta y no se desarma al achicarse. */
+  penalty: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2a8 8 0 0 0-8 8c0 2.5 1.2 4.7 3 6.1V19a1 1 0 0 0 1 1h1.5v-2H11v2h2v-2h1.5v2H16a1 1 0 0 0 1-1v-2.9c1.8-1.4 3-3.6 3-6.1a8 8 0 0 0-8-8Zm-3.2 7a2 2 0 1 1 0 4 2 2 0 0 1 0-4Zm6.4 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM12 13.6l1.1 2.2h-2.2Z"/></svg>`,
   bonus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.9 6.3 6.8.8-5 4.7 1.3 6.8L12 17.3 5.9 20.6l1.3-6.8-5-4.7 6.8-.8z"/></svg>`,
+};
+
+/* Íconos de carta. Mismo criterio que las casillas: silueta maciza, sin
+   línea fina que desaparezca al achicar. */
+const CARD_ICON = {
+  defense: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6.5c0 4.6 3.4 8.9 8 10.5 4.6-1.6 8-5.9 8-10.5V5z"/></svg>`,
+  /* Poción: matraz con tapón y burbujas. Las burbujas son huecos del
+     mismo path, para que se lean como líquido y no como manchas. */
+  curse: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M9 2h6v2h-1v3.6l4.7 8.1A3 3 0 0 1 16.1 20H7.9a3 3 0 0 1-2.6-4.3L10 7.6V4H9zm1.6 10a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2Zm3.1 3a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8Z"/></svg>`,
+  double: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M3 4h9v9H3zm2.6 2a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4Zm3.8 3.4a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4ZM12 11h9v9h-9zm2.6 2a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4Zm3.8 3.4a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4Z"/></svg>`,
 };
 
 function renderBoard() {
@@ -435,8 +448,7 @@ function cardFace(c) {
        signo lo deja claro sin tener que leer el rótulo. */
     return `<span class="card-kind">${CARD_LABEL.steal}</span><span class="card-value">-${c.value}</span>`;
   }
-  const short = { defense: "🛡", curse: "☠", double: "⚄⚄" };
-  return `<span class="card-value">${short[c.type]}</span><span class="card-kind">${CARD_LABEL[c.type]}</span>`;
+  return `<span class="card-icon">${CARD_ICON[c.type] ?? ""}</span><span class="card-kind">${CARD_LABEL[c.type]}</span>`;
 }
 
 function renderHand() {
