@@ -314,14 +314,20 @@ export const rollDice = mutation({
       hand,
       // Se consume tire lo que tire: la carta valía para esta tirada.
       doubleNext: false,
-      curseTurns: Math.max(0, mine.curseTurns - 1),
     };
 
     /* Ojo de víbora: se pierde lo acumulado del turno y pasa el otro. */
     if (outcome.isBust) {
       await ctx.db.patch(room._id, {
         turn: me.other,
-        [me.key]: { ...base, current: 0 },
+        [me.key]: {
+          ...base,
+          current: 0,
+          /* La maldición se mide en turnos, no en tiradas: acá termina uno.
+             Descontándola en cada tirada duraba 1,4 turnos en vez de 3,
+             porque un turno normal son casi cuatro tiradas. */
+          curseTurns: Math.max(0, mine.curseTurns - 1),
+        },
       });
       return { ...outcome, roll: outcome.dice[0], pos, landed, newTurn: me.other, score };
     }
@@ -450,6 +456,8 @@ export const holdScore = mutation({
       score: newScore,
       current: 0,
       pendingCard: null,
+      // Plantarse también cierra un turno de maldición.
+      curseTurns: Math.max(0, mine.curseTurns - 1),
     };
     const rivalAfter = rivalRaw
       ? { ...rivalRaw, score: rivalScore, hand: rivalHand, curseTurns: rivalCurse }

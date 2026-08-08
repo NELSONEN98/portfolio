@@ -16,7 +16,12 @@ export const GOAL = 100;
    toda la tensión del juego. */
 export const BUST = 1;
 
-export const PENALTY_POINTS = 15;
+/* Un turno gana +7,7 puntos en promedio, y con 6 casillas de penitencia se
+   pisa alguna casi una vez por turno. A 15 el castigo superaba a la
+   ganancia —neto −3,9 por turno— y el marcador nunca llegaba a 100 por
+   progresión: sólo se ganaba por rachas o robando. A 5 el neto queda en
+   torno a +3,8 y la partida cierra en unos 25 turnos. */
+export const PENALTY_POINTS = 5;
 
 /* Con la maldición encima el dado del rival no pasa de 5: le saca el mejor
    resultado sin quitarle el riesgo del 1. */

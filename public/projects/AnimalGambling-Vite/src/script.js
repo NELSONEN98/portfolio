@@ -27,6 +27,7 @@ import {
   CARD_LABEL,
   HAND_LIMIT,
   CURSE_TURNS,
+  PENALTY_POINTS,
   squareAt,
   advance,
   startingHand,
@@ -221,6 +222,9 @@ const state = {
   /* Las casillas de esta partida. En online las manda el servidor con la
      sala; en local se sortean al empezar. */
   board: [],
+  /* Carta que se acaba de dar vuelta sobre la mesa, mientras dura el
+     volteo. null el resto del tiempo. */
+  revealed: null,
   selectedCatP1: null,
   selectedCatP2: null,
   active: 0,
@@ -496,20 +500,58 @@ function renderPlayedCard() {
   const felt = $(".pool-felt");
   if (!felt) return;
 
-  const existing = $(".played-card");
-  const anyPending = state.players.some((p) => p?.pendingCard);
+  /* Boca abajo mientras alguno la tenga pendiente; ya revelada mientras
+     dure el volteo. Se busca en los dos jugadores porque la carta del
+     rival también tiene que verse. */
+  const pending = state.players.find((p) => p?.pendingCard)?.pendingCard ?? null;
+  const shown = state.revealed?.card ?? pending;
 
-  if (!anyPending) {
-    if (existing) existing.remove();
+  let el = $(".played-card");
+
+  if (!shown) {
+    if (el) el.remove();
     return;
   }
-  if (existing) return;
 
-  const el = document.createElement("div");
-  el.className = "played-card";
-  el.textContent = "?";
-  el.title = "Carta jugada — se revela al plantarse";
-  felt.appendChild(el);
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "played-card";
+    felt.appendChild(el);
+  }
+
+  /* Las dos caras existen desde el principio y el reverso tapa a la otra:
+     así el volteo es una rotación y no un reemplazo de contenido, que se
+     vería como un parpadeo. */
+  const key = `${shown.uid ?? shown.type}-${state.revealed ? "up" : "down"}`;
+  if (el.dataset.key !== key) {
+    el.dataset.key = key;
+    el.innerHTML = `
+      <div class="pc-inner">
+        <div class="pc-back">?</div>
+        <div class="pc-front ${shown.type}">${cardFace(shown)}</div>
+      </div>`;
+  }
+
+  el.classList.toggle("revealed", Boolean(state.revealed));
+  el.classList.toggle("blocked", Boolean(state.revealed?.blocked));
+  el.title = state.revealed
+    ? `${CARD_LABEL[shown.type]}${state.revealed.blocked ? " — bloqueada" : ""}`
+    : "Carta jugada — se revela al plantarse";
+}
+
+/* Voltea la carta sobre la mesa y la deja a la vista un momento antes de
+   sacarla. Sin esa pausa el rival nunca llega a ver qué le tiraron. */
+let revealTimer = null;
+function revealPlayedCard(card, blocked) {
+  if (!card) return;
+  state.revealed = { card, blocked: Boolean(blocked) };
+  renderPlayedCard();
+
+  clearTimeout(revealTimer);
+  revealTimer = setTimeout(() => {
+    state.revealed = null;
+    renderPlayedCard();
+  }, 2600);
 }
 
 function paintFighters() {
@@ -591,9 +633,18 @@ function rivalRollFrom(room) {
   lastSeenEventId = ev._id;
 
   if (firstLook || !isNew) return null;
-  if (ev.action !== "roll") return null;
-  // La propia ya se animó al tirarla.
+  // Lo propio ya se mostró al hacerlo.
   if (ev.sessionId === getSessionId()) return null;
+
+  /* Plantarse revela la carta que estaba boca abajo: de este lado hay que
+     darla vuelta también, o el rival nunca ve qué le tiraron. */
+  if (ev.action === "hold" || ev.action === "hold_and_win") {
+    const r = ev.payload?.resolved;
+    if (r) revealPlayedCard({ type: r.type, value: r.value }, r.blocked);
+    return null;
+  }
+
+  if (ev.action !== "roll") return null;
 
   /* `dice` trae la tirada completa; `roll` es el valor suelto que mandaban
      las versiones anteriores y se usa como reserva. */
@@ -717,9 +768,14 @@ function animateNumber(el, to) {
   const dur = Math.min(140 + Math.abs(to - from) * 28, 620);
   const t0 = performance.now();
 
-  el.classList.remove("bump");
+  /* Bajar y subir no son lo mismo: una penitencia o un robo se tienen que
+     poder distinguir de un turno bueno sin leer el número. El rojo dura lo
+     que dura la cuenta y después vuelve al color del lado. */
+  const goingDown = to < from;
+  el.classList.remove("bump", "down");
   void el.offsetWidth;
   el.classList.add("bump");
+  if (goingDown) el.classList.add("down");
 
   const step = (now) => {
     const p = Math.min((now - t0) / dur, 1);
@@ -732,6 +788,10 @@ function animateNumber(el, to) {
     } else {
       el.textContent = to;
       numberFrame.delete(el);
+      /* El rojo se sostiene un momento después de frenar: si se apagara
+         junto con el último cuadro, quien no estaba mirando no llega a
+         ver que el número bajó. */
+      if (goingDown) setTimeout(() => el.classList.remove("down"), 900);
     }
   };
 
@@ -842,10 +902,17 @@ async function rollDiceOnline() {
     animateDiceRoll(result.dice, result.isBust, () => {
       const me = state.players[state.mySide];
       if (!me) return;
+      /* El puntaje del backend puede haber bajado por una penitencia. */
+      if (typeof result.score === "number") me.score = result.score;
       me.current = result.isBust ? 0 : result.newCurrent;
       if (result.isBust) state.active = state.mySide === 0 ? 1 : 0;
       updateScores();
       updateActiveFighter();
+
+      /* Plantarse solo al alcanzar el objetivo, igual que en local: sin
+         esto el online te dejaba seguir tirando con la partida ya ganada,
+         y una tirada de 1 te la sacaba. */
+      if (!result.isBust && me.score + me.current >= state.goal) holdScore();
     });
   } catch (error) {
     console.error("Error rolling dice online:", error);
@@ -902,7 +969,7 @@ function applyLandingLocal(p, steps) {
 
   if (square === SQUARE.PENALTY) {
     p.score = applyPenalty(p.score);
-    notify(`Penitencia — ${p.char.name} pierde 15`, "error");
+    notify(`Penitencia — ${p.char.name} pierde ${PENALTY_POINTS}`, "error");
   } else if (square === SQUARE.BONUS) {
     if ((p.hand?.length ?? 0) < HAND_LIMIT) {
       p.hand = [...(p.hand ?? []), randomBonusCard(rand, Date.now())];
@@ -923,9 +990,12 @@ function resolvePendingLocal(me, rival) {
 
   if (hasDefense(rival.hand ?? [])) {
     rival.hand = dropFirstOfType(rival.hand, CARD.DEFENSE);
+    revealPlayedCard(card, true);
     notify(`${rival.char.name} bloqueó la ${CARD_LABEL[card.type].toLowerCase()}`);
     return;
   }
+
+  revealPlayedCard(card, false);
 
   if (card.type === CARD.STEAL) {
     const taken = Math.min(card.value, rival.score);
@@ -948,7 +1018,6 @@ function rollDiceLocal() {
 
   // Se consume tire lo que tire: la carta valía para esta tirada.
   p.doubleNext = false;
-  p.curseTurns = Math.max(0, (p.curseTurns ?? 0) - 1);
 
   /* Misma animación que en online: si los dados son dos, se muestran los
      dos y cada uno queda en su cara. */
@@ -1041,6 +1110,15 @@ async function holdScoreOnline() {
     setRolling(true);
     const result = await convexHoldScore(roomId);
 
+    /* La carta se da vuelta antes de aplicar los puntos: primero se ve qué
+       era, después se ve el efecto. */
+    if (result.resolved) {
+      revealPlayedCard(
+        { type: result.resolved.type, value: result.resolved.value },
+        result.resolved.blocked
+      );
+    }
+
     /* La mutation ya devuelve el resultado: aplicarlo acá en vez de
        esperar al sondeo. Con hasta 2s de espera, plantarse se sentía como
        que el botón no había respondido. */
@@ -1088,7 +1166,12 @@ function holdScoreLocal() {
 }
 
 function switchPlayer() {
-  state.players[state.active].current = 0;
+  const saliente = state.players[state.active];
+  saliente.current = 0;
+  /* La maldición se mide en turnos, no en tiradas, y acá termina uno.
+     Descontándola por tirada duraba 1,4 turnos en vez de 3, porque un
+     turno normal son casi cuatro tiradas. */
+  saliente.curseTurns = Math.max(0, (saliente.curseTurns ?? 0) - 1);
   state.active = state.active === 0 ? 1 : 0;
   updateScores();
   updateActiveFighter();

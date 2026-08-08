@@ -770,6 +770,22 @@ body {
 .bump {
   animation: num-bump 0.38s ease-out;
 }
+
+/* Mientras el número baja va en rojo: penitencia y robo se distinguen de
+   un turno bueno sin leer la cifra. Pisa al color del lado a propósito. */
+.f-score.down,
+.f-current span.down {
+  color: var(--c-red) !important;
+  text-shadow: 0 0 1.6rem rgba(199, 0, 0, 0.75) !important;
+}
+.f-score.down {
+  animation: num-drop 0.38s ease-out;
+}
+@keyframes num-drop {
+  0%   { transform: translateY(0) scale(1); }
+  40%  { transform: translateY(0.5rem) scale(0.92); }
+  100% { transform: translateY(0) scale(1); }
+}
 @keyframes num-bump {
   0%   { transform: scale(1); }
   35%  { transform: scale(1.14); }
@@ -1012,30 +1028,89 @@ body {
   top: calc(100% / 8 + clamp(0.9rem, 2.6vmin, 1.8rem));
   right: calc(100% / 9 + clamp(0.9rem, 2.6vmin, 1.8rem));
   bottom: auto;
-  width: clamp(2.4rem, 6vmin, 3.6rem);
+  width: clamp(3.2rem, 8vmin, 5rem);
   aspect-ratio: 5 / 7;
-  border-radius: 0.5rem;
   z-index: 5;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--display);
-  font-size: clamp(0.9rem, 2.4vmin, 1.4rem);
-
-  background: repeating-linear-gradient(
-    45deg,
-    var(--c-red-deep) 0 4px,
-    #5c0f0f 4px 8px
-  );
-  color: var(--c-gold);
-  box-shadow: 0 0 0 2px var(--c-gold), 0 0.4rem 0.9rem rgba(0, 0, 0, 0.6);
+  perspective: 700px;
   animation: card-drop 0.3s ease-out;
 }
 
 @keyframes card-drop {
   from { opacity: 0; transform: translateY(-1rem) rotate(-8deg); }
   to   { opacity: 1; transform: translateY(0) rotate(0); }
+}
+
+/* El volteo gira la carta entera; las dos caras están puestas desde el
+   principio, una detrás de la otra. Reemplazar el contenido en vez de
+   rotarlo se vería como un parpadeo, no como dar vuelta una carta. */
+.pc-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.played-card.revealed .pc-inner {
+  transform: rotateY(180deg);
+}
+
+.pc-back,
+.pc-front {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.5rem;
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  font-family: var(--display);
+  box-shadow: 0 0 0 2px #fff, 0 0.4rem 0.9rem rgba(0, 0, 0, 0.6);
+}
+
+.pc-back {
+  font-size: clamp(0.9rem, 2.4vmin, 1.4rem);
+  color: var(--c-gold);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--c-red-deep) 0 4px,
+    #5c0f0f 4px 8px
+  );
+}
+
+/* La cara descubierta es la misma carta que estaba en la mano: mismo
+   color por efecto y mismo ícono. */
+.pc-front {
+  --card-w: clamp(3.2rem, 8vmin, 5rem);
+  transform: rotateY(180deg);
+  color: #fff;
+  background: var(--c-bronze);
+}
+.pc-front.steal   { background: var(--c-red); }
+.pc-front.defense { background: var(--c-green); }
+.pc-front.curse   { background: var(--c-purple); }
+.pc-front.double  { background: var(--c-gold); color: var(--c-black); }
+
+/* Bloqueada por la defensa del rival: se ve igual pero apagada y tachada,
+   para que se entienda que salió y no hizo nada. */
+.played-card.blocked .pc-front {
+  filter: grayscale(0.75) brightness(0.7);
+}
+.played-card.blocked .pc-front::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: 3px;
+  background: #fff;
+  transform: rotate(-18deg);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-inner { transition: none; }
 }
 
 /* Bombillas de marquesina en los cuatro cantos.
