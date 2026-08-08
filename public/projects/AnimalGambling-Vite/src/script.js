@@ -425,12 +425,69 @@ function syncGameStateOnline() {
   });
 }
 
+/* ---- contadores animados ----
+   El puntaje sube de a saltos y cambiarlo de golpe lo vuelve invisible:
+   justo el número que importa es el que nunca ves moverse. Estos dos mapas
+   guardan, por elemento, a qué valor apunta y qué cuadro tiene pedido.
+   El valor mostrado no es el del estado mientras la cuenta corre. */
+const numberTarget = new Map();
+const numberFrame = new Map();
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+function animateNumber(el, to) {
+  const from = numberTarget.has(el) ? numberTarget.get(el) : to;
+  numberTarget.set(el, to);
+
+  // Una tirada nueva puede llegar con la anterior todavía contando.
+  const pending = numberFrame.get(el);
+  if (pending) cancelAnimationFrame(pending);
+
+  if (from === to || reducedMotion.matches) {
+    el.textContent = to;
+    numberFrame.delete(el);
+    return;
+  }
+
+  /* La duración sale de la distancia: sumar 3 no puede tardar lo mismo que
+     sumar 40, o los saltos chicos se sienten pesados. */
+  const dur = Math.min(140 + Math.abs(to - from) * 28, 620);
+  const t0 = performance.now();
+
+  el.classList.remove("bump");
+  void el.offsetWidth;
+  el.classList.add("bump");
+
+  const step = (now) => {
+    const p = Math.min((now - t0) / dur, 1);
+    // easeOutCubic: sale rápido y frena encima del número final
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(from + (to - from) * eased);
+
+    if (p < 1) {
+      numberFrame.set(el, requestAnimationFrame(step));
+    } else {
+      el.textContent = to;
+      numberFrame.delete(el);
+    }
+  };
+
+  numberFrame.set(el, requestAnimationFrame(step));
+}
+
+/* Al abrir una partida los marcadores vuelven a cero, y sin esto la
+   primera lectura contaba hacia atrás desde el resultado de la anterior. */
+function resetCounters() {
+  numberFrame.forEach((id) => cancelAnimationFrame(id));
+  numberFrame.clear();
+  numberTarget.clear();
+}
+
 function updateScores() {
   for (let i = 0; i < 2; i++) {
     const p = state.players[i];
     if (!p) continue;
-    $(`#score-${i}`).textContent = p.score;
-    $(`#current-${i}`).textContent = p.current;
+    animateNumber($(`#score-${i}`), p.score);
+    animateNumber($(`#current-${i}`), p.current);
   }
 }
 
@@ -870,6 +927,7 @@ function startGame() {
   state.finished = false;
   setRolling(false);
   state.rollsTotal = 0;
+  resetCounters();
 
   state.players.forEach((p) => {
     if (p) {

@@ -754,6 +754,27 @@ body {
 .fighter.active .f-score {
   text-shadow: 0 0 2rem var(--side-glow);
 }
+
+/* El contador va subiendo solo; el golpe de escala es lo que avisa que
+   empezó a moverse, para el que no estaba mirando ese rincón.
+   inline-block porque a un inline el transform no le hace nada. */
+.f-score,
+.f-current span {
+  display: inline-block;
+  transform-origin: center;
+}
+.bump {
+  animation: num-bump 0.38s ease-out;
+}
+@keyframes num-bump {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bump { animation: none; }
+}
 .fighter.active .f-current {
   color: var(--bone);
 }
