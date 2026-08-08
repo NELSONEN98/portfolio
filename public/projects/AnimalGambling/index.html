@@ -14,11 +14,8 @@
   <link rel="preload" as="image" href="./main-menu/main-0.webp" />
   <link rel="preload" as="image" href="./main-menu/main-1.webp" />
   <link rel="preload" as="image" href="./main-menu/main-2.webp" />
-  <link rel="preload" as="image" href="./start/start-0.webp" />
-  <link rel="preload" as="image" href="./start/start-1.webp" />
-  <link rel="preload" as="image" href="./start/start-2.webp" />
-  <script type="module" crossorigin src="./index-BwjkjO-R.js"></script>
-  <link rel="stylesheet" crossorigin href="./index-CzihGFg3.css">
+  <script type="module" crossorigin src="./index-B5wxEzTt.js"></script>
+  <link rel="stylesheet" crossorigin href="./index-BCCQ3lQy.css">
 </head>
 <body>
   <div class="table">
@@ -30,9 +27,7 @@
 
     <section class="screen title-screen active" id="screen-title">
       <div class="title-art" id="title-art"></div>
-      <button class="title-start" id="btn-start" aria-label="Iniciar juego">
-        <span class="start-art" aria-hidden="true"></span>
-      </button>
+      <button class="btn-nav title-start" id="btn-start">Iniciar</button>
     </section>
 
     <section class="screen menu-screen" id="screen-menu">
@@ -212,6 +207,9 @@
       </div>
     </div>
   </div>
+
+  <!-- avisos del juego; los llena notify() -->
+  <div class="toast-layer" id="toast-layer" role="status" aria-live="polite"></div>
 
   <div class="tweaks" id="tweaks">
     <h3>AJUSTES</h3>

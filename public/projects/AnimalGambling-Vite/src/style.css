@@ -5,6 +5,17 @@
 @import url("https://fonts.googleapis.com/css2?family=Bungee:wght@400;700&display=swap");
 
 :root {
+  /* Paleta del proyecto. Los cuatro del medio son los fondos que lleva
+     cada gato en la selección, así que el color de un personaje y el de
+     la interfaz salen siempre del mismo lugar. */
+  --c-black: #000000;
+  --c-blue: #072475;
+  --c-green: #13563b;
+  --c-bronze: #a46928;
+  --c-gold: #e4a700;
+  --c-red: #c70000;
+  --c-red-deep: #7b1414;
+
   --felt-0: #061a10;
   --felt-1: #0a2e1f;
   --felt-2: #0f4028;
@@ -194,9 +205,9 @@ body {
 .room-choice-header h2 {
   font-family: var(--display);
   font-size: clamp(2.8rem, 7vw, 4.4rem);
-  color: var(--neon-amber);
+  color: #fff;
   letter-spacing: 0.15rem;
-  text-shadow: 0 0 1.6rem rgba(245, 185, 66, 0.5);
+  text-shadow: 0 0 1.6rem rgba(255, 255, 255, 0.35);
 }
 
 .room-choice-content {
@@ -225,9 +236,9 @@ body {
   padding: 1rem 1.5rem;
   font-size: 1.2rem;
   font-family: var(--display);
-  border: 2px solid #E4A700;
+  border: 2px solid var(--c-gold);
   background: #000;
-  color: #E4A700;
+  color: var(--c-gold);
   border-radius: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -251,9 +262,9 @@ body {
 .room-code {
   font-family: var(--display);
   font-size: clamp(1.8rem, 5vw, 3rem);
-  color: #E4A700;
+  color: #fff;
   letter-spacing: 0.3em;
-  text-shadow: 0 0 1.6rem rgba(245, 185, 66, 0.6);
+  text-shadow: 0 0 1.6rem rgba(255, 255, 255, 0.4);
 }
 
 .room-waiting p {
@@ -335,29 +346,29 @@ body {
 .char-card.selected .char-art {
   transform: translateY(-1rem) scale(1.05);
   box-shadow:
-    0 0 0 0.4rem #E4A700,
+    0 0 0 0.4rem var(--c-gold),
     0 0 4rem rgba(228, 167, 0, 0.8),
     0 2rem 3rem rgba(0, 0, 0, 0.6);
 }
 
 .char-card.selected .char-name {
-  color: #E4A700;
+  color: var(--c-gold);
   text-shadow: 0 0 1.2rem rgba(228, 167, 0, 0.6);
   font-weight: 700;
 }
 
 /* Personaje colors — behind the animated PNGs */
 .char-card[data-id="cat1"] .char-art {
-  background-color: #E4A700;
+  background-color: var(--c-gold);
 }
 .char-card[data-id="cat2"] .char-art {
-  background-color: #072475;
+  background-color: var(--c-blue);
 }
 .char-card[data-id="cat3"] .char-art {
-  background-color: #13563B;
+  background-color: var(--c-green);
 }
 .char-card[data-id="cat4"] .char-art {
-  background-color: #A46928;
+  background-color: var(--c-bronze);
 }
 
 /* Same white card as the versus screen, for the same reason: these are ink
@@ -492,19 +503,19 @@ body {
 /* Versus fighter colors — same as selection */
 .f1 .fighter-art[data-cat="cat1"],
 .f2 .fighter-art[data-cat="cat1"] {
-  background-color: #E4A700;
+  background-color: var(--c-gold);
 }
 .f1 .fighter-art[data-cat="cat2"],
 .f2 .fighter-art[data-cat="cat2"] {
-  background-color: #072475;
+  background-color: var(--c-blue);
 }
 .f1 .fighter-art[data-cat="cat3"],
 .f2 .fighter-art[data-cat="cat3"] {
-  background-color: #13563B;
+  background-color: var(--c-green);
 }
 .f1 .fighter-art[data-cat="cat4"],
 .f2 .fighter-art[data-cat="cat4"] {
-  background-color: #A46928;
+  background-color: var(--c-bronze);
 }
 
 /* ---- the boil ----
@@ -1041,7 +1052,7 @@ body {
   letter-spacing: 0.3rem;
   text-transform: uppercase;
   padding: 1rem 1.8rem;
-  background: #E4A700;
+  background: var(--c-gold);
   color: #000;
   border: none;
   border-radius: 1.2rem;
@@ -1892,25 +1903,15 @@ body {
    letterbox, away from the sign, which is the intended look.
    Insets are clamped to the viewport, NOT rem: the rem ladder drops to 34%
    on phones and would collapse the corner gap to a few pixels. */
+/* Sólo ubica: el aspecto lo pone .btn-nav, que es el botón de todo el
+   resto del juego. */
 .title-start {
   position: absolute;
   left: auto;
   right: clamp(24px, 3.6vw, 52.8px);
   bottom: clamp(38.4px, 6vw, 86.4px);
-  transform: none;
-
-  /* Sized explicitly. With width:auto the shrink-to-fit width came from the
-     hint text below and squashed the artwork to 82px. */
-  width: min(35vw, 18rem);
-
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-
-  background: none;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+  padding: 1.1rem 2.6rem;
 }
 
 /* With the hint gone the button is only the 82x27 artwork — under the
@@ -1923,44 +1924,80 @@ body {
   border-radius: 0.4rem;
 }
 
-/* Hand-drawn "Iniciar" button — 3 drawings, native 420x140 (3:1). */
-.title-start .start-art {
-  display: block;
-  width: 100%;
-  flex-shrink: 0;
-  aspect-ratio: 3 / 1;
-
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  background-image: url("start/start-0.webp");
-
-  animation: start-boil 0.2917s step-end infinite;
-  /* lifts the sticker off the black without washing out the alpha edge */
-  filter: drop-shadow(0 0 1.6rem rgba(245, 185, 66, 0.35));
-  transition: transform 0.15s ease;
-}
-
-.title-start:hover .start-art,
-.title-start:focus-visible .start-art {
-  transform: scale(1.04);
-  filter: drop-shadow(0 0 2.4rem rgba(245, 185, 66, 0.6));
-}
-.title-start:active .start-art {
-  transform: scale(0.97);
-}
 .title-start:focus-visible {
-  outline: 2px solid var(--neon-amber);
+  outline: 2px solid var(--c-gold);
   outline-offset: 0.6rem;
-  border-radius: 0.4rem;
 }
 
-/* Export holds each drawing for 2, 1 and 4 frames at 24fps.
-   Keeping the uneven holds is the point — an even cycle reads mechanical. */
-@keyframes start-boil {
-  0%      { background-image: url("start/start-0.webp"); } /* 2 frames */
-  28.571% { background-image: url("start/start-1.webp"); } /* 1 frame  */
-  42.857% { background-image: url("start/start-2.webp"); } /* 4 frames */
+/* ============================================
+   AVISOS
+   ============================================ */
+/* Reemplazan al alert() del navegador, que corta el juego con una caja
+   gris del sistema y rompe la escena. Estos entran desde arriba, se van
+   solos y no bloquean nada. */
+.toast-layer {
+  position: fixed;
+  top: 1.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+
+  width: min(92vw, 34rem);
+  pointer-events: none;
+}
+
+.toast {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1rem 1.4rem;
+
+  font-family: var(--display);
+  font-size: clamp(0.85rem, 2.4vw, 1rem);
+  line-height: 1.35;
+  letter-spacing: 0.08rem;
+  text-transform: uppercase;
+  text-align: center;
+
+  color: var(--c-black);
+  background: var(--c-gold);
+  border-radius: 1.2rem;
+  box-shadow: 0 0.6rem 1.8rem rgba(0, 0, 0, 0.55);
+
+  animation: toast-in 0.28s ease forwards;
+}
+
+/* El rojo de la paleta sobre texto negro no llega a contraste legible,
+   así que el aviso de error invierte: fondo oscuro, texto claro. */
+.toast.error {
+  background: var(--c-red-deep);
+  color: #fff;
+  box-shadow:
+    0 0.6rem 1.8rem rgba(0, 0, 0, 0.55),
+    0 0 0 2px var(--c-red) inset;
+}
+
+.toast.leaving {
+  animation: toast-out 0.25s ease forwards;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-0.8rem) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-0.6rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast.leaving { animation: none; }
 }
 
 .title-screen.leaving {
@@ -1975,7 +2012,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .title-art { animation: none; }
   .menu-art { animation: none; }
-  .title-start .start-art { animation: none; }
   .title-screen.leaving,
   .menu-screen.leaving { animation: none; opacity: 0; }
 
@@ -1986,5 +2022,8 @@ body {
 }
 
 @media (max-width: 768px) {
-  .title-start { width: min(36vw, 15rem); }
+  .title-start {
+    right: 50%;
+    transform: translateX(50%);
+  }
 }

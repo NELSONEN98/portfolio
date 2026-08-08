@@ -386,6 +386,7 @@ function syncGameStateOnline() {
          justo en el abandono, donde el que se queda suele ir perdiendo. */
       const winnerIdx = room.winner === "player2" ? 1 : 0;
       state.wonByAbandon = Boolean(room.endedByAbandon);
+      if (state.wonByAbandon) notify("Tu rival se levantó de la mesa");
       winGame(winnerIdx);
     }
   });
@@ -468,6 +469,7 @@ async function rollDiceOnline() {
     animateDiceRoll(result.roll, result.isBust);
   } catch (error) {
     console.error("Error rolling dice online:", error);
+    notify(errorText(error), "error");
     setRolling(false);
   }
 }
@@ -553,6 +555,7 @@ async function holdScoreOnline() {
     setRolling(false);
   } catch (error) {
     console.error("Error holding score online:", error);
+    notify(errorText(error), "error");
     setRolling(false);
   }
 }
@@ -913,12 +916,13 @@ async function handleCreateRoom() {
     const unsubscribe = watchRoom(roomId, (room) => {
       if (room && room.status === "playing") {
         unsubscribe();
+        notify("Tu rival entró — elegí tu gato");
         switchScreen("select");
       }
     });
   } catch (error) {
     console.error("Error creating room:", error);
-    alert(`Error: ${error.message}`);
+    notify(errorText(error), "error");
   }
 }
 
@@ -926,7 +930,7 @@ async function handleJoinRoom() {
   try {
     const roomId = $("#room-code").value.toUpperCase().trim();
     if (!roomId) {
-      alert("Pegá el código de la sala");
+      notify("Pegá el código de la sala", "error");
       return;
     }
 
@@ -938,7 +942,7 @@ async function handleJoinRoom() {
     switchScreen("select");
   } catch (error) {
     console.error("Error joining room:", error);
-    alert(`Error: ${error.message}`);
+    notify(errorText(error), "error");
   }
 }
 
@@ -949,6 +953,44 @@ function handleCancelWait() {
   $("#room-waiting").style.display = "none";
   $("#room-code").value = "";
   switchScreen("menu");
+}
+
+/* ============================================
+   AVISOS
+   ============================================ */
+/* El alert() del navegador frena la ejecución con una caja gris del
+   sistema: rompe la escena y, en online, congela el sondeo de la sala
+   mientras esté abierto. */
+function notify(message, kind = "info") {
+  const layer = $("#toast-layer");
+  if (!layer) return;
+
+  const el = document.createElement("div");
+  el.className = kind === "error" ? "toast error" : "toast";
+  el.textContent = message;
+  layer.appendChild(el);
+
+  setTimeout(() => {
+    el.classList.add("leaving");
+    el.addEventListener("animationend", () => el.remove(), { once: true });
+    // Si las animaciones están desactivadas el evento no llega nunca.
+    setTimeout(() => el.remove(), 400);
+  }, 3200);
+}
+
+/* Los errores de Convex vienen como ConvexError con el texto en `data`;
+   el resto trae `message`. Sin esto el jugador leía "[object Object]". */
+function errorText(error) {
+  const raw = error?.data ?? error?.message ?? "Algo salió mal";
+  const text = typeof raw === "string" ? raw : JSON.stringify(raw);
+  const known = {
+    "Room not found": "Esa sala no existe",
+    "Room full or finished": "La sala ya está llena o terminó",
+    "Game not active": "La partida ya terminó",
+    "Not your turn": "No es tu turno",
+    "You are not in this room": "Ya no estás en esta sala",
+  };
+  return known[text] || text;
 }
 
 /* ============================================
