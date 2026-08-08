@@ -912,19 +912,26 @@ body {
 .versus-controls {
   grid-area: ctrl;
   justify-self: center;
-  width: min(100%, 54rem);
+  /* Más ancho, porque los botones crecieron con él. */
+  width: min(100%, 68rem);
   display: flex;
-  gap: clamp(0.6rem, 1.5vw, 1.2rem);
+  /* Tirar y plantarse hacen cosas opuestas y no hay deshacer. La
+     separación existe para que un pulgar apurado no dé una por la otra. */
+  gap: clamp(1.6rem, 5vw, 4rem);
   /* Aire propio: los botones son de la interfaz, no de la mesa, y pegados
      al peleador de abajo se leían como parte de él. */
-  margin-top: clamp(1rem, 3vh, 2.6rem);
+  margin-top: 5rem;
   transform: translateY(var(--ui-shift));
 }
+/* Blancos grandes: son los dos únicos botones de la partida y se aprietan
+   con el pulgar, muchas veces seguidas y mirando el dado, no el botón. */
 .versus-controls .btn,
 .versus-controls .btn-nav {
   flex: 1;
   text-align: center;
-  padding-block: clamp(1rem, 2vh, 1.6rem);
+  font-size: clamp(1.4rem, 2.6vmin, 2rem);
+  padding-block: clamp(1.6rem, 3.4vh, 2.8rem);
+  border-radius: 1.6rem;
 }
 .key-hint {
   opacity: 0.5;
