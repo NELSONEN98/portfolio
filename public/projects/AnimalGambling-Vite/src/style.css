@@ -894,12 +894,16 @@ body {
 
 /* Puerta a las reglas, arriba a la derecha. Redondo y chico: es una ayuda
    a mano, no una acción del juego, y por eso no usa .btn-nav —los dos
-   botones dorados de abajo son los que se aprietan para jugar. */
+   botones dorados de abajo son los que se aprietan para jugar.
+
+   Fixed y por encima de las capas del juego, pero por debajo de la modal
+   (500) y de los avisos (999): colgado de la pantalla de juego quedaba
+   tapado, porque esa sección no crea contexto de posicionamiento propio. */
 .rules-open {
-  position: absolute;
+  position: fixed;
   top: clamp(0.6rem, 2vh, 1.4rem);
   right: clamp(0.8rem, 2.5vw, 2rem);
-  z-index: 8;
+  z-index: 400;
 
   width: clamp(2.4rem, 5vmin, 3.2rem);
   aspect-ratio: 1;
@@ -1158,6 +1162,25 @@ body {
   gap: 0.15rem;
   font-family: var(--display);
   box-shadow: 0 0 0 2px #fff, 0 0.4rem 0.9rem rgba(0, 0, 0, 0.6);
+}
+
+/* Las de abajo de la pila: sólo el borde asomando, corrido. Dibujar la
+   carta entera sería ruido — lo único que importa es que son varias. */
+.pc-stacked {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.5rem;
+  transform: translate(calc(var(--i) * 0.22rem), calc(var(--i) * -0.22rem));
+  background: var(--c-red-deep);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.45);
+  z-index: -1;
+}
+
+/* El número de cartas, sobre el reverso. */
+.pc-back b {
+  font-weight: 400;
+  font-size: 0.75em;
+  opacity: 0.85;
 }
 
 .pc-back {

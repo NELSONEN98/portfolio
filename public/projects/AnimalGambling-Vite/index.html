@@ -137,8 +137,6 @@
         </div>
       </div>
 
-      <button class="rules-open" id="btn-rules-open" aria-label="Ver las reglas">?</button>
-
       <!-- mano del jugador: debajo de los personajes, arriba de los
            controles. La llena renderHand() -->
       <div class="hand-row" id="hand-row" aria-label="Tus cartas"></div>
@@ -177,6 +175,11 @@
         <button class="btn-nav secondary" id="btn-gameover-new">× Otros jugadores</button>
       </div>
     </section>
+
+    <!-- Uno solo para todo el juego: se muestra en el menú y en la
+         partida. Vive fuera de las pantallas porque cada una se apaga con
+         display:none y el botón tiene que sobrevivir a los cambios. -->
+    <button class="rules-open" id="btn-rules-open" aria-label="Ver las reglas" hidden>?</button>
 
     <div class="particle-layer" id="particles"></div>
 

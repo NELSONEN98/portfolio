@@ -20,9 +20,12 @@ const player = v.object({
   // Casilla del camino donde está la ficha.
   pos: v.optional(v.number()),
   hand: v.optional(v.array(card)),
-  /* Carta jugada boca abajo. Se revela al plantarse y recién ahí se
-     resuelve, que es lo que le da al rival la chance de responder. */
+  /* Cartas jugadas boca abajo, en el orden en que se pusieron. Se revelan
+     al plantarse y recién ahí se resuelven, que es lo que le da al rival
+     la chance de responder. Se pueden acumular varias en un turno.
+     pendingCard queda por las salas creadas con la versión de una sola. */
   pendingCard: v.optional(v.union(v.null(), card)),
+  pendingCards: v.optional(v.array(card)),
   // Turnos que le quedan al rival con el dado limitado.
   curseTurns: v.optional(v.number()),
   // Vale para la próxima tirada y se consume ahí mismo.

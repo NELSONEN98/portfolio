@@ -290,7 +290,7 @@ function newPlayer(char) {
     current: 0,
     pos: 0,
     hand: startingHand(() => Math.random()),
-    pendingCard: null,
+    pendingCards: [],
     curseTurns: 0,
     doubleNext: false,
   };
@@ -492,8 +492,7 @@ function renderHand() {
 function canPlayCards() {
   if (!state.playing || state.rolling) return false;
   if (!isMyTurn()) return false;
-  const me = state.players[state.gameMode === "online" ? state.mySide : state.active];
-  return !me?.pendingCard;
+  return true;
 }
 
 /* La carta boca abajo sobre el fieltro. Se dibuja para los dos: el rival
@@ -502,11 +501,16 @@ function renderPlayedCard() {
   const felt = $(".pool-felt");
   if (!felt) return;
 
-  /* Boca abajo mientras alguno la tenga pendiente; ya revelada mientras
-     dure el volteo. Se busca en los dos jugadores porque la carta del
-     rival también tiene que verse. */
-  const pending = state.players.find((p) => p?.pendingCard)?.pendingCard ?? null;
-  const shown = state.revealed?.card ?? pending;
+  /* Boca abajo mientras alguno las tenga pendientes; ya revelada mientras
+     dure el volteo. Se busca en los dos jugadores porque las cartas del
+     rival también tienen que verse. */
+  const pending =
+    state.players.find((p) => p?.pendingCards?.length)?.pendingCards ?? [];
+  const shown = state.revealed?.card ?? pending[pending.length - 1] ?? null;
+
+  /* Cuántas hay debajo de la de arriba: se dibujan como sombras corridas
+     para que se vea que son varias sin tapar la de adelante. */
+  const stack = state.revealed ? 0 : Math.max(0, pending.length - 1);
 
   let el = $(".played-card");
 
@@ -524,12 +528,18 @@ function renderPlayedCard() {
   /* Las dos caras existen desde el principio y el reverso tapa a la otra:
      así el volteo es una rotación y no un reemplazo de contenido, que se
      vería como un parpadeo. */
-  const key = `${shown.uid ?? shown.type}-${state.revealed ? "up" : "down"}`;
+  const key = `${shown.uid ?? shown.type}-${state.revealed ? "up" : "down"}-${stack}`;
   if (el.dataset.key !== key) {
     el.dataset.key = key;
+    const sombras = Array.from(
+      { length: Math.min(stack, 3) },
+      (_, i) => `<span class="pc-stacked" style="--i:${i + 1}"></span>`
+    ).join("");
+
     el.innerHTML = `
+      ${sombras}
       <div class="pc-inner">
-        <div class="pc-back">?</div>
+        <div class="pc-back">?${stack ? `<b>${stack + 1}</b>` : ""}</div>
         <div class="pc-front ${shown.type}">${cardFace(shown)}</div>
       </div>`;
   }
@@ -701,7 +711,10 @@ function syncGameStateOnline() {
            autoridad, y predecirlos de este lado sería adivinar el azar. */
         p.pos = side.pos ?? 0;
         p.hand = side.hand ?? [];
-        p.pendingCard = side.pendingCard ?? null;
+        /* Se acepta el campo viejo de una sola carta por las salas que
+           quedaron abiertas de la versión anterior. */
+        p.pendingCards =
+          side.pendingCards ?? (side.pendingCard ? [side.pendingCard] : []);
         p.curseTurns = side.curseTurns ?? 0;
         p.doubleNext = Boolean(side.doubleNext);
         const char = charFromCatId(side.catId);
@@ -951,10 +964,12 @@ async function rollDiceOnline() {
         state.active = state.mySide === 0 ? 1 : 0;
         /* La carta puesta vuelve a la mano. El servidor ya la devolvió;
            esto es para no esperar hasta el próximo sondeo. */
-        if (me.pendingCard) {
-          me.hand = [...(me.hand ?? []), me.pendingCard];
-          me.pendingCard = null;
-          notify("Te quemaste — tu carta vuelve a la mano");
+        if (me.pendingCards?.length) {
+          const n = me.pendingCards.length;
+          me.hand = [...(me.hand ?? []), ...me.pendingCards];
+          me.pendingCards = [];
+          notify(n > 1 ? `Te quemaste — tus ${n} cartas vuelven a la mano`
+                       : "Te quemaste — tu carta vuelve a la mano");
         }
       }
       updateScores();
@@ -997,7 +1012,7 @@ async function playCardByUid(uid) {
     // El sondeo trae el estado real; esto es sólo para que responda ya.
     me.hand = dropCard(me.hand, uid);
     if (card.type === CARD.DOUBLE) me.doubleNext = true;
-    else me.pendingCard = card;
+    else me.pendingCards = [...(me.pendingCards ?? []), card];
     renderHand();
     syncDiceCount();
     return;
@@ -1008,8 +1023,13 @@ async function playCardByUid(uid) {
     me.doubleNext = true;
     notify("Dos dados en tu próxima tirada");
   } else {
-    me.pendingCard = card;
-    notify("Carta sobre la mesa — se revela al plantarte");
+    me.pendingCards = [...(me.pendingCards ?? []), card];
+    const n = me.pendingCards.length;
+    notify(
+      n > 1
+        ? `${n} cartas sobre la mesa — se revelan al plantarte`
+        : "Carta sobre la mesa — se revela al plantarte"
+    );
   }
   renderHand();
   syncDiceCount();
@@ -1027,7 +1047,7 @@ function applyLandingLocal(p, steps) {
   } else if (square === SQUARE.BONUS) {
     /* La carta que está sobre la mesa cuenta para el límite: puede volver
        a la mano al quemarse, y sin contarla quedaría una de más. */
-    const ocupadas = (p.hand?.length ?? 0) + (p.pendingCard ? 1 : 0);
+    const ocupadas = (p.hand?.length ?? 0) + (p.pendingCards?.length ?? 0);
     if (ocupadas < HAND_LIMIT) {
       p.hand = [...(p.hand ?? []), randomBonusCard(rand, Date.now())];
       notify(`Bonus — carta nueva para ${p.char.name}`);
@@ -1041,27 +1061,33 @@ function applyLandingLocal(p, steps) {
 /* Revela la carta que estaba boca abajo y la resuelve. La defensa del
    rival se gasta sola: la regla es "si el rival no tiene defensa". */
 function resolvePendingLocal(me, rival) {
-  const card = me.pendingCard;
-  if (!card || !rival) return;
-  me.pendingCard = null;
+  const cards = me.pendingCards ?? [];
+  if (!cards.length || !rival) return;
+  me.pendingCards = [];
 
-  if (hasDefense(rival.hand ?? [])) {
-    rival.hand = dropFirstOfType(rival.hand, CARD.DEFENSE);
-    revealPlayedCard(card, true);
-    notify(`${rival.char.name} bloqueó la ${CARD_LABEL[card.type].toLowerCase()}`);
-    return;
-  }
+  /* Cada defensa tapa una sola carta: contra tres robos, una defensa frena
+     el primero y los otros dos entran. Esa es la razón de poder acumular. */
+  let robado = 0;
+  cards.forEach((card, i) => {
+    const blocked = hasDefense(rival.hand ?? []);
+    if (blocked) {
+      rival.hand = dropFirstOfType(rival.hand, CARD.DEFENSE);
+    } else if (card.type === CARD.STEAL) {
+      const taken = Math.min(card.value, rival.score);
+      rival.score -= taken;
+      me.score += taken;
+      robado += taken;
+    } else if (card.type === CARD.CURSE) {
+      rival.curseTurns = CURSE_TURNS;
+    }
+    /* Se dan vuelta una después de otra para que se puedan seguir; si
+       aparecieran juntas no se sabría cuál hizo qué. */
+    setTimeout(() => revealPlayedCard(card, blocked), i * 900);
+  });
 
-  revealPlayedCard(card, false);
-
-  if (card.type === CARD.STEAL) {
-    const taken = Math.min(card.value, rival.score);
-    rival.score -= taken;
-    me.score += taken;
-    notify(`Robo de ${taken} a ${rival.char.name}`);
-  } else if (card.type === CARD.CURSE) {
-    rival.curseTurns = CURSE_TURNS;
-    notify(`Maldición: ${rival.char.name} tira hasta 5 por ${CURSE_TURNS} turnos`);
+  if (robado > 0) notify(`Robo de ${robado} a ${rival.char.name}`);
+  if (cards.some((c) => c.type === CARD.CURSE) && rival.curseTurns > 0) {
+    notify(`Maldición: ${rival.char.name} tira hasta ${CURSED_MAX_ROLL} por ${CURSE_TURNS} turnos`);
   }
 }
 
@@ -1094,10 +1120,12 @@ function rollDiceLocal() {
       /* La carta que estaba boca abajo vuelve a la mano sin revelarse:
          quemarse ya cuesta el turno entero, no tiene por qué costar
          también la carta. */
-      if (p.pendingCard) {
-        p.hand = [...(p.hand ?? []), p.pendingCard];
-        p.pendingCard = null;
-        notify("Te quemaste — tu carta vuelve a la mano");
+      if (p.pendingCards?.length) {
+        const n = p.pendingCards.length;
+        p.hand = [...(p.hand ?? []), ...p.pendingCards];
+        p.pendingCards = [];
+        notify(n > 1 ? `Te quemaste — tus ${n} cartas vuelven a la mano`
+                     : "Te quemaste — tu carta vuelve a la mano");
         renderHand();
       }
       p.current = 0;
@@ -1365,6 +1393,12 @@ function applyScreen(name) {
   /* Fuera del versus no hay partida que sincronizar. renderGameUI lo vuelve
      a levantar al entrar. */
   if (name !== "game") stopWatchingRoom();
+
+  /* Las reglas se ofrecen donde sirven: en el menú, para leerlas antes de
+     entrar, y en la partida, para consultarlas sin cortar nada. En la
+     selección o en el final serían ruido. */
+  const rulesBtn = $("#btn-rules-open");
+  if (rulesBtn) rulesBtn.hidden = !(name === "menu" || name === "game");
 
   /* Menú y título son los dos destinos donde ya no estás en ninguna sala.
      Selección y versus no cuentan: ahí seguís adentro. */

@@ -62,7 +62,9 @@ function boardOf(p: any) {
   return {
     pos: p.pos ?? 0,
     hand: (p.hand ?? []) as Card[],
-    pendingCard: (p.pendingCard ?? null) as Card | null,
+    /* Se acepta el campo viejo de una sola carta para no romper las salas
+       que quedaron abiertas de la versión anterior. */
+    pendingCards: (p.pendingCards ?? (p.pendingCard ? [p.pendingCard] : [])) as Card[],
     curseTurns: p.curseTurns ?? 0,
     doubleNext: p.doubleNext ?? false,
   };
@@ -80,6 +82,7 @@ function freshPlayer(sessionId: string) {
     pos: 0,
     hand: startingHand(rand),
     pendingCard: null,
+    pendingCards: [],
     curseTurns: 0,
     doubleNext: false,
   };
@@ -289,7 +292,7 @@ export const rollDice = mutation({
       /* La carta que está sobre la mesa cuenta para el límite: puede
          volver a la mano al quemarse, y sin contarla la mano terminaría
          con una de más. */
-      const ocupadas = hand.length + (mine.pendingCard ? 1 : 0);
+      const ocupadas = hand.length + mine.pendingCards.length;
       // Mano llena: la casilla se pisa igual pero no entrega nada.
       if (ocupadas < HAND_LIMIT) hand = [...hand, randomBonusCard(rand, Date.now())];
     }
@@ -305,7 +308,7 @@ export const rollDice = mutation({
         isBust: outcome.isBust,
         pos,
         landed,
-        cardReturned: Boolean(outcome.isBust && mine.pendingCard),
+        cardsReturned: outcome.isBust ? mine.pendingCards.length : 0,
       },
       timestamp: Date.now(),
     });
@@ -321,16 +324,17 @@ export const rollDice = mutation({
 
     /* Ojo de víbora: se pierde lo acumulado del turno y pasa el otro. */
     if (outcome.isBust) {
-      /* La carta que estaba boca abajo vuelve a la mano sin revelarse:
+      /* Las cartas que estaban boca abajo vuelven a la mano sin revelarse:
          quemarse ya cuesta el turno entero, no tiene por qué costar
-         también la carta. */
-      const devuelta = mine.pendingCard ? [...hand, mine.pendingCard] : hand;
+         también las cartas. */
+      const devueltas = [...hand, ...mine.pendingCards];
       await ctx.db.patch(room._id, {
         turn: me.other,
         [me.key]: {
           ...base,
-          hand: devuelta,
+          hand: devueltas,
           pendingCard: null,
+          pendingCards: [],
           current: 0,
           /* La maldición se mide en turnos, no en tiradas: acá termina uno.
              Descontándola en cada tirada duraba 1,4 turnos en vez de 3,
@@ -368,7 +372,6 @@ export const playCard = mutation({
     if (room.turn !== me.key) throw new ConvexError("Not your turn");
 
     const mine = boardOf(me.player);
-    if (mine.pendingCard) throw new ConvexError("Ya jugaste una carta este turno");
 
     const chosen = mine.hand.find((c) => c.uid === args.uid);
     if (!chosen) throw new ConvexError("Card not in hand");
@@ -387,11 +390,18 @@ export const playCard = mutation({
       return { applied: "double" };
     }
 
+    /* Se apilan: en un mismo turno se pueden poner varias y todas se
+       revuelven al plantarse, una atrás de la otra. */
     await ctx.db.patch(room._id, {
-      [me.key]: { ...me.player, hand, pendingCard: chosen },
+      [me.key]: {
+        ...me.player,
+        hand,
+        pendingCard: null,
+        pendingCards: [...mine.pendingCards, chosen],
+      },
     });
 
-    return { applied: "pending", card: chosen };
+    return { applied: "pending", card: chosen, pending: mine.pendingCards.length + 1 };
   },
 });
 
@@ -420,31 +430,35 @@ export const holdScore = mutation({
     let rivalHand = rival ? rival.hand : [];
     let rivalCurse = rival ? rival.curseTurns : 0;
 
-    /* Acá se revela la carta que estaba boca abajo. La defensa del rival se
-       gasta sola: la regla es "si el rival no tiene defensa", no "si el
-       rival decide defenderse", y pedirle que elija con el turno del otro
-       en curso agregaría una espera en la que nadie puede hacer nada. */
-    let resolved: null | {
-      type: string;
-      value?: number;
-      blocked: boolean;
-    } = null;
+    /* Acá se revelan las cartas que estaban boca abajo, en el orden en que
+       se pusieron. La defensa del rival se gasta sola: la regla es "si el
+       rival no tiene defensa", no "si el rival decide defenderse", y
+       pedirle que elija con el turno del otro en curso agregaría una espera
+       en la que nadie puede hacer nada.
 
-    const pending = mine.pendingCard;
-    if (pending && rivalRaw) {
-      const blocked = hasDefense(rivalHand);
-      if (blocked) {
-        rivalHand = dropFirstOfType(rivalHand, CARD.DEFENSE);
-      } else if (pending.type === CARD.STEAL) {
-        /* No se puede robar más de lo que el rival tiene: el marcador no
-           baja de cero y el ladrón no cobra de un bolsillo vacío. */
-        const taken = Math.min(pending.value ?? 0, rivalScore);
-        rivalScore -= taken;
-        myScore += taken;
-      } else if (pending.type === CARD.CURSE) {
-        rivalCurse = CURSE_TURNS;
+       Cada defensa tapa una sola carta: contra tres robos, una defensa
+       frena el primero y los otros dos entran. Esa es la razón de poder
+       acumular. */
+    const resolved: Array<{ type: string; value?: number; blocked: boolean }> = [];
+
+    if (rivalRaw) {
+      for (const pending of mine.pendingCards) {
+        const blocked = hasDefense(rivalHand);
+        if (blocked) {
+          rivalHand = dropFirstOfType(rivalHand, CARD.DEFENSE);
+        } else if (pending.type === CARD.STEAL) {
+          /* No se puede robar más de lo que el rival tiene: el marcador no
+             baja de cero y el ladrón no cobra de un bolsillo vacío. Se
+             recalcula carta por carta, así dos robos seguidos no sacan más
+             de lo que había. */
+          const taken = Math.min(pending.value ?? 0, rivalScore);
+          rivalScore -= taken;
+          myScore += taken;
+        } else if (pending.type === CARD.CURSE) {
+          rivalCurse = CURSE_TURNS;
+        }
+        resolved.push({ type: pending.type, value: pending.value, blocked });
       }
-      resolved = { type: pending.type, value: pending.value, blocked };
     }
 
     /* El objetivo se evalúa después de la carta: robar 22 puede ser
@@ -456,7 +470,7 @@ export const holdScore = mutation({
       roomId: args.roomId,
       sessionId: args.sessionId,
       action: gameFinished ? "hold_and_win" : "hold",
-      payload: { newScore, goal: GOAL, resolved },
+      payload: { newScore, goal: GOAL, resolved, resolvedCount: resolved.length },
       timestamp: Date.now(),
     });
 
@@ -465,6 +479,7 @@ export const holdScore = mutation({
       score: newScore,
       current: 0,
       pendingCard: null,
+      pendingCards: [],
       // Plantarse también cierra un turno de maldición.
       curseTurns: Math.max(0, mine.curseTurns - 1),
     };
