@@ -652,10 +652,6 @@ function showGameOver(winnerIdx) {
     ? '"me borré."'
     : `"${loser.char.loseQuote}"`;
 
-  $(".gameover-banner .tag").textContent = state.wonByAbandon
-    ? "— se levantó de la mesa —"
-    : "— la casa ya tiene ganador —";
-
   /* Una revancha online necesita que los dos acepten y que la sala se
      reinicie; la de acá reusa los picks locales y contra una sala
      terminada el backend rechaza cada tirada. */
