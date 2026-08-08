@@ -389,13 +389,22 @@ function cellCenter(i) {
   };
 }
 
+/* Íconos de casilla. A este tamaño sólo sobrevive una silueta maciza: un
+   dibujo con detalle se convierte en una mancha. El rayo dice castigo y la
+   estrella premio sin depender del color, que es lo que necesita quien no
+   distingue rojo de azul. */
+const SQUARE_ICON = {
+  penalty: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>`,
+  bonus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.9 6.3 6.8.8-5 4.7 1.3 6.8L12 17.3 5.9 20.6l1.3-6.8-5-4.7 6.8-.8z"/></svg>`,
+};
+
 function renderBoard() {
   const track = $("#board-track");
   if (!track) return;
 
   const squares = BOARD.map((type, i) => {
     const { col, row } = squareCell(i);
-    return `<span class="square ${type}" style="grid-column:${col};grid-row:${row}"></span>`;
+    return `<span class="square ${type}" style="grid-column:${col};grid-row:${row}">${SQUARE_ICON[type] ?? ""}</span>`;
   }).join("");
 
   track.innerHTML =

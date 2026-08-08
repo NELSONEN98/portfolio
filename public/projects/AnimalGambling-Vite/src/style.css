@@ -847,6 +847,19 @@ body {
   border-radius: 0.35rem;
   background: rgba(255, 255, 255, 0.14);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45);
+
+  display: grid;
+  place-items: center;
+}
+
+/* El ícono ocupa poco más de la mitad de la casilla: lleno se empasta
+   contra el borde y deja de leerse como figura. */
+.square svg {
+  width: 58%;
+  height: 58%;
+  fill: #fff;
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.55));
 }
 
 /* Los dos tipos que hacen algo se leen por color, no por ícono: a este
@@ -864,7 +877,7 @@ body {
    transition, así el salto de casillas se ve recorrer el camino. */
 .token {
   position: absolute;
-  width: clamp(1rem, 2.8vmin, 1.8rem);
+  width: clamp(1.5rem, 4.2vmin, 2.7rem);
   aspect-ratio: 1;
   border-radius: 50%;
   transform: translate(-50%, -50%);
@@ -877,9 +890,10 @@ body {
 .token.p2 { background: #fff; }
 
 /* Cuando los dos caen en la misma casilla se separan un poco para que no
-   quede una sola ficha a la vista. */
-.token.p1 { margin-left: -0.35rem; }
-.token.p2 { margin-left: 0.35rem; }
+   quede una sola ficha a la vista. Escala con la ficha: fijo en rem, dos
+   fichas grandes seguían tapándose. */
+.token.p1 { margin-left: clamp(-0.85rem, -1.4vmin, -0.45rem); }
+.token.p2 { margin-left: clamp(0.45rem, 1.4vmin, 0.85rem); }
 
 @media (prefers-reduced-motion: reduce) {
   .token { transition: none; }
@@ -892,17 +906,19 @@ body {
   grid-area: hand;
   justify-self: center;
   display: flex;
-  gap: clamp(0.5rem, 1.6vw, 1rem);
+  /* Más aire entre cartas: se sueltan con el dedo y son irreversibles, así
+     que conviene que no se toquen. */
+  gap: clamp(0.9rem, 3vw, 2rem);
   margin-top: clamp(0.8rem, 2vh, 1.6rem);
   min-height: 1px;
   transform: translateY(var(--ui-shift));
 }
 
 .card {
-  /* En vmin, no en vh: a 5:7 la carta es más alta que ancha, y en una
-     pantalla apaisada un vh generoso la hacía comerse el alto que
-     necesitan la mesa y los peleadores. */
-  --card-w: clamp(3.6rem, 8.5vmin, 5.6rem);
+  /* Un 30% más grandes que antes. En vmin, no en vh: a 5:7 la carta es más
+     alta que ancha, y en una pantalla apaisada un vh generoso le come el
+     alto a la mesa y a los peleadores. */
+  --card-w: clamp(4.7rem, 11vmin, 7.3rem);
   width: var(--card-w);
   aspect-ratio: 5 / 7;
   border: none;
@@ -937,14 +953,17 @@ body {
   opacity: 0.45;
 }
 
+/* Las dos medidas escalan con la carta: en em sobre --card-w el texto
+   mantiene la proporción sin tener que retocarlo cada vez que cambia el
+   tamaño de la carta. */
 .card-kind {
-  font-size: clamp(0.42rem, 1.1vmin, 0.58rem);
+  font-size: calc(var(--card-w) * 0.13);
   letter-spacing: 0.06em;
   text-align: center;
   line-height: 1.15;
 }
 .card-value {
-  font-size: clamp(1.3rem, 3.4vmin, 2rem);
+  font-size: calc(var(--card-w) * 0.42);
   line-height: 1;
 }
 
@@ -956,6 +975,17 @@ body {
 /* Dos dados pasa a dorado: el azul quedó reservado para las casillas de
    bonus y repetirlo acá los mezclaba. */
 .card.double  { background: var(--c-gold); color: var(--c-black); }
+
+/* A 5:7 la carta es un 40% más alta que ancha, así que en pantallas de
+   poco alto es lo primero que empuja los controles fuera de la vista.
+   Acá manda el alto disponible y no el lado menor. */
+@media (max-height: 800px) {
+  .card { --card-w: clamp(3.4rem, 8vh, 5.4rem); }
+}
+@media (max-height: 620px) {
+  .card { --card-w: clamp(2.8rem, 6.5vh, 4.2rem); }
+  .hand-row { gap: clamp(0.5rem, 2vw, 1rem); }
+}
 
 /* La carta jugada descansa sobre el fieltro, boca abajo, hasta que el que
    la puso se planta. */
