@@ -169,7 +169,7 @@ const MENU_ITEMS = [
    STATE
    ============================================ */
 const TWEAK_DEFAULS = /*EDITMODE-BEGIN*/{
-  "goalScore": 50,
+  "goalScore": 100,
   "smokeOpacity": 0.35,
   "scanlines": true,
   "particles": true,
@@ -718,11 +718,16 @@ async function holdScoreOnline() {
 
 function holdScoreLocal() {
   const p = state.players[state.active];
-  p.score += p.current;
+  const raw = p.score + p.current;
+  const won = raw >= state.goal;
+
+  /* Al ganar el marcador queda clavado en el objetivo: el sobrante de la
+     última tirada no es puntaje. */
+  p.score = won ? state.goal : raw;
   p.current = 0;
   updateScores();
 
-  if (p.score >= state.goal) {
+  if (won) {
     winGame(state.active);
   } else {
     switchPlayer();

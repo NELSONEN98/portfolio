@@ -2,7 +2,7 @@ import { v, ConvexError } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 
-const GOAL = 50;
+const GOAL = 100;
 const ROOM_TTL_MS = 1000 * 60 * 30;
 
 /* Sin I, O, 0 ni 1: el código se dicta por voz o se copia a mano, y esos
@@ -272,8 +272,12 @@ export const holdScore = mutation({
        acumulado. */
     if (room.turn !== me.key) throw new ConvexError("Not your turn");
 
-    const newScore = me.player.score + me.player.current;
-    const gameFinished = newScore >= GOAL;
+    const raw = me.player.score + me.player.current;
+    const gameFinished = raw >= GOAL;
+    /* Al ganar el marcador queda clavado en el objetivo. Llegar con 48 y
+       sacar 6 cerraba la partida mostrando 104: el sobrante no es puntaje,
+       es sólo el resto de la última tirada. */
+    const newScore = gameFinished ? GOAL : raw;
 
     await ctx.db.insert("gameEvents", {
       roomId: args.roomId,
