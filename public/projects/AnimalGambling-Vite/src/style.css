@@ -1399,6 +1399,25 @@ body {
   height: calc(var(--die) * 0.72);
 }
 
+/* Un aro dorado alrededor del par mientras la carta está activa: el
+   segundo dado puede pasar desapercibido en el medio de la mesa, y esto
+   dice que el turno viene distinto. */
+.dice-pair.double {
+  padding: calc(var(--die) * 0.12);
+  border-radius: calc(var(--die) * 0.22);
+  box-shadow: 0 0 0 2px var(--c-gold), 0 0 1.6rem rgba(228, 167, 0, 0.45);
+  animation: double-on 0.35s ease-out;
+}
+
+@keyframes double-on {
+  from { transform: scale(0.88); opacity: 0.4; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dice-pair.double { animation: none; }
+}
+
 /* El que queda en 1 se apaga: con dos dados ese no suma, y verlo igual que
    el otro hace pensar que la cuenta está mal. */
 .dice-3d.dead {

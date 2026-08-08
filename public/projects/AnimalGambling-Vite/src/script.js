@@ -573,6 +573,7 @@ function applySides() {
 
 function renderGameUI() {
   applySides();
+  syncDiceCount();
   renderBoard();
   renderHand();
   paintFighters();
@@ -857,7 +858,12 @@ function showDice(count) {
 
   const double = count > 1;
   pair.classList.toggle("double", double);
+
+  /* `hidden` solo no alcanza: es un display:none de la hoja del navegador y
+     cualquier regla con display se lo lleva puesto. El estilo en línea
+     gana siempre, y así el segundo dado no depende de qué CSS llegue. */
   second.hidden = !double;
+  second.style.display = double ? "block" : "none";
 
   const list = [$("#dice-3d")];
   if (double) list.push(second);

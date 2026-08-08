@@ -182,12 +182,13 @@ export function startingHand(rand: () => number): Card[] {
 
 /* Lo que entrega una casilla de bonus. El robo pesa más que el resto
    porque es la carta que mueve el marcador; la defensa aparece seguido
-   para que atacar no sea siempre gratis. */
+   para que atacar no sea siempre gratis. Dos dados sube de 12% a 22%:
+   al 12% casi no se veía, y es la única carta que cambia cómo se tira. */
 export function randomBonusCard(rand: () => number, seed: number): Card {
   const roll = rand();
-  if (roll < 0.4) return makeCard(CARD.STEAL, randomStealValue(rand), seed);
-  if (roll < 0.7) return makeCard(CARD.DEFENSE, undefined, seed);
-  if (roll < 0.88) return makeCard(CARD.CURSE, undefined, seed);
+  if (roll < 0.35) return makeCard(CARD.STEAL, randomStealValue(rand), seed);
+  if (roll < 0.6) return makeCard(CARD.DEFENSE, undefined, seed);
+  if (roll < 0.78) return makeCard(CARD.CURSE, undefined, seed);
   return makeCard(CARD.DOUBLE, undefined, seed);
 }
 
