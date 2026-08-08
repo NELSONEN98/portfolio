@@ -180,7 +180,7 @@ function warmRosterFrames() {
 
    Y un mínimo en pantalla: un preloader que aparece cien milisegundos y se
    va parece un parpadeo defectuoso, no una presentación. */
-const PRELOADER_MIN_MS = 1100;
+const PRELOADER_MIN_MS = 3100;
 const bootedAt = performance.now();
 
 function hidePreloader() {
