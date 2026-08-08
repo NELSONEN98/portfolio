@@ -682,36 +682,60 @@ body {
   --side-glow: rgba(228, 167, 0, 0.45);
 }
 
+/* La maldición se lleva el color del lado entero: marco y puntaje salen
+   los dos de --side, así que cambiándola sola quedan los dos morados y no
+   pueden desincronizarse.
+
+   Va después de .active a propósito: las dos reglas tienen la misma
+   especificidad, así que gana la de abajo, y estar maldito importa más
+   que de quién es el turno. */
+.fighter.cursed {
+  --side: var(--c-purple);
+  --side-glow: rgba(91, 45, 142, 0.7);
+}
+
 .fighter .fighter-frame {
   box-shadow:
     0 0 0 0.3rem var(--side, rgba(0, 0, 0, 0.55)),
     0 1.2rem 2.4rem rgba(0, 0, 0, 0.5);
 }
 
-/* Maldito: el marco pasa a morado mientras duren los turnos, esté o no en
-   turno. Pisa al dorado y al blanco a propósito — que te limiten el dado
-   es más importante de saber que de quién es el turno, y el morado es el
-   mismo color de la carta que lo causó. */
-.fighter.cursed .fighter-frame,
-.fighter.cursed.active .fighter-frame {
-  box-shadow:
-    0 0 0 0.3rem var(--c-purple),
-    0 0 3rem rgba(91, 45, 142, 0.7),
-    0 1.6rem 2.8rem rgba(0, 0, 0, 0.55);
-}
-
-/* Un latido lento para que se lea como un estado que está corriendo y no
-   como otro color fijo más. */
+/* El color del marco ya lo trae --side; acá sólo se agrega el latido, para
+   que se lea como un estado que está corriendo y no como otro color fijo
+   más. Los keyframes usan la misma variable en vez de repetir el morado:
+   si mañana cambia, cambia en un solo lugar. */
 .fighter.cursed .fighter-frame {
   animation: cursed-pulse 2.2s ease-in-out infinite;
 }
 @keyframes cursed-pulse {
-  0%, 100% { box-shadow: 0 0 0 0.3rem var(--c-purple), 0 0 2rem rgba(91, 45, 142, 0.55), 0 1.6rem 2.8rem rgba(0, 0, 0, 0.55); }
-  50%      { box-shadow: 0 0 0 0.3rem var(--c-purple), 0 0 4rem rgba(91, 45, 142, 0.95), 0 1.6rem 2.8rem rgba(0, 0, 0, 0.55); }
+  0%, 100% {
+    box-shadow:
+      0 0 0 0.3rem var(--side),
+      0 0 2rem rgba(91, 45, 142, 0.55),
+      0 1.6rem 2.8rem rgba(0, 0, 0, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 0 0 0.3rem var(--side),
+      0 0 4.5rem rgba(91, 45, 142, 0.95),
+      0 1.6rem 2.8rem rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* El puntaje late con el marco: es la misma condición y conviene que se
+   lean como una sola cosa. */
+.fighter.cursed .f-score {
+  animation: cursed-score 2.2s ease-in-out infinite;
+}
+@keyframes cursed-score {
+  0%, 100% { text-shadow: 0 0 1.2rem rgba(91, 45, 142, 0.6); }
+  50%      { text-shadow: 0 0 2.6rem rgba(91, 45, 142, 1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fighter.cursed .fighter-frame { animation: none; }
+  /* Sin latido, pero el morado se queda: es información, no decoración. */
+  .fighter.cursed .fighter-frame,
+  .fighter.cursed .f-score { animation: none; }
 }
 
 /* Además del dorado, el que está en turno se levanta y prende. */
