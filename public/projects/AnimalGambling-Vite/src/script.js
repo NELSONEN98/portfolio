@@ -309,7 +309,27 @@ function paintFighters() {
   }
 }
 
+/* Quién es cada lado, para el CSS. En online el jugador va abajo y en
+   dorado, el rival arriba y en blanco; como f1 es el de arriba, cuando te
+   tocó ser player1 hay que dar vuelta las posiciones.
+
+   En local no hay "vos" y "el otro" —los dos miran la misma pantalla—, así
+   que P1 se queda arriba como siempre y sólo hereda el par de colores. */
+function applySides() {
+  const online = state.gameMode === "online";
+  const me = online ? state.mySide : 0;
+
+  screens.game.classList.toggle("flip", online && me === 0);
+
+  for (let i = 0; i < 2; i++) {
+    const el = $(`#fighter-${i}`);
+    el.classList.toggle("is-me", i === me);
+    el.classList.toggle("is-rival", i !== me);
+  }
+}
+
 function renderGameUI() {
+  applySides();
   paintFighters();
   updateScores();
   updateActiveFighter();
@@ -376,6 +396,9 @@ function syncGameStateOnline() {
     const mySession = getSessionId();
     if (room.player1.sessionId === mySession) state.mySide = 0;
     else if (room.player2 && room.player2.sessionId === mySession) state.mySide = 1;
+    /* Sin condicionar a que haya cambiado: startGame renderiza antes del
+       primer sondeo, con el mySide que quedó de la partida anterior. */
+    applySides();
 
     [room.player1, room.player2].forEach((side, i) => {
       const p = state.players[i];

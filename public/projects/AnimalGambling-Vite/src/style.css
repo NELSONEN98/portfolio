@@ -441,17 +441,23 @@ body {
 .versus-screen {
   display: none;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  /* Todas las filas al tamaño de su contenido. Con la mesa en 1fr se
+     quedaba con todo el espacio sobrante y, aunque centrada, empujaba a
+     los peleadores contra los bordes de la pantalla: el hueco no estaba
+     en el padding sino adentro de esa fila. */
+  grid-template-rows: auto auto auto auto;
   grid-template-areas:
     "f1"
     "table"
     "f2"
     "ctrl";
-  gap: 0.2rem;
+  gap: clamp(0.3rem, 1vh, 0.9rem);
+  /* Ahora sobra alto en lugar de repartirse: el bloque entero se centra. */
+  align-content: center;
   padding:
-    clamp(1.2rem, 3vh, 3.6rem)
+    clamp(0.6rem, 1.5vh, 1.6rem)
     clamp(1.2rem, 3vw, 4rem)
-    calc(clamp(1.2rem, 3vh, 3.6rem) + env(safe-area-inset-bottom));
+    calc(clamp(0.6rem, 1.5vh, 1.6rem) + env(safe-area-inset-bottom));
   height: 100%;
 }
 .versus-screen.active {
@@ -472,6 +478,25 @@ body {
 .fighter.f1 { grid-area: f1; justify-self: start; }
 /* mirrored, so the two readouts sit on opposite sides of the table */
 .fighter.f2 { grid-area: f2; justify-self: end; flex-direction: row-reverse; }
+
+/* En online el jugador tiene que verse siempre abajo, mire quien mire la
+   pantalla. Al que le tocó ser player1 se le intercambian las dos
+   posiciones — no los elementos: cada fighter conserva su id, su color y
+   su personaje, sólo cambia el lugar donde se dibuja. */
+.versus-screen.flip .fighter.f1 {
+  grid-area: f2;
+  justify-self: end;
+  flex-direction: row-reverse;
+}
+.versus-screen.flip .fighter.f2 {
+  grid-area: f1;
+  justify-self: start;
+  flex-direction: row;
+}
+.versus-screen.flip .fighter.f1 .fighter-readout { text-align: right; }
+.versus-screen.flip .fighter.f2 .fighter-readout { text-align: left; }
+.versus-screen.flip .fighter.f1 .f-numbers { flex-direction: row-reverse; }
+.versus-screen.flip .fighter.f2 .f-numbers { flex-direction: row; }
 
 /* The drawings are black line on white paper, so the frame IS the paper —
    a white rounded card the artwork sits inside. A tinted or transparent
@@ -626,27 +651,42 @@ body {
   90%  { background-image: url("cat4/frame0009.webp"); }
 }
 
-/* Whose turn it is has to be readable at a glance from across the room —
-   the frame itself lights up, in that player's colour. */
+/* El color dice de quién es cada lado, no qué posición ocupa: el tuyo
+   siempre dorado, el del rival siempre blanco. Antes era f1 ámbar y f2
+   cyan, y en online el color te cambiaba según te hubiera tocado crear la
+   sala o entrar. Cada fighter lleva el suyo y el resto lo hereda. */
+.fighter.is-me {
+  --side: var(--c-gold);
+  --side-glow: rgba(228, 167, 0, 0.45);
+}
+.fighter.is-rival {
+  --side: #fff;
+  --side-glow: rgba(255, 255, 255, 0.35);
+}
+
+.fighter .fighter-frame {
+  box-shadow:
+    0 0 0 0.3rem var(--side, rgba(0, 0, 0, 0.55)),
+    0 1.2rem 2.4rem rgba(0, 0, 0, 0.5);
+}
+
+/* De quién es el turno tiene que leerse de un vistazo. Como el color ya
+   está tomado para identificar al jugador, el turno lo marcan el brillo y
+   la elevación. */
 .fighter.active .fighter-frame {
   transform: translateY(-0.6rem);
   box-shadow:
-    0 0 0 0.3rem var(--neon-amber),
-    0 0 3rem rgba(245, 185, 66, 0.45),
-    0 1.6rem 2.8rem rgba(0, 0, 0, 0.55);
-}
-.fighter.f2.active .fighter-frame {
-  box-shadow:
-    0 0 0 0.3rem var(--cyan),
-    0 0 3rem rgba(111, 211, 217, 0.45),
+    0 0 0 0.3rem var(--side),
+    0 0 3rem var(--side-glow),
     0 1.6rem 2.8rem rgba(0, 0, 0, 0.55);
 }
 .fighter.winner .fighter-frame {
   animation: winner-pulse 1.2s infinite;
 }
+/* Late en el color del que ganó, no siempre en ámbar. */
 @keyframes winner-pulse {
-  0%, 100% { box-shadow: 0 0 0 0.3rem var(--neon-amber), 0 0 3rem rgba(245, 185, 66, 0.4); }
-  50%      { box-shadow: 0 0 0 0.3rem var(--neon-amber), 0 0 6rem rgba(245, 185, 66, 0.85); }
+  0%, 100% { box-shadow: 0 0 0 0.3rem var(--side), 0 0 3rem var(--side-glow); }
+  50%      { box-shadow: 0 0 0 0.3rem var(--side), 0 0 6rem var(--side); }
 }
 .fighter.loser .fighter-art {
   filter: grayscale(1) contrast(0.6) brightness(0.75);
@@ -687,7 +727,9 @@ body {
   font-family: var(--display);
   font-size: clamp(9rem, 21vmin, 19.2rem);
   line-height: 0.85;
-  color: var(--bone);
+  /* Siempre en el color del lado, esté o no en turno: es la forma de saber
+     cuál de los dos números es el tuyo sin leer el nombre. */
+  color: var(--side, var(--bone));
   transition: color 0.3s, text-shadow 0.3s;
 }
 .f-current {
@@ -696,13 +738,9 @@ body {
   color: var(--bone-dim);
   letter-spacing: 0.1em;
 }
+/* Estar en turno no cambia el color — lo enciende. */
 .fighter.active .f-score {
-  color: var(--neon-amber);
-  text-shadow: 0 0 2rem var(--neon-amber-glow);
-}
-.fighter.f2.active .f-score {
-  color: var(--cyan);
-  text-shadow: 0 0 2rem var(--cyan);
+  text-shadow: 0 0 2rem var(--side-glow);
 }
 .fighter.active .f-current {
   color: var(--bone);
@@ -762,17 +800,21 @@ body {
 
 .pool-goal {
   font-family: var(--display);
-  font-size: clamp(0.85rem, 1.4vmin, 1.15rem);
-  letter-spacing: 0.35em;
+  /* Al triple del tamaño anterior. El tracking baja de 0.35em a 0.12em:
+     mantenerlo a esta escala empujaba el texto fuera de la mesa. */
+  font-size: clamp(2.55rem, 4.2vmin, 3.45rem);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(232, 225, 204, 0.4);
+  color: #fff;
   white-space: nowrap;
   pointer-events: none;
   order: -1;
+  /* Se despega del dado. El gap de .dice-arena los tenía a 1rem. */
+  margin-bottom: clamp(1rem, 3vmin, 2.4rem);
 }
 .pool-goal .num {
-  color: var(--neon-amber);
-  text-shadow: 0 0 0.8rem rgba(245, 185, 66, 0.6);
+  color: var(--c-gold);
+  text-shadow: 0 0 0.8rem rgba(228, 167, 0, 0.6);
 }
 
 /* ---- controls ----
@@ -830,6 +872,23 @@ body {
   .fighter.f2 .fighter-readout { text-align: center; }
   .fighter.f2 .f-numbers { flex-direction: row; }
   .f-numbers { justify-content: center; }
+
+  /* Acá no hay arriba y abajo: los peleadores son dos columnas. El flip
+     sigue valiendo —el jugador queda siempre en el mismo lado— pero hay
+     que deshacer el row-reverse y el alineado que trae del layout
+     apilado, porque esos selectores le ganan en especificidad a los de
+     este bloque. */
+  .versus-screen.flip .fighter.f1,
+  .versus-screen.flip .fighter.f2 {
+    flex-direction: column;
+    align-items: center;
+  }
+  .versus-screen.flip .fighter.f1 { align-self: end; justify-self: end; }
+  .versus-screen.flip .fighter.f2 { align-self: start; justify-self: start; }
+  .versus-screen.flip .fighter.f1 .fighter-readout,
+  .versus-screen.flip .fighter.f2 .fighter-readout { text-align: center; }
+  .versus-screen.flip .fighter.f1 .f-numbers,
+  .versus-screen.flip .fighter.f2 .f-numbers { flex-direction: row; }
 
   /* 23vw is the side-column ceiling: the grid splits 1 : 2.2 : 1, so a
      fighter column is about a quarter of the width, and at 5:6 a frame
