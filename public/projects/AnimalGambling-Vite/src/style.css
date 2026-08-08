@@ -1266,20 +1266,11 @@ body {
   display: flex;
 }
 
+/* En el flujo, no flotando. Como absoluto no ocupaba lugar, y el resto
+   tenía que esquivarlo con márgenes fijos: el conjunto quedaba corrido
+   hacia abajo en vez de centrado. */
 .gameover-banner {
-  position: absolute;
-  top: 12%;
-  left: 50%;
-  transform: translateX(-50%);
   text-align: center;
-}
-.gameover-banner .tag {
-  font-family: var(--display);
-  font-size: 1.4rem;
-  color: var(--bone-dim);
-  letter-spacing: 0.8rem;
-  text-transform: uppercase;
-  margin-bottom: 0.8rem;
 }
 .gameover-banner .big {
   font-family: var(--display);
@@ -1298,8 +1289,8 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 6rem;
-  margin-top: 6rem;
+  gap: clamp(2rem, 6vw, 6rem);
+  margin-top: clamp(1.5rem, 4vh, 3.5rem);
   position: relative;
 }
 
@@ -1334,23 +1325,23 @@ body {
    art when it scales down. */
 /* Del tamaño de los cards de la selección: mismo clamp y mismo 5:6, para
    que el gato se vea igual de grande que cuando lo elegiste. El ancho de
-   viewport va más bajo que allá porque acá entran dos, lado a lado. */
-.go-portrait img {
+   viewport va más bajo que allá porque acá entran dos, lado a lado.
+
+   La tarjeta blanca es parte del dibujo: son trazos negros sobre papel, y
+   sin ella el fondo del gato se recorta contra el negro de la pantalla. */
+.go-art {
   width: clamp(14rem, min(34vw, 42dvh), 34rem);
-  height: auto;
   aspect-ratio: 5 / 6;
-  object-fit: contain;
-  background: #fff;
+  background-color: #fff;
   border-radius: clamp(1.4rem, 3vmin, 3rem);
-  image-rendering: auto;
   box-shadow:
     0 0 0 0.4rem rgba(0, 0, 0, 0.55),
     0 1.6rem 3.2rem rgba(0, 0, 0, 0.5);
   position: relative;
   z-index: 1;
 }
-.go-loser .go-portrait img {
-  filter: grayscale(0.8) brightness(0.45);
+.go-loser .go-art {
+  filter: grayscale(0.8) brightness(0.55);
 }
 
 .go-label {
@@ -1359,7 +1350,6 @@ body {
   letter-spacing: 0.5rem;
   text-transform: uppercase;
 }
-.go-winner .go-label { color: var(--neon-amber); }
 .go-loser .go-label { color: var(--blood); }
 
 .go-name {
@@ -1399,7 +1389,7 @@ body {
 .gameover-actions {
   display: flex;
   gap: 1rem;
-  margin-top: 5rem;
+  margin-top: clamp(1.5rem, 4vh, 3.5rem);
 }
 
 /* ============================================
@@ -1723,7 +1713,7 @@ body {
 
   .select-screen { padding: 4rem 3rem 3rem; }
 
-  .gameover-stage { gap: 4rem; margin-top: 5rem; }
+  .gameover-stage { gap: 4rem; }
 }
 
 /* — Mobile ≤ 640px — */
@@ -1744,13 +1734,12 @@ body {
   .snake-eyes-warning { font-size: 2.4rem; }
 
   /* Game over */
-  .gameover-screen { justify-content: flex-start; padding: 16rem 2rem 2rem; }
-  .gameover-banner { top: 5%; }
+  .gameover-screen { padding: 3rem 2rem; }
   .gameover-banner .big { font-size: 7rem; }
-  .gameover-stage { flex-direction: column; align-items: center; gap: 1.5rem; margin-top: 0; }
+  .gameover-stage { flex-direction: column; align-items: center; gap: 1.5rem; margin-top: 1.5rem; }
   /* Acá los dos retratos van apilados, así que el techo lo pone el alto
      de la pantalla y no el ancho. Sin `height`: la altura sale del 5:6. */
-  .go-portrait img { width: clamp(9rem, 30dvh, 16rem); }
+  .go-art { width: clamp(9rem, 30dvh, 16rem); }
   .go-name { font-size: 2.8rem; }
   .gameover-actions { margin-top: 1.5rem; }
 
@@ -1775,7 +1764,7 @@ body {
   .pool-goal { display: none; }
   .snake-eyes-warning { font-size: 2rem; }
 
-  .gameover-screen { padding: 13rem 1.5rem 1.5rem; }
+  .gameover-screen { padding: 2rem 1.5rem; }
   .gameover-banner .big { font-size: 6rem; }
 }
 

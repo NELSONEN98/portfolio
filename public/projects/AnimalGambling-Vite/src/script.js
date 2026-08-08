@@ -637,12 +637,16 @@ function showGameOver(winnerIdx) {
   const winner = state.players[winnerIdx];
   const loser = state.players[winnerIdx === 0 ? 1 : 0];
 
-  $("#go-winner-img").src = winner.char.img;
+  /* Los retratos son boils, no imágenes: el dibujo lo elige el CSS por
+     data-cat, igual que en la selección y en el versus. */
+  $("#go-winner-img").dataset.cat = winner.char.id;
+  $("#go-winner-img").setAttribute("aria-label", winner.char.name);
   $("#go-winner-name").textContent = winner.char.name;
   $("#go-winner-score").textContent = winner.score;
   $("#go-winner-quote").textContent = `"${winner.char.quote}"`;
 
-  $("#go-loser-img").src = loser.char.img;
+  $("#go-loser-img").dataset.cat = loser.char.id;
+  $("#go-loser-img").setAttribute("aria-label", loser.char.name);
   $("#go-loser-name").textContent = loser.char.name;
   $("#go-loser-score").textContent = loser.score;
   $("#go-loser-quote").textContent = state.wonByAbandon
@@ -731,7 +735,10 @@ function applyScreen(name) {
     state.selectedCatP2 = null;
     $$(".char-card").forEach((el) => el.classList.remove("selected", "p1", "p2"));
     $("#char-grid").classList.remove("p2-turn");
-    $("#btn-play").disabled = true;
+    const play = $("#btn-play");
+    play.disabled = true;
+    // Puede venir de un intento anterior que quedó esperando al rival.
+    play.textContent = "Jugar";
     renderCharGrid();
     updateSelectHeader();
   }
@@ -805,17 +812,64 @@ function leaveMenu(route = "select", mode = "local") {
 
 /* Opening a duel and taking a rematch are the same act — same two picks,
    scores back to zero — so they share one path. */
-async function startGame() {
+/* En online la mesa no se muestra hasta que los dos eligieron. Sin esto el
+   primero en apretar Jugar entraba al versus contra un placeholder, con el
+   dado ya a la vista, mientras el rival seguía en la selección. */
+async function handlePlay() {
+  if (state.gameMode !== "online") {
+    startGame();
+    return;
+  }
+
+  const btn = $("#btn-play");
+  const roomId = sessionStorage.getItem("roomId");
+  const pick = ROSTER[state.selectedCatP1];
+
+  btn.disabled = true;
+  btn.textContent = "Esperando al rival…";
+
+  try {
+    /* El id sale del ROSTER, no de la posición: `cat${idx+1}` sólo
+       funciona mientras el orden del array no cambie. */
+    await updatePlayerCharacter(roomId, pick.name, pick.id);
+  } catch (error) {
+    console.error("Error updating character in room:", error);
+    notify(errorText(error), "error");
+    btn.disabled = false;
+    btn.textContent = "Jugar";
+    return;
+  }
+
+  stopWatchingRoom();
+  unwatchRoom = watchRoom(roomId, (room) => {
+    if (!room) return;
+    // Se fue de la pantalla mientras esperaba.
+    if (state.screen !== "select") return stopWatchingRoom();
+
+    const p1 = room.player1;
+    const p2 = room.player2;
+    if (!p1?.catId || !p2?.catId) return;
+
+    stopWatchingRoom();
+
+    /* Los dos personajes ya se conocen: se arma el par acá y el versus
+       abre con el gato del rival puesto, sin el parpadeo de dos segundos
+       que tardaría el primer sondeo en corregirlo. */
+    state.mySide = p1.sessionId === getSessionId() ? 0 : 1;
+    state.players[0] = { char: charFromCatId(p1.catId), score: 0, current: 0 };
+    state.players[1] = { char: charFromCatId(p2.catId), score: 0, current: 0 };
+
+    btn.textContent = "Jugar";
+    startGame();
+  });
+}
+
+function startGame() {
   state.active = 0;
   state.playing = true;
   state.finished = false;
   setRolling(false);
   state.rollsTotal = 0;
-
-  // Ensure both players exist (in online, P2 is placeholder until joined)
-  if (!state.players[1]) {
-    state.players[1] = { char: { name: "...", id: "cat1" }, score: 0, current: 0 };
-  }
 
   state.players.forEach((p) => {
     if (p) {
@@ -824,22 +878,8 @@ async function startGame() {
     }
   });
 
-  // If online, update player character in room
-  if (state.gameMode === "online") {
-    try {
-      const roomId = sessionStorage.getItem("roomId");
-      /* El id sale del ROSTER, no de la posición: `cat${idx+1}` sólo
-         funciona mientras el orden del array no cambie. */
-      const pick = ROSTER[state.selectedCatP1];
-      await updatePlayerCharacter(roomId, pick.name, pick.id);
-    } catch (error) {
-      console.error("Error updating character in room:", error);
-    }
-  }
-
   $$(".fighter").forEach((el) => el.classList.remove("winner", "loser", "active"));
 
-  // Both online and local go directly to game
   switchScreen("game");
   screens.game.classList.add("in-play");
   renderGameUI();
@@ -891,7 +931,7 @@ function init() {
   $("#btn-menu-back").addEventListener("click", () => switchScreen("title"));
   $("#btn-room-back").addEventListener("click", () => switchScreen("menu"));
   $("#btn-select-back-top").addEventListener("click", () => switchScreen("menu"));
-  $("#btn-play").addEventListener("click", startGame);
+  $("#btn-play").addEventListener("click", handlePlay);
   $("#btn-create-room").addEventListener("click", handleCreateRoom);
   $("#btn-join-room").addEventListener("click", handleJoinRoom);
   $("#btn-cancel-wait").addEventListener("click", handleCancelWait);
