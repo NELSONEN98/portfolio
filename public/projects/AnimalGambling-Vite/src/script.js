@@ -357,25 +357,36 @@ function pickCharacter(idx) {
 /* ============================================
    TABLERO
    ============================================ */
-/* Dónde cae cada casilla sobre el borde de la mesa, en porcentaje.
-   El recorrido se reparte 8 arriba, 4 a la derecha, 8 abajo y 4 a la
-   izquierda: la mesa es 2:1, así que los lados largos llevan el doble de
-   casillas para que queden separadas por la misma distancia real. */
-const TOP = 8;
-const SIDE = 4;
+/* El camino es el perímetro de una grilla de 8×6, y ese tamaño no es
+   arbitrario: el borde de una grilla de C columnas por F filas tiene
+   2C + 2F − 4 celdas, y 8×6 da exactamente 24.
 
-function squarePosition(i) {
-  const n = i % BOARD_SIZE;
-  if (n < TOP) {
-    return { x: (n / TOP) * 100, y: 0 };
-  }
-  if (n < TOP + SIDE) {
-    return { x: 100, y: ((n - TOP) / SIDE) * 100 };
-  }
-  if (n < TOP * 2 + SIDE) {
-    return { x: 100 - ((n - TOP - SIDE) / TOP) * 100, y: 100 };
-  }
-  return { x: 0, y: 100 - ((n - TOP * 2 - SIDE) / SIDE) * 100 };
+   Colocarlas así —en celdas y no en porcentajes sueltos— es lo que hace
+   que las casillas se toquen entre sí como en un tablero de verdad. Con
+   posiciones libres siempre quedaban puntos sueltos separados. */
+const COLS = 8;
+const ROWS = 6;
+
+function squareCell(i) {
+  const n = ((i % BOARD_SIZE) + BOARD_SIZE) % BOARD_SIZE;
+  // Fila de arriba, de izquierda a derecha.
+  if (n < COLS) return { col: n + 1, row: 1 };
+  // Columna derecha, bajando (sin repetir las esquinas).
+  if (n < COLS + (ROWS - 2)) return { col: COLS, row: n - COLS + 2 };
+  // Fila de abajo, de derecha a izquierda.
+  if (n < COLS * 2 + (ROWS - 2)) return { col: COLS - (n - COLS - (ROWS - 2)), row: ROWS };
+  // Columna izquierda, subiendo. Cierra el círculo contra la celda 0.
+  return { col: 1, row: ROWS - (n - COLS * 2 - (ROWS - 2)) - 1 };
+}
+
+/* Centro de la celda en porcentaje: las fichas van absolutas para poder
+   deslizarse de una casilla a la otra, cosa que el grid no permite. */
+function cellCenter(i) {
+  const { col, row } = squareCell(i);
+  return {
+    x: ((col - 0.5) / COLS) * 100,
+    y: ((row - 0.5) / ROWS) * 100,
+  };
 }
 
 function renderBoard() {
@@ -383,8 +394,8 @@ function renderBoard() {
   if (!track) return;
 
   const squares = BOARD.map((type, i) => {
-    const { x, y } = squarePosition(i);
-    return `<span class="square ${type}" style="left:${x}%;top:${y}%"></span>`;
+    const { col, row } = squareCell(i);
+    return `<span class="square ${type}" style="grid-column:${col};grid-row:${row}"></span>`;
   }).join("");
 
   track.innerHTML =
@@ -400,7 +411,7 @@ function moveTokens() {
     const el = $(`#token-${i}`);
     const p = state.players[i];
     if (!el || !p) continue;
-    const { x, y } = squarePosition(p.pos ?? 0);
+    const { x, y } = cellCenter(p.pos ?? 0);
     el.style.left = `${x}%`;
     el.style.top = `${y}%`;
   }
