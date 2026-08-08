@@ -187,6 +187,30 @@ body {
   padding: 3rem;
   background: #000;
   height: 100%;
+  /* Ancla del botón de volver, que va suelto en la esquina. */
+  position: relative;
+}
+
+/* Fuera del flujo: si contara para el centrado, empujaría el título y las
+   opciones hacia arriba. */
+.room-choice-back {
+  position: absolute;
+  left: 3rem;
+  bottom: 3rem;
+}
+
+/* Al estar fuera del flujo no reserva su propio lugar. En pantallas bajas
+   el contenido centrado le pasaba por encima, así que el espacio se lo
+   deja la pantalla. */
+@media (max-width: 768px), (max-height: 640px) {
+  .room-choice-screen {
+    padding: 2rem 1.5rem 7rem;
+  }
+  .room-choice-back {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 1.5rem;
+  }
 }
 
 .room-choice-screen.active {

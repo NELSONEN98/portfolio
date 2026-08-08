@@ -14,8 +14,8 @@
   <link rel="preload" as="image" href="./main-menu/main-0.webp" />
   <link rel="preload" as="image" href="./main-menu/main-1.webp" />
   <link rel="preload" as="image" href="./main-menu/main-2.webp" />
-  <script type="module" crossorigin src="./index-B5wxEzTt.js"></script>
-  <link rel="stylesheet" crossorigin href="./index-BCCQ3lQy.css">
+  <script type="module" crossorigin src="./index-BF60bq1Q.js"></script>
+  <link rel="stylesheet" crossorigin href="./index-Cwoa4ffi.css">
 </head>
 <body>
   <div class="table">
@@ -38,7 +38,6 @@
 
     <section class="screen room-choice-screen" id="screen-room-choice">
       <div class="room-choice-header">
-        <button class="btn-nav" id="btn-room-back">‹ Volver al menú</button>
         <h2>DUELO ONLINE</h2>
       </div>
       <div class="room-choice-content" id="room-choice-content">
@@ -56,6 +55,10 @@
         <p>Esperando al otro jugador...</p>
         <button class="btn-nav" id="btn-cancel-wait">Cancelar</button>
       </div>
+
+      <!-- Último en el DOM: se ancla en la esquina, y en el orden de
+           tabulación queda después de las opciones, no antes. -->
+      <button class="btn-nav room-choice-back" id="btn-room-back">‹ Volver al menú</button>
     </section>
 
     <section class="screen select-screen" id="screen-select">
