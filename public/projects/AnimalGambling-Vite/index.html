@@ -89,6 +89,8 @@
       </div>
 
       <div class="pool-table">
+        <!-- casillas y fichas: las genera renderBoard() -->
+        <div class="board-track" id="board-track" aria-hidden="true"></div>
         <div class="pool-felt">
           <span class="pocket pk-tl"></span>
           <span class="pocket pk-tc"></span>
@@ -121,6 +123,10 @@
           <div class="f-current">+<span id="current-1">0</span></div>
         </div>
       </div>
+
+      <!-- mano del jugador: debajo de los personajes, arriba de los
+           controles. La llena renderHand() -->
+      <div class="hand-row" id="hand-row" aria-label="Tus cartas"></div>
 
       <div class="versus-controls">
         <button class="btn-nav" id="btn-roll">Tirar dado</button>

@@ -445,11 +445,12 @@ body {
      quedaba con todo el espacio sobrante y, aunque centrada, empujaba a
      los peleadores contra los bordes de la pantalla: el hueco no estaba
      en el padding sino adentro de esa fila. */
-  grid-template-rows: auto auto auto auto;
+  grid-template-rows: auto auto auto auto auto;
   grid-template-areas:
     "f1"
     "table"
     "f2"
+    "hand"
     "ctrl";
   gap: clamp(0.3rem, 1vh, 0.9rem);
   /* Ahora sobra alto en lugar de repartirse: el bloque entero se centra. */
@@ -809,6 +810,161 @@ body {
   --bulb-gap: clamp(1.5rem, 4vmin, 2.5rem);
 }
 
+/* ============================================
+   CAMINO DE CASILLAS
+   ============================================ */
+/* Las casillas rodean el fieltro por el marco de madera. Cada una se ubica
+   por porcentaje del perímetro —lo calcula renderBoard()— en lugar de con
+   un grid: el recorrido es circular y un grid de 24 celdas obligaría a
+   inventar celdas vacías en el medio. */
+.board-track {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.square {
+  position: absolute;
+  width: clamp(0.85rem, 2.4vmin, 1.5rem);
+  aspect-ratio: 1;
+  border-radius: 0.3rem;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+/* Los dos tipos que hacen algo se leen por color, no por ícono: a este
+   tamaño un símbolo no se distingue. */
+.square.penalty {
+  background: var(--c-red);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0.5rem rgba(199, 0, 0, 0.7);
+}
+.square.bonus {
+  background: var(--c-gold);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0.5rem rgba(228, 167, 0, 0.7);
+}
+
+/* Fichas: dorada la del jugador 1, blanca la del 2. Se mueven con
+   transition, así el salto de casillas se ve recorrer el camino. */
+.token {
+  position: absolute;
+  width: clamp(1rem, 2.8vmin, 1.8rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  transition: left 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              top 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.7), 0 0 0.8rem rgba(0, 0, 0, 0.6);
+}
+.token.p1 { background: var(--c-gold); }
+.token.p2 { background: #fff; }
+
+/* Cuando los dos caen en la misma casilla se separan un poco para que no
+   quede una sola ficha a la vista. */
+.token.p1 { margin-left: -0.35rem; }
+.token.p2 { margin-left: 0.35rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .token { transition: none; }
+}
+
+/* ============================================
+   CARTAS
+   ============================================ */
+.hand-row {
+  grid-area: hand;
+  justify-self: center;
+  display: flex;
+  gap: clamp(0.5rem, 1.6vw, 1rem);
+  margin-top: clamp(0.8rem, 2vh, 1.6rem);
+  min-height: 1px;
+  transform: translateY(var(--ui-shift));
+}
+
+.card {
+  --card-w: clamp(4.6rem, 11vmin, 7rem);
+  width: var(--card-w);
+  aspect-ratio: 5 / 7;
+  border: none;
+  border-radius: 0.8rem;
+  padding: 0.5rem 0.3rem;
+  cursor: pointer;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+
+  font-family: var(--display);
+  color: var(--c-black);
+  background: var(--c-bronze);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6), 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+
+.card:hover:not(:disabled) {
+  transform: translateY(-0.5rem);
+  box-shadow: 0 0 0 2px var(--c-gold), 0 0.8rem 1.4rem rgba(0, 0, 0, 0.6);
+}
+
+/* Fuera de turno las cartas siguen a la vista —saber qué tenés es parte
+   del juego— pero no se pueden soltar. */
+.card:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.card-kind {
+  font-size: clamp(0.42rem, 1.1vmin, 0.58rem);
+  letter-spacing: 0.06em;
+  text-align: center;
+  line-height: 1.15;
+}
+.card-value {
+  font-size: clamp(1.3rem, 3.4vmin, 2rem);
+  line-height: 1;
+}
+
+.card.steal   { background: var(--c-gold); }
+.card.defense { background: #fff; }
+.card.curse   { background: var(--c-red-deep); color: #fff; }
+.card.double  { background: var(--c-blue); color: #fff; }
+
+/* La carta jugada descansa sobre el fieltro, boca abajo, hasta que el que
+   la puso se planta. */
+.played-card {
+  position: absolute;
+  right: clamp(0.4rem, 1.5vmin, 1rem);
+  bottom: clamp(0.4rem, 1.5vmin, 1rem);
+  width: clamp(2.4rem, 6vmin, 3.6rem);
+  aspect-ratio: 5 / 7;
+  border-radius: 0.5rem;
+  z-index: 5;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--display);
+  font-size: clamp(0.9rem, 2.4vmin, 1.4rem);
+
+  background: repeating-linear-gradient(
+    45deg,
+    var(--c-red-deep) 0 4px,
+    #5c0f0f 4px 8px
+  );
+  color: var(--c-gold);
+  box-shadow: 0 0 0 2px var(--c-gold), 0 0.4rem 0.9rem rgba(0, 0, 0, 0.6);
+  animation: card-drop 0.3s ease-out;
+}
+
+@keyframes card-drop {
+  from { opacity: 0; transform: translateY(-1rem) rotate(-8deg); }
+  to   { opacity: 1; transform: translateY(0) rotate(0); }
+}
+
 /* Bombillas de marquesina en los cuatro cantos.
    Son dos capas idénticas corridas media separación entre sí: cada una
    enciende mientras la otra baja, y de ahí sale el titileo alternado de
@@ -973,12 +1129,17 @@ body {
 @media (min-width: 860px) and (min-height: 560px) and (orientation: landscape) {
   .versus-screen {
     grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    /* La mano cruza las tres columnas, justo encima de los controles: es
+       del jugador, no de ninguno de los dos costados. */
     grid-template-areas:
       "f1    table  f2"
+      "hand  hand   hand"
       "ctrl  ctrl   ctrl";
     gap: clamp(1.6rem, 3vw, 3.2rem);
   }
+  /* El gap grande de este layout ya separa la mano de la mesa. */
+  .hand-row { margin-top: 0; }
   /* room to breathe: the numbers go back under the drawing */
   .fighter,
   .fighter.f2 {

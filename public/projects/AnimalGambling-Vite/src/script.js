@@ -7,10 +7,35 @@ import {
   leaveOnlineRoom,
   getRoom,
   watchRoom,
+  convexPlayCard,
   convexRollDice,
   convexHoldScore,
   getSessionId,
 } from './convex-client.js';
+
+/* Las reglas viven bajo convex/ porque una función de Convex sólo puede
+   importar de su propio directorio. Importarlas desde acá es lo que impide
+   que el modo local y el online se separen. */
+import {
+  GOAL,
+  BOARD,
+  BOARD_SIZE,
+  SQUARE,
+  CARD,
+  CARD_LABEL,
+  HAND_LIMIT,
+  CURSE_TURNS,
+  squareAt,
+  advance,
+  startingHand,
+  randomBonusCard,
+  resolveRoll,
+  applyPenalty,
+  cappedScore,
+  hasDefense,
+  dropCard,
+  dropFirstOfType,
+} from '../convex/rules';
  
 /* ============================================
    GAMBLING KATZ — game logic
@@ -245,6 +270,21 @@ function updateSelectHeader() {
   }
 }
 
+/* Un jugador arranca con su ficha en la salida y la mano que fija el
+   reglamento: dos de robo y una de defensa. */
+function newPlayer(char) {
+  return {
+    char,
+    score: 0,
+    current: 0,
+    pos: 0,
+    hand: startingHand(() => Math.random()),
+    pendingCard: null,
+    curseTurns: 0,
+    doubleNext: false,
+  };
+}
+
 function updatePlayButton() {
   const btn = $("#btn-play");
   if (state.gameMode === "online") {
@@ -284,7 +324,7 @@ function pickCharacter(idx) {
   }
 
   const char = ROSTER[idx];
-  state.players[state.picking] = { char, score: 0, current: 0 };
+  state.players[state.picking] = newPlayer(char);
 
   card.classList.add("selected", state.picking === 0 ? "p1" : "p2");
   card.setAttribute("data-player", state.picking === 0 ? "P1" : "P2");
@@ -314,6 +354,125 @@ function pickCharacter(idx) {
 /* There is no image src to set: the boil is CSS, selected by data-cat.
    Writing the attribute is the whole handoff from "who was picked" to
    "which 7 drawings cycle in that corner". */
+/* ============================================
+   TABLERO
+   ============================================ */
+/* Dónde cae cada casilla sobre el borde de la mesa, en porcentaje.
+   El recorrido se reparte 8 arriba, 4 a la derecha, 8 abajo y 4 a la
+   izquierda: la mesa es 2:1, así que los lados largos llevan el doble de
+   casillas para que queden separadas por la misma distancia real. */
+const TOP = 8;
+const SIDE = 4;
+
+function squarePosition(i) {
+  const n = i % BOARD_SIZE;
+  if (n < TOP) {
+    return { x: (n / TOP) * 100, y: 0 };
+  }
+  if (n < TOP + SIDE) {
+    return { x: 100, y: ((n - TOP) / SIDE) * 100 };
+  }
+  if (n < TOP * 2 + SIDE) {
+    return { x: 100 - ((n - TOP - SIDE) / TOP) * 100, y: 100 };
+  }
+  return { x: 0, y: 100 - ((n - TOP * 2 - SIDE) / SIDE) * 100 };
+}
+
+function renderBoard() {
+  const track = $("#board-track");
+  if (!track) return;
+
+  const squares = BOARD.map((type, i) => {
+    const { x, y } = squarePosition(i);
+    return `<span class="square ${type}" style="left:${x}%;top:${y}%"></span>`;
+  }).join("");
+
+  track.innerHTML =
+    squares +
+    `<span class="token p1" id="token-0"></span>` +
+    `<span class="token p2" id="token-1"></span>`;
+
+  moveTokens();
+}
+
+function moveTokens() {
+  for (let i = 0; i < 2; i++) {
+    const el = $(`#token-${i}`);
+    const p = state.players[i];
+    if (!el || !p) continue;
+    const { x, y } = squarePosition(p.pos ?? 0);
+    el.style.left = `${x}%`;
+    el.style.top = `${y}%`;
+  }
+}
+
+/* ============================================
+   CARTAS
+   ============================================ */
+function cardFace(c) {
+  if (c.type === CARD.STEAL) {
+    return `<span class="card-kind">${CARD_LABEL.steal}</span><span class="card-value">${c.value}</span>`;
+  }
+  const short = { defense: "🛡", curse: "☠", double: "⚄⚄" };
+  return `<span class="card-value">${short[c.type]}</span><span class="card-kind">${CARD_LABEL[c.type]}</span>`;
+}
+
+function renderHand() {
+  const row = $("#hand-row");
+  if (!row) return;
+
+  const me = state.players[state.gameMode === "online" ? state.mySide : state.active];
+  const hand = me?.hand ?? [];
+
+  /* La defensa se muestra pero no se puede soltar: se gasta sola cuando te
+     atacan, y dejar que la jueguen sería tirarla. */
+  row.innerHTML = hand
+    .map((c) => {
+      const playable = c.type !== CARD.DEFENSE && canPlayCards();
+      return `<button class="card ${c.type}" data-uid="${c.uid}"
+                ${playable ? "" : "disabled"}
+                title="${CARD_LABEL[c.type]}${c.value ? " " + c.value : ""}">
+                ${cardFace(c)}
+              </button>`;
+    })
+    .join("");
+
+  row.querySelectorAll(".card").forEach((el) => {
+    el.addEventListener("click", () => playCardByUid(el.dataset.uid));
+  });
+
+  renderPlayedCard();
+}
+
+function canPlayCards() {
+  if (!state.playing || state.rolling) return false;
+  if (!isMyTurn()) return false;
+  const me = state.players[state.gameMode === "online" ? state.mySide : state.active];
+  return !me?.pendingCard;
+}
+
+/* La carta boca abajo sobre el fieltro. Se dibuja para los dos: el rival
+   tiene que ver que hay algo esperándolo, aunque no sepa qué. */
+function renderPlayedCard() {
+  const felt = $(".pool-felt");
+  if (!felt) return;
+
+  const existing = $(".played-card");
+  const anyPending = state.players.some((p) => p?.pendingCard);
+
+  if (!anyPending) {
+    if (existing) existing.remove();
+    return;
+  }
+  if (existing) return;
+
+  const el = document.createElement("div");
+  el.className = "played-card";
+  el.textContent = "?";
+  el.title = "Carta jugada — se revela al plantarse";
+  felt.appendChild(el);
+}
+
 function paintFighters() {
   for (let i = 0; i < 2; i++) {
     const p = state.players[i];
@@ -333,6 +492,8 @@ function applySides() {
 
 function renderGameUI() {
   applySides();
+  renderBoard();
+  renderHand();
   paintFighters();
   updateScores();
   updateActiveFighter();
@@ -431,6 +592,13 @@ function syncGameStateOnline() {
         if (!side || !p) return;
         p.score = side.score;
         p.current = side.current;
+        /* Tablero y cartas también los manda el servidor: es la única
+           autoridad, y predecirlos de este lado sería adivinar el azar. */
+        p.pos = side.pos ?? 0;
+        p.hand = side.hand ?? [];
+        p.pendingCard = side.pendingCard ?? null;
+        p.curseTurns = side.curseTurns ?? 0;
+        p.doubleNext = Boolean(side.doubleNext);
         const char = charFromCatId(side.catId);
         if (char && p.char.id !== char.id) p.char = char;
       });
@@ -441,6 +609,8 @@ function syncGameStateOnline() {
       updateScores();
       updateActiveFighter();
       updateControls();
+      moveTokens();
+      renderHand();
 
       if (room.status === "finished" && !state.finished) {
         stopWatchingRoom();
@@ -616,11 +786,101 @@ async function rollDiceOnline() {
   }
 }
 
+/* ============================================
+   JUGAR CARTAS
+   ============================================ */
+const rand = () => Math.random();
+
+async function playCardByUid(uid) {
+  if (!canPlayCards()) return;
+
+  const side = state.gameMode === "online" ? state.mySide : state.active;
+  const me = state.players[side];
+  const card = me?.hand.find((c) => c.uid === uid);
+  if (!card || card.type === CARD.DEFENSE) return;
+
+  if (state.gameMode === "online") {
+    try {
+      await convexPlayCard(sessionStorage.getItem("roomId"), uid);
+    } catch (error) {
+      console.error("Error playing card:", error);
+      notify(errorText(error), "error");
+      return;
+    }
+    // El sondeo trae el estado real; esto es sólo para que responda ya.
+    me.hand = dropCard(me.hand, uid);
+    if (card.type === CARD.DOUBLE) me.doubleNext = true;
+    else me.pendingCard = card;
+    renderHand();
+    return;
+  }
+
+  me.hand = dropCard(me.hand, uid);
+  if (card.type === CARD.DOUBLE) {
+    me.doubleNext = true;
+    notify("Dos dados en tu próxima tirada");
+  } else {
+    me.pendingCard = card;
+    notify("Carta sobre la mesa — se revela al plantarte");
+  }
+  renderHand();
+}
+
+/* Efecto de la casilla donde frenó la ficha. Mismo orden que el backend:
+   la ficha avanza siempre, incluso quemándose. */
+function applyLandingLocal(p, steps) {
+  p.pos = advance(p.pos ?? 0, steps);
+  const square = squareAt(p.pos);
+
+  if (square === SQUARE.PENALTY) {
+    p.score = applyPenalty(p.score);
+    notify(`Penitencia — ${p.char.name} pierde 15`, "error");
+  } else if (square === SQUARE.BONUS) {
+    if ((p.hand?.length ?? 0) < HAND_LIMIT) {
+      p.hand = [...(p.hand ?? []), randomBonusCard(rand, Date.now())];
+      notify(`Bonus — carta nueva para ${p.char.name}`);
+    } else {
+      notify("Bonus, pero la mano está llena");
+    }
+  }
+  moveTokens();
+}
+
+/* Revela la carta que estaba boca abajo y la resuelve. La defensa del
+   rival se gasta sola: la regla es "si el rival no tiene defensa". */
+function resolvePendingLocal(me, rival) {
+  const card = me.pendingCard;
+  if (!card || !rival) return;
+  me.pendingCard = null;
+
+  if (hasDefense(rival.hand ?? [])) {
+    rival.hand = dropFirstOfType(rival.hand, CARD.DEFENSE);
+    notify(`${rival.char.name} bloqueó la ${CARD_LABEL[card.type].toLowerCase()}`);
+    return;
+  }
+
+  if (card.type === CARD.STEAL) {
+    const taken = Math.min(card.value, rival.score);
+    rival.score -= taken;
+    me.score += taken;
+    notify(`Robo de ${taken} a ${rival.char.name}`);
+  } else if (card.type === CARD.CURSE) {
+    rival.curseTurns = CURSE_TURNS;
+    notify(`Maldición: ${rival.char.name} tira hasta 5 por ${CURSE_TURNS} turnos`);
+  }
+}
+
 function rollDiceLocal() {
   setRolling(true);
-
-  const n = Math.trunc(Math.random() * 6) + 1;
   state.rollsTotal++;
+
+  const p = state.players[state.active];
+  const cursed = (p.curseTurns ?? 0) > 0;
+  const outcome = resolveRoll(rand, cursed, Boolean(p.doubleNext));
+
+  // Se consume tire lo que tire: la carta valía para esta tirada.
+  p.doubleNext = false;
+  p.curseTurns = Math.max(0, (p.curseTurns ?? 0) - 1);
 
   const dice = $("#dice-3d");
   dice.classList.remove("rolling");
@@ -629,23 +889,34 @@ function rollDiceLocal() {
 
   setTimeout(() => {
     dice.classList.remove("rolling");
-    setDiceFace(n);
+    /* Con dos dados el cubo muestra el mayor: son dos tiradas y una sola
+       cara, así que el aviso del detalle va por el toast. */
+    setDiceFace(Math.max(...outcome.dice));
+    if (outcome.dice.length > 1) {
+      notify(`Dos dados: ${outcome.dice.join(" y ")}`);
+    }
 
-    if (n === 1) {
+    /* La ficha avanza aunque el turno se queme: el 1 te saca lo acumulado,
+       no te devuelve al casillero anterior. */
+    applyLandingLocal(p, outcome.isBust ? outcome.dice.length : outcome.gained);
+
+    if (outcome.isBust) {
       showSnakeEyes();
-      const p = state.players[state.active];
       p.current = 0;
+      updateScores();
       setTimeout(() => {
         switchPlayer();
         setRolling(false);
+        renderHand();
       }, 900);
-    } else {
-      const p = state.players[state.active];
-      p.current += n;
-      updateScores();
-      setRolling(false);
-      if (p.score + p.current >= state.goal) holdScore();
+      return;
     }
+
+    p.current += outcome.gained;
+    updateScores();
+    setRolling(false);
+    renderHand();
+    if (p.score + p.current >= state.goal) holdScore();
   }, DICE_ROLL_MS);
 }
 
@@ -718,14 +989,22 @@ async function holdScoreOnline() {
 
 function holdScoreLocal() {
   const p = state.players[state.active];
-  const raw = p.score + p.current;
-  const won = raw >= state.goal;
+  const rival = state.players[state.active === 0 ? 1 : 0];
 
+  p.score += p.current;
+  p.current = 0;
+
+  /* Se revela acá, antes de contar: robar 22 puede ser justo lo que cierra
+     la partida. */
+  resolvePendingLocal(p, rival);
+
+  const won = p.score >= state.goal;
   /* Al ganar el marcador queda clavado en el objetivo: el sobrante de la
      última tirada no es puntaje. */
-  p.score = won ? state.goal : raw;
-  p.current = 0;
+  p.score = cappedScore(p.score);
+
   updateScores();
+  renderHand();
 
   if (won) {
     winGame(state.active);
@@ -984,8 +1263,10 @@ async function handlePlay() {
        abre con el gato del rival puesto, sin el parpadeo de dos segundos
        que tardaría el primer sondeo en corregirlo. */
     state.mySide = p1.sessionId === getSessionId() ? 0 : 1;
-    state.players[0] = { char: charFromCatId(p1.catId), score: 0, current: 0 };
-    state.players[1] = { char: charFromCatId(p2.catId), score: 0, current: 0 };
+    /* La mano y la ficha las reparte el backend al crear la sala: acá se
+       copian, no se generan, o cada lado vería cartas distintas. */
+    state.players[0] = { ...newPlayer(charFromCatId(p1.catId)), hand: p1.hand ?? [], pos: p1.pos ?? 0 };
+    state.players[1] = { ...newPlayer(charFromCatId(p2.catId)), hand: p2.hand ?? [], pos: p2.pos ?? 0 };
 
     btn.textContent = "Jugar";
     startGame();

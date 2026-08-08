@@ -109,6 +109,16 @@ function watchRoom(roomId, callback) {
   return () => { unsubscribed = true; };
 }
 
+async function convexPlayCard(roomId, uid) {
+  const sessionId = getSessionId();
+  try {
+    return await convex.mutation("rooms:playCard", { roomId, sessionId, uid });
+  } catch (error) {
+    console.error("Error playing card:", error);
+    throw error;
+  }
+}
+
 async function convexRollDice(roomId) {
   const sessionId = getSessionId();
   try {
@@ -137,6 +147,7 @@ export {
   leaveOnlineRoom,
   getRoom,
   watchRoom,
+  convexPlayCard,
   convexRollDice,
   convexHoldScore,
   getSessionId,

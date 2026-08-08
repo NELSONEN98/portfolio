@@ -10,6 +10,7 @@
 
 import type * as crons from "../crons.js";
 import type * as rooms from "../rooms.js";
+import type * as rules from "../rules.js";
 
 import type {
   ApiFromModules,
@@ -20,6 +21,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   rooms: typeof rooms;
+  rules: typeof rules;
 }>;
 
 /**
