@@ -131,6 +131,8 @@
         </div>
       </div>
 
+      <button class="rules-open" id="btn-rules-open" aria-label="Ver las reglas">?</button>
+
       <!-- mano del jugador: debajo de los personajes, arriba de los
            controles. La llena renderHand() -->
       <div class="hand-row" id="hand-row" aria-label="Tus cartas"></div>
@@ -179,43 +181,9 @@
           <div class="rules-title">CÓMO SE JUEGA</div>
           <button class="rules-close" id="btn-rules-close">✕</button>
         </div>
-        <div class="rules-body">
-          <div class="rules-rule">
-            <div class="rule-num">01</div>
-            <div class="rule-content">
-              <div class="rule-title">EL JUEGO</div>
-              <div class="rule-text">Dos degenerados. Un dado. Se tira por turnos hasta que alguien llega al objetivo. El que pierde paga las copas.</div>
-            </div>
-          </div>
-          <div class="rules-rule">
-            <div class="rule-num">02</div>
-            <div class="rule-content">
-              <div class="rule-title">TIRAR <span class="rule-key">[ESPACIO]</span></div>
-              <div class="rule-text">Tirá el dado. El resultado se suma al total de tu turno. Seguí tirando para acumular.</div>
-            </div>
-          </div>
-          <div class="rules-rule bust">
-            <div class="rule-num">03</div>
-            <div class="rule-content">
-              <div class="rule-title">QUEMARSE <span class="rule-badge">× sacar un 1 ×</span></div>
-              <div class="rule-text">Ojo de víbora. Perdés todo lo que acumulaste en el turno. Nada. Cero. Pasa el turno.</div>
-            </div>
-          </div>
-          <div class="rules-rule">
-            <div class="rule-num">04</div>
-            <div class="rule-content">
-              <div class="rule-title">PLANTARSE <span class="rule-key">[ENTER]</span></div>
-              <div class="rule-text">Guardás lo del turno en tu puntaje total y pasás. La jugada segura — si sos cagón.</div>
-            </div>
-          </div>
-          <div class="rules-rule win">
-            <div class="rule-num">05</div>
-            <div class="rule-content">
-              <div class="rule-title">GANAR</div>
-              <div class="rule-text">Gana el primero que llegue al objetivo o lo pase. La casa paga. El que pierde paga con vergüenza.</div>
-            </div>
-          </div>
-        </div>
+        <!-- lo llena renderRules(), que lee las constantes reales -->
+        <div class="rules-body" id="rules-body"></div>
+
         <div class="rules-footer">
           <div class="rules-chips-deco">
             <div class="chip gold"></div>

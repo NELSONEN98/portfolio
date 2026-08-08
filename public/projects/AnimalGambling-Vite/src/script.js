@@ -27,7 +27,9 @@ import {
   CARD_LABEL,
   HAND_LIMIT,
   CURSE_TURNS,
+  CURSED_MAX_ROLL,
   PENALTY_POINTS,
+  STEAL_VALUES,
   squareAt,
   advance,
   startingHand,
@@ -1574,11 +1576,10 @@ function init() {
   $("#btn-again").addEventListener("click", newRound);
   $("#btn-gameover-new").addEventListener("click", fullReset);
 
-  /* The versus screen was stripped down to three things, and the top HUD —
-     which held the only "Reglas" button — went with it. The modal, its
-     styles and closeRules() are all still here and still work; what it no
-     longer has is a way in. Wire openRules() to whatever entry point the
-     new layout gets. */
+  /* La modal se había quedado sin puerta de entrada cuando el versus se
+     redujo a tres cosas y desapareció el HUD de arriba. Este botón es esa
+     puerta. */
+  $("#btn-rules-open").addEventListener("click", openRules);
   $("#btn-rules-close").addEventListener("click", closeRules);
   $("#rules-overlay").addEventListener("click", (e) => {
     if (e.target === $("#rules-overlay")) closeRules();
@@ -1698,7 +1699,104 @@ function errorText(error) {
 /* ============================================
    RULES MODAL
    ============================================ */
+/* Las reglas se arman con las constantes reales en vez de tenerlas
+   escritas a mano: si mañana cambia el objetivo o lo que roba una carta,
+   la explicación cambia sola en vez de quedar mintiendo.
+   Los íconos son los mismos objetos que usa el tablero y la mano, así que
+   lo que se ve acá es exactamente lo que se ve jugando. */
+function rulesHTML() {
+  const paso = (n, titulo, texto, extra = "") => `
+    <div class="rules-rule">
+      <div class="rule-num">${n}</div>
+      <div class="rule-content">
+        <div class="rule-title">${titulo}</div>
+        <div class="rule-text">${texto}</div>
+        ${extra}
+      </div>
+    </div>`;
+
+  const casilla = (tipo, nombre, texto) => `
+    <div class="rule-item">
+      <span class="square ${tipo} rule-chip">${SQUARE_ICON[tipo] ?? ""}</span>
+      <div>
+        <div class="rule-item-name">${nombre}</div>
+        <div class="rule-item-text">${texto}</div>
+      </div>
+    </div>`;
+
+  const carta = (tipo, texto, cara) => `
+    <div class="rule-item">
+      <span class="card ${tipo} rule-card">${cara}</span>
+      <div>
+        <div class="rule-item-name">${CARD_LABEL[tipo]}</div>
+        <div class="rule-item-text">${texto}</div>
+      </div>
+    </div>`;
+
+  const robos = STEAL_VALUES.map((v) => `−${v}`).join(", ");
+
+  return [
+    paso("01", "EL JUEGO",
+      `Dos gatos, un dado y una mesa. Gana el primero que llega a
+       <b>${GOAL} puntos</b>. El que pierde paga las copas.`),
+
+    paso("02", `TIRAR <span class="rule-key">[ESPACIO]</span>`,
+      `El resultado se suma a lo que llevás acumulado <i>en este turno</i>.
+       Podés seguir tirando todas las veces que quieras.`),
+
+    paso("03", `QUEMARSE <span class="rule-badge">× sacar un 1 ×</span>`,
+      `Perdés todo lo acumulado del turno y pasa el otro. Lo que ya tenías
+       guardado no se toca. Si habías puesto una carta sobre la mesa,
+       vuelve a tu mano sin revelarse.`),
+
+    paso("04", `PLANTARSE <span class="rule-key">[ENTER]</span>`,
+      `Guardás lo del turno en tu puntaje y pasás. Es también el momento en
+       que se da vuelta tu carta, si pusiste una.`),
+
+    paso("05", "EL CAMINO",
+      `Tu ficha —dorada o blanca— avanza por el borde de la mesa tantas
+       casillas como saques. El camino da la vuelta: no hay meta.`,
+      `<div class="rule-items">
+         ${casilla("penalty", `PENITENCIA −${PENALTY_POINTS}`,
+           `Te descuenta ${PENALTY_POINTS} puntos del marcador. Nunca baja de cero.`)}
+         ${casilla("bonus", "BONUS",
+           `Te da una carta, hasta un máximo de ${HAND_LIMIT} en la mano.`)}
+       </div>`),
+
+    paso("06", "LAS CARTAS",
+      `Arrancás con dos de robo y una de defensa. Sólo podés jugarlas en tu
+       turno y una por vez: la carta queda <b>boca abajo</b> sobre la mesa
+       y recién se revela cuando te plantás.`,
+      `<div class="rule-items">
+         ${carta(CARD.STEAL,
+           `Le saca puntos al rival y te los suma. Vienen de ${robos}, y no
+            puede robar más de lo que el otro tiene.`,
+           cardFace({ type: CARD.STEAL, value: STEAL_VALUES[STEAL_VALUES.length - 1] }))}
+         ${carta(CARD.DEFENSE,
+           `No se juega: se gasta sola cuando te atacan y anula el robo o la
+            maldición. Tenerla en la mano ya te protege.`,
+           cardFace({ type: CARD.DEFENSE }))}
+         ${carta(CARD.CURSE,
+           `Durante ${CURSE_TURNS} turnos el dado del rival no pasa de
+            ${CURSED_MAX_ROLL}. Le saca el mejor resultado, pero el 1 le
+            sigue pudiendo salir.`,
+           cardFace({ type: CARD.CURSE }))}
+         ${carta(CARD.DOUBLE,
+           `Se aplica al instante: tirás con dos dados y se suman los dos.
+            Si uno sale 1, ese no cuenta y el otro sí; si salen los dos en
+            1, te quemás igual.`,
+           cardFace({ type: CARD.DOUBLE }))}
+       </div>`),
+
+    paso("07", "GANAR",
+      `Gana el primero que llega a ${GOAL}. El sobrante de la última tirada
+       no cuenta: el marcador queda clavado en ${GOAL}.`),
+  ].join("");
+}
+
 function openRules() {
+  const body = $("#rules-body");
+  if (body) body.innerHTML = rulesHTML();
   $("#rules-overlay").classList.add("open");
 }
 

@@ -834,6 +834,39 @@ body {
   --bulb-gap: clamp(1.5rem, 4vmin, 2.5rem);
 }
 
+/* Puerta a las reglas, arriba a la derecha. Redondo y chico: es una ayuda
+   a mano, no una acción del juego, y por eso no usa .btn-nav —los dos
+   botones dorados de abajo son los que se aprietan para jugar. */
+.rules-open {
+  position: absolute;
+  top: clamp(0.6rem, 2vh, 1.4rem);
+  right: clamp(0.8rem, 2.5vw, 2rem);
+  z-index: 8;
+
+  width: clamp(2.4rem, 5vmin, 3.2rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid var(--c-gold);
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--c-gold);
+
+  font-family: var(--display);
+  font-size: clamp(1.1rem, 2.4vmin, 1.5rem);
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.18s, background 0.18s, box-shadow 0.18s;
+}
+.rules-open:hover {
+  background: var(--c-gold);
+  color: var(--c-black);
+  transform: scale(1.08);
+  box-shadow: 0 0 1.4rem rgba(228, 167, 0, 0.55);
+}
+.rules-open:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
 /* ============================================
    CAMINO DE CASILLAS
    ============================================ */
@@ -2024,6 +2057,64 @@ body {
   line-height: 1.6;
   letter-spacing: 0.03rem;
 }
+.rule-text b {
+  color: var(--c-gold);
+  font-weight: 400;
+}
+.rule-text i {
+  font-style: normal;
+  color: var(--bone);
+}
+
+/* Casillas y cartas explicadas una por una, con la pieza real al lado del
+   texto: quien lee esto lo hace para reconocerlas en la mesa, así que la
+   muestra tiene que ser la misma que va a ver jugando. */
+.rule-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  margin-top: 1.4rem;
+}
+
+.rule-item {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.rule-item-name {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  letter-spacing: 0.12rem;
+  color: var(--bone);
+  margin-bottom: 0.3rem;
+}
+.rule-item-text {
+  font-family: var(--display);
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--bone-dim);
+}
+
+/* La casilla de muestra: mismo color e ícono que en el tablero, en un
+   tamaño donde el dibujo se lea. */
+.rule-chip {
+  position: static;
+  flex: none;
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 0.5rem;
+}
+
+/* La carta de muestra reusa .card por el color y el ícono, pero sin nada
+   de lo que la hace un control: no se aprieta, no se levanta. */
+.rule-card {
+  --card-w: 4.4rem;
+  flex: none;
+  cursor: default;
+  pointer-events: none;
+}
+.rule-card:hover { transform: none; }
 
 /* bust row — blood red accent */
 .rules-rule.bust .rule-num { color: rgba(199, 54, 95, 0.18); }
