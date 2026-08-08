@@ -799,11 +799,11 @@ body {
   margin-block: var(--table-gap);
   /* Más alta que el 2:1 original: el camino necesita franja propia arriba
      y abajo sin encimarse con el dado del centro.
-     El 4:3 acompaña a la grilla de 8×7 que forma el camino — con la mesa
+     El 5:4 acompaña a la grilla de 9×8 que forma el camino — con la mesa
      más chata las casillas de los costados quedaban aplastadas. El techo
      en dvh baja otra vez para compensar el alto que gana. */
-  width: min(100%, 79.2rem, 43dvh);
-  aspect-ratio: 4 / 3;
+  width: min(100%, 79.2rem, 40dvh);
+  aspect-ratio: 5 / 4;
   padding: clamp(0.7rem, 1.8vmin, 1.6rem);
   border-radius: clamp(1rem, 2.4vmin, 1.8rem);
   background: linear-gradient(145deg, #5a2e18, #2a120a 42%, #4a2414 72%, #1c0c06);
@@ -826,10 +826,10 @@ body {
    un grid: el recorrido es circular y un grid de 24 celdas obligaría a
    inventar celdas vacías en el medio. */
 /* El recorrido va sobre el fieltro, corrido hacia adentro para no pegarse
-   al filo. Es el borde de una grilla de 8×7: 2·8 + 2·7 − 4 = 26 celdas,
+   al filo. Es el borde de una grilla de 9×8: 2·9 + 2·8 − 4 = 30 celdas,
    justo las casillas del camino. Las del medio quedan vacías y ahí cae el
-   dado. Si cambia el número de filas o columnas hay que cambiar BOARD en
-   convex/rules.ts: el largo tiene que dar igual. */
+   dado. El tamaño lo fijan BOARD_COLS y BOARD_ROWS en convex/rules.ts —
+   estos dos números tienen que seguirlos. */
 .board-track {
   position: absolute;
   inset: clamp(0.5rem, 1.6vmin, 1.1rem);
@@ -837,8 +837,8 @@ body {
   z-index: 3;
 
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  grid-template-rows: repeat(7, 1fr);
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(8, 1fr);
   gap: 2px;
 }
 

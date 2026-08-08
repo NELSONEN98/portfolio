@@ -3,7 +3,7 @@ import { mutation, query, internalMutation } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import {
   GOAL,
-  BOARD,
+  makeBoard,
   CARD,
   HAND_LIMIT,
   CURSE_TURNS,
@@ -105,6 +105,8 @@ export const createRoom = mutation({
       // null acá es lo que rompía el insert.
       turn: "player1",
       status: "waiting",
+      // Un tablero distinto por partida.
+      board: makeBoard(rand),
       createdAt: Date.now(),
       expiresAt: Date.now() + ROOM_TTL_MS,
     });
@@ -244,7 +246,7 @@ export const getRoom = query({
 
     /* El objetivo viaja con la sala: es el backend quien corta la partida,
        así que las dos pantallas tienen que leerlo de acá. */
-    return { ...room, goal: GOAL, board: BOARD, lastEvent };
+    return { ...room, goal: GOAL, lastEvent };
   },
 });
 
@@ -273,7 +275,7 @@ export const rollDice = mutation({
        no te devuelve al casillero anterior. */
     const steps = outcome.isBust ? outcome.dice.length : outcome.gained;
     const pos = advance(mine.pos, steps);
-    const square = squareAt(pos);
+    const square = squareAt(room.board as any, pos);
 
     let score = me.player.score;
     let hand = mine.hand;

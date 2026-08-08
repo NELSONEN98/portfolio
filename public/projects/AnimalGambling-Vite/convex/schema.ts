@@ -36,6 +36,10 @@ export default defineSchema({
     player2: v.optional(player),
     turn: v.string(),
     status: v.string(),
+    /* Se sortea al crear la sala y viaja con ella: los dos jugadores tienen
+       que ver las mismas casillas en los mismos lugares. Optional porque
+       las salas anteriores al tablero no lo tienen. */
+    board: v.optional(v.array(v.string())),
     /* Quién ganó, dicho por el backend. Deducirlo comparando puntajes del
        lado del cliente falla justo en el abandono, donde el que se queda
        puede tener menos. */

@@ -18,8 +18,10 @@ import {
    que el modo local y el online se separen. */
 import {
   GOAL,
-  BOARD,
   BOARD_SIZE,
+  BOARD_COLS,
+  BOARD_ROWS,
+  makeBoard,
   SQUARE,
   CARD,
   CARD_LABEL,
@@ -216,6 +218,9 @@ const state = {
      esto los controles quedaban vivos en el turno del rival. */
   mySide: 0,
   players: [null, null], // each: { char, score, current }
+  /* Las casillas de esta partida. En online las manda el servidor con la
+     sala; en local se sortean al empezar. */
+  board: [],
   selectedCatP1: null,
   selectedCatP2: null,
   active: 0,
@@ -364,8 +369,8 @@ function pickCharacter(idx) {
    Colocarlas así —en celdas y no en porcentajes sueltos— es lo que hace
    que las casillas se toquen entre sí como en un tablero de verdad. Con
    posiciones libres siempre quedaban puntos sueltos separados. */
-const COLS = 8;
-const ROWS = 7;
+const COLS = BOARD_COLS;
+const ROWS = BOARD_ROWS;
 
 function squareCell(i) {
   const n = ((i % BOARD_SIZE) + BOARD_SIZE) % BOARD_SIZE;
@@ -415,7 +420,7 @@ function renderBoard() {
   const track = $("#board-track");
   if (!track) return;
 
-  const squares = BOARD.map((type, i) => {
+  const squares = (state.board ?? []).map((type, i) => {
     const { col, row } = squareCell(i);
     return `<span class="square ${type}" style="grid-column:${col};grid-row:${row}">${SQUARE_ICON[type] ?? ""}</span>`;
   }).join("");
@@ -602,6 +607,15 @@ function syncGameStateOnline() {
 
   unwatchRoom = watchRoom(roomId, (room) => {
     if (!room) return;
+
+    /* El tablero lo sortea el servidor al crear la sala: los dos jugadores
+       tienen que ver las mismas casillas en los mismos lugares. */
+    if (Array.isArray(room.board) && room.board.length) {
+      const changed = room.board.length !== state.board.length;
+      state.board = room.board;
+      // Sólo se redibuja si cambió el largo; el contenido no muta.
+      if (changed) renderBoard();
+    }
 
     /* El objetivo lo fija el backend — el slider de ajustes no manda en
        online, y mostrar 100 mientras la sala corta en 50 es mentirle al
@@ -864,7 +878,7 @@ async function playCardByUid(uid) {
    la ficha avanza siempre, incluso quemándose. */
 function applyLandingLocal(p, steps) {
   p.pos = advance(p.pos ?? 0, steps);
-  const square = squareAt(p.pos);
+  const square = squareAt(state.board, p.pos);
 
   if (square === SQUARE.PENALTY) {
     p.score = applyPenalty(p.score);
@@ -1297,6 +1311,10 @@ async function handlePlay() {
        abre con el gato del rival puesto, sin el parpadeo de dos segundos
        que tardaría el primer sondeo en corregirlo. */
     state.mySide = p1.sessionId === getSessionId() ? 0 : 1;
+    /* El tablero se toma acá y no en el primer sondeo: si no, el versus
+       abre con el camino vacío hasta que llega el siguiente. */
+    if (Array.isArray(room.board) && room.board.length) state.board = room.board;
+
     /* La mano y la ficha las reparte el backend al crear la sala: acá se
        copian, no se generan, o cada lado vería cartas distintas. */
     state.players[0] = { ...newPlayer(charFromCatId(p1.catId)), hand: p1.hand ?? [], pos: p1.pos ?? 0 };
@@ -1314,6 +1332,10 @@ function startGame() {
   setRolling(false);
   state.rollsTotal = 0;
   resetCounters();
+
+  /* En online el tablero llega con la sala; en local se sortea acá, una vez
+     por partida, para que la revancha no repita el mismo recorrido. */
+  if (state.gameMode !== "online") state.board = makeBoard(() => Math.random());
 
   state.players.forEach((p) => {
     if (p) {

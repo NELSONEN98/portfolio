@@ -63,30 +63,68 @@ export const SQUARE = {
 
 export type SquareType = (typeof SQUARE)[keyof typeof SQUARE];
 
-/* 26 casillas dando la vuelta a la mesa: 8 arriba, 5 a cada lado, 8 abajo.
-   Es el borde de una grilla de 8×7 — 2·8 + 2·7 − 4 = 26 — y ese número
-   tiene que coincidir con el que dibuja el cliente.
+/* El camino es el borde de una grilla de 9×8: 2·9 + 2·8 − 4 = 30 casillas.
+   Estas tres constantes son la única definición del tamaño — el cliente
+   dibuja la grilla con COLS y ROWS, y BOARD_SIZE sale de las dos. Tocar
+   una sola descuadra el tablero.
 
    El camino es circular, así que no hay meta: se gana por puntos y las
-   casillas son lo que le pasa a tu ficha en el camino.
+   casillas son lo que le pasa a tu ficha en el camino. */
+export const BOARD_COLS = 9;
+export const BOARD_ROWS = 8;
+export const BOARD_SIZE = 2 * BOARD_COLS + 2 * BOARD_ROWS - 4;
 
-   Las trampas y los premios están repartidos sin quedar nunca pegados: dos
-   penitencias seguidas hacen que una tirada de 6 se sienta arbitraria. */
-export const BOARD: SquareType[] = [
-  // fila de arriba (8)
-  "plain", "bonus", "plain", "penalty", "plain", "plain", "bonus", "plain",
-  // costado derecho (5)
-  "penalty", "plain", "bonus", "plain", "penalty",
-  // fila de abajo (8)
-  "plain", "bonus", "plain", "plain", "penalty", "plain", "bonus", "plain",
-  // costado izquierdo (5)
-  "penalty", "plain", "bonus", "plain", "penalty",
-];
+export const PENALTY_COUNT = 6;
+export const BONUS_COUNT = 6;
 
-export const BOARD_SIZE = BOARD.length;
+/* El tablero se sortea por partida, así que deja de ser constante: pasa a
+   ser estado de la sala. Si cada lado lo generara por su cuenta verían
+   casillas distintas en el mismo lugar. */
+export function makeBoard(rand: () => number): SquareType[] {
+  const board: SquareType[] = new Array(BOARD_SIZE).fill(SQUARE.PLAIN);
 
-export function squareAt(pos: number): SquareType {
-  return BOARD[((pos % BOARD_SIZE) + BOARD_SIZE) % BOARD_SIZE];
+  /* Dos especiales pegadas hacen que una tirada de 6 se sienta arbitraria:
+     caés en penitencia y la casilla de al lado también te castiga. */
+  const isolated = (i: number) => {
+    const prev = (i - 1 + BOARD_SIZE) % BOARD_SIZE;
+    const next = (i + 1) % BOARD_SIZE;
+    return (
+      board[i] === SQUARE.PLAIN &&
+      board[prev] === SQUARE.PLAIN &&
+      board[next] === SQUARE.PLAIN
+    );
+  };
+
+  const place = (type: SquareType, count: number) => {
+    let placed = 0;
+    /* Tope de intentos: al final quedan pocos huecos aislados y buscarlos
+       al azar puede no encontrarlos nunca. */
+    for (let guard = 0; placed < count && guard < 600; guard++) {
+      const i = Math.floor(rand() * BOARD_SIZE);
+      if (!isolated(i)) continue;
+      board[i] = type;
+      placed++;
+    }
+    // Si la separación no alcanzó, se completa pegado antes que dejar el
+    // tablero con menos casillas de las que corresponde.
+    for (let i = 0; placed < count && i < BOARD_SIZE; i++) {
+      if (board[i] === SQUARE.PLAIN) {
+        board[i] = type;
+        placed++;
+      }
+    }
+  };
+
+  place(SQUARE.PENALTY, PENALTY_COUNT);
+  place(SQUARE.BONUS, BONUS_COUNT);
+  return board;
+}
+
+/* Tolera un tablero ausente —salas creadas antes de que se sorteara— y
+   cualquier posición, negativa o mayor que la vuelta. */
+export function squareAt(board: SquareType[] | undefined, pos: number): SquareType {
+  if (!board || board.length === 0) return SQUARE.PLAIN;
+  return board[((pos % board.length) + board.length) % board.length];
 }
 
 export function advance(pos: number, steps: number): number {
