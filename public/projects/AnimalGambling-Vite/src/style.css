@@ -459,6 +459,12 @@ body {
      mueve el slider del panel de ajustes; la mesa se queda donde está,
      que es lo que hace que el desplazamiento se note. */
   --ui-shift: 0rem;
+
+  /* ►► Separación entre los personajes y la mesa. ◄◄
+     Subir este número los aleja, bajarlo los junta; acepta negativos
+     hasta superponerlos. Va aparte del `gap` de arriba porque ese aplica
+     a las cuatro filas por igual y movía también los botones. */
+  --table-gap: 0rem;
   padding:
     clamp(0.6rem, 1.5vh, 1.6rem)
     clamp(1.2rem, 3vw, 4rem)
@@ -763,6 +769,9 @@ body {
 .pool-table {
   grid-area: table;
   place-self: center;
+  /* Empuja arriba y abajo por igual: la mesa se aparta de los dos
+     peleadores sin moverse del centro. */
+  margin-block: var(--table-gap);
   width: min(100%, 79.2rem, 55.2dvh);
   aspect-ratio: 2 / 1;
   padding: clamp(0.7rem, 1.8vmin, 1.6rem);
