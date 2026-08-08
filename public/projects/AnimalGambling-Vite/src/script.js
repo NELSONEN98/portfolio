@@ -713,6 +713,7 @@ function syncGameStateOnline() {
       updateControls();
       moveTokens();
       renderHand();
+      syncDiceCount();
 
       if (room.status === "finished" && !state.finished) {
         stopWatchingRoom();
@@ -839,6 +840,14 @@ function setDiceFace(n, el = $("#dice-3d")) {
   el.style.transform = `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`;
 }
 
+/* Cuántos dados corresponden ahora mismo: dos en cuanto se juega la carta,
+   sin esperar a la tirada. Ver aparecer el segundo es la única confirmación
+   de que la carta surtió efecto. */
+function syncDiceCount() {
+  const side = state.gameMode === "online" ? state.mySide : state.active;
+  showDice(state.players[side]?.doubleNext ? 2 : 1);
+}
+
 /* Deja la mesa con uno o dos dados según lo que se haya tirado, y devuelve
    los que están en juego para animarlos. */
 function showDice(count) {
@@ -947,6 +956,7 @@ async function playCardByUid(uid) {
     if (card.type === CARD.DOUBLE) me.doubleNext = true;
     else me.pendingCard = card;
     renderHand();
+    syncDiceCount();
     return;
   }
 
@@ -959,6 +969,7 @@ async function playCardByUid(uid) {
     notify("Carta sobre la mesa — se revela al plantarte");
   }
   renderHand();
+  syncDiceCount();
 }
 
 /* Efecto de la casilla donde frenó la ficha. Mismo orden que el backend:
@@ -1090,6 +1101,18 @@ function showSnakeEyes() {
   warn.classList.remove("show");
   void warn.offsetWidth;
   warn.classList.add("show");
+  /* La clase se saca al terminar. Si queda puesta, al volver a entrar a la
+     pantalla —que pasa por display:none— el navegador vuelve a correr la
+     animación, y la partida nueva abría anunciando un quemado que no
+     había pasado. */
+  warn.addEventListener("animationend", () => warn.classList.remove("show"), {
+    once: true,
+  });
+}
+
+function hideSnakeEyes() {
+  const warn = $("#snake-warn");
+  if (warn) warn.classList.remove("show");
 }
 
 function holdScore() {
@@ -1173,6 +1196,7 @@ function switchPlayer() {
      turno normal son casi cuatro tiradas. */
   saliente.curseTurns = Math.max(0, (saliente.curseTurns ?? 0) - 1);
   state.active = state.active === 0 ? 1 : 0;
+  syncDiceCount();
   updateScores();
   updateActiveFighter();
 }
@@ -1461,6 +1485,7 @@ function startGame() {
   /* Un solo dado hasta que alguien juegue la carta: si la partida anterior
      terminó con dos, el segundo quedaba en pantalla. */
   showDice(1);
+  hideSnakeEyes();
   /* No el 1: esa cara es quemarse, y arrancar mostrándola parecía una
      tirada perdida antes de que nadie hubiera tocado el dado. */
   setDiceFace(6);

@@ -16,11 +16,11 @@ export const GOAL = 100;
    toda la tensión del juego. */
 export const BUST = 1;
 
-/* Un turno gana +7,7 puntos en promedio, y con 6 casillas de penitencia se
-   pisa alguna casi una vez por turno. A 15 el castigo superaba a la
-   ganancia —neto −3,9 por turno— y el marcador nunca llegaba a 100 por
-   progresión: sólo se ganaba por rachas o robando. A 5 el neto queda en
-   torno a +3,8 y la partida cierra en unos 25 turnos. */
+/* Un turno gana +7,7 puntos en promedio. A 15 y con seis casillas de
+   penitencia el castigo superaba a la ganancia —neto −3,9 por turno— y el
+   marcador nunca llegaba a 100 por progresión: sólo se ganaba por rachas o
+   robando. Con 5 puntos y tres casillas el neto queda cómodamente
+   positivo. */
 export const PENALTY_POINTS = 5;
 
 /* Con la maldición encima el dado del rival no pasa de 5: le saca el mejor
@@ -52,6 +52,25 @@ export type Card = {
    no una partida ganada de una. */
 export const STEAL_VALUES = [5, 10, 15];
 
+/* El robo grande sale mucho más seguido que los otros dos: la carta tiene
+   que sentirse una amenaza real, y con reparto parejo dos de cada tres
+   veces salía la versión floja. */
+const STEAL_WEIGHTS: Array<[number, number]> = [
+  [15, 70],
+  [10, 20],
+  [5, 10],
+];
+
+export function randomStealValue(rand: () => number): number {
+  const total = STEAL_WEIGHTS.reduce((a, [, w]) => a + w, 0);
+  let tick = rand() * total;
+  for (const [value, weight] of STEAL_WEIGHTS) {
+    tick -= weight;
+    if (tick < 0) return value;
+  }
+  return STEAL_WEIGHTS[0][0];
+}
+
 export const CARD_LABEL: Record<CardType, string> = {
   steal: "ROBO",
   defense: "DEFENSA",
@@ -82,8 +101,10 @@ export const BOARD_COLS = 9;
 export const BOARD_ROWS = 8;
 export const BOARD_SIZE = 2 * BOARD_COLS + 2 * BOARD_ROWS - 4;
 
-export const PENALTY_COUNT = 6;
-export const BONUS_COUNT = 6;
+/* Tres de cada una sobre 30 casillas. Con seis se pisaba alguna casi una
+   vez por turno y el recorrido era más castigo que camino. */
+export const PENALTY_COUNT = 3;
+export const BONUS_COUNT = 3;
 
 /* El tablero se sortea por partida, así que deja de ser constante: pasa a
    ser estado de la sala. Si cada lado lo generara por su cuenta verían
@@ -153,10 +174,7 @@ export function makeCard(type: CardType, value: number | undefined, seed: number
 /* Mano inicial: dos de robo y una de defensa, como pidió el diseño. Los
    valores de robo salen al azar de los tres posibles. */
 export function startingHand(rand: () => number): Card[] {
-  const steals = [0, 1].map((i) => {
-    const v = STEAL_VALUES[Math.floor(rand() * STEAL_VALUES.length)];
-    return makeCard(CARD.STEAL, v, i);
-  });
+  const steals = [0, 1].map((i) => makeCard(CARD.STEAL, randomStealValue(rand), i));
   return [...steals, makeCard(CARD.DEFENSE, undefined, 2)];
 }
 
@@ -165,10 +183,7 @@ export function startingHand(rand: () => number): Card[] {
    para que atacar no sea siempre gratis. */
 export function randomBonusCard(rand: () => number, seed: number): Card {
   const roll = rand();
-  if (roll < 0.4) {
-    const v = STEAL_VALUES[Math.floor(rand() * STEAL_VALUES.length)];
-    return makeCard(CARD.STEAL, v, seed);
-  }
+  if (roll < 0.4) return makeCard(CARD.STEAL, randomStealValue(rand), seed);
   if (roll < 0.7) return makeCard(CARD.DEFENSE, undefined, seed);
   if (roll < 0.88) return makeCard(CARD.CURSE, undefined, seed);
   return makeCard(CARD.DOUBLE, undefined, seed);
