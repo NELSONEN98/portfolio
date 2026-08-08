@@ -73,7 +73,7 @@ const CHARACTERS = [
 const ROSTER = [
   {
     id: "cat1",
-    name: "Michi Bizco",
+    name: "Bonifacio",
     dir: "cat1",
     frames: 9,
     img: "cat1/frame0000.webp",
@@ -85,7 +85,7 @@ const ROSTER = [
   },
   {
     id: "cat2",
-    name: "Tuco Rayado",
+    name: "Abilio",
     dir: "cat2",
     frames: 9,
     img: "cat2/frame0000.webp",
@@ -97,7 +97,7 @@ const ROSTER = [
   },
   {
     id: "cat3",
-    name: "Feliz Pinto",
+    name: "Hermenegildo",
     dir: "cat3",
     frames: 10,
     img: "cat3/frame0000.webp",
@@ -109,7 +109,7 @@ const ROSTER = [
   },
   {
     id: "cat4",
-    name: "Sombra Negra",
+    name: "El Mago",
     dir: "cat4",
     frames: 10,
     img: "cat4/frame0000.webp",
@@ -1007,7 +1007,9 @@ function startGame() {
   switchScreen("game");
   screens.game.classList.add("in-play");
   renderGameUI();
-  setDiceFace(1);
+  /* No el 1: esa cara es quemarse, y arrancar mostrándola parecía una
+     tirada perdida antes de que nadie hubiera tocado el dado. */
+  setDiceFace(6);
 }
 
 const newRound = startGame;
