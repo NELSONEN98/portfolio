@@ -595,7 +595,10 @@ function rivalRollFrom(room) {
   // La propia ya se animó al tirarla.
   if (ev.sessionId === getSessionId()) return null;
 
-  return { roll: ev.payload.roll, isBust: Boolean(ev.payload.isBust) };
+  /* `dice` trae la tirada completa; `roll` es el valor suelto que mandaban
+     las versiones anteriores y se usa como reserva. */
+  const dice = Array.isArray(ev.payload.dice) ? ev.payload.dice : [ev.payload.roll];
+  return { dice, isBust: Boolean(ev.payload.isBust) };
 }
 
 function syncGameStateOnline() {
@@ -682,7 +685,7 @@ function syncGameStateOnline() {
     }
 
     setRolling(true);
-    animateDiceRoll(rival.roll, rival.isBust, applyRoomState);
+    animateDiceRoll(rival.dice, rival.isBust, applyRoomState);
   });
 }
 
@@ -770,10 +773,27 @@ const DICE_ROTATIONS = {
   6: { x: 90, y: 0 },
 };
 
-function setDiceFace(n) {
-  const dice = $("#dice-3d");
+function setDiceFace(n, el = $("#dice-3d")) {
+  if (!el) return;
   const rot = DICE_ROTATIONS[n];
-  dice.style.transform = `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`;
+  el.style.transform = `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`;
+}
+
+/* Deja la mesa con uno o dos dados según lo que se haya tirado, y devuelve
+   los que están en juego para animarlos. */
+function showDice(count) {
+  const pair = $("#dice-pair");
+  const second = $("#dice-3d-b");
+  if (!pair || !second) return [$("#dice-3d")].filter(Boolean);
+
+  const double = count > 1;
+  pair.classList.toggle("double", double);
+  second.hidden = !double;
+
+  const list = [$("#dice-3d")];
+  if (double) list.push(second);
+  list.forEach((d) => d.classList.remove("dead"));
+  return list;
 }
 
 /* The single source of truth for "a roll is in flight". The DOM `disabled`
@@ -819,7 +839,7 @@ async function rollDiceOnline() {
 
     /* El puntaje se aplica cuando el dado frena, no cuando responde el
        servidor: si no, el número sube antes de que se vea la cara. */
-    animateDiceRoll(result.roll, result.isBust, () => {
+    animateDiceRoll(result.dice, result.isBust, () => {
       const me = state.players[state.mySide];
       if (!me) return;
       me.current = result.isBust ? 0 : result.newCurrent;
@@ -930,18 +950,14 @@ function rollDiceLocal() {
   p.doubleNext = false;
   p.curseTurns = Math.max(0, (p.curseTurns ?? 0) - 1);
 
-  const dice = $("#dice-3d");
-  dice.classList.remove("rolling");
-  void dice.offsetWidth;
-  dice.classList.add("rolling");
-
-  setTimeout(() => {
-    dice.classList.remove("rolling");
-    /* Con dos dados el cubo muestra el mayor: son dos tiradas y una sola
-       cara, así que el aviso del detalle va por el toast. */
-    setDiceFace(Math.max(...outcome.dice));
+  /* Misma animación que en online: si los dados son dos, se muestran los
+     dos y cada uno queda en su cara. */
+  animateDiceRoll(outcome.dice, outcome.isBust, () => {
     if (outcome.dice.length > 1) {
-      notify(`Dos dados: ${outcome.dice.join(" y ")}`);
+      const suma = outcome.isBust
+        ? "las dos en 1, turno quemado"
+        : `suman ${outcome.gained}`;
+      notify(`Dos dados: ${outcome.dice.join(" y ")} — ${suma}`);
     }
 
     /* La ficha avanza aunque el turno se queme: el 1 te saca lo acumulado,
@@ -949,12 +965,12 @@ function rollDiceLocal() {
     applyLandingLocal(p, outcome.isBust ? outcome.dice.length : outcome.gained);
 
     if (outcome.isBust) {
-      showSnakeEyes();
       p.current = 0;
       updateScores();
+      /* El cambio de jugador espera al cartel de quemado, que dura lo
+         mismo que la pausa de animateDiceRoll. */
       setTimeout(() => {
         switchPlayer();
-        setRolling(false);
         renderHand();
       }, 900);
       return;
@@ -962,21 +978,31 @@ function rollDiceLocal() {
 
     p.current += outcome.gained;
     updateScores();
-    setRolling(false);
     renderHand();
     if (p.score + p.current >= state.goal) holdScore();
-  }, DICE_ROLL_MS);
+  });
 }
 
-function animateDiceRoll(roll, isBust, onSettle) {
-  const dice = $("#dice-3d");
-  dice.classList.remove("rolling");
-  void dice.offsetWidth;
-  dice.classList.add("rolling");
+/* `values` es la tirada completa: un dado normalmente, dos con la carta. */
+function animateDiceRoll(values, isBust, onSettle) {
+  const rolled = Array.isArray(values) ? values : [values];
+  const els = showDice(rolled.length);
+
+  els.forEach((el) => {
+    el.classList.remove("rolling");
+    void el.offsetWidth;
+    el.classList.add("rolling");
+  });
 
   setTimeout(() => {
-    dice.classList.remove("rolling");
-    setDiceFace(roll);
+    els.forEach((el, i) => {
+      el.classList.remove("rolling");
+      setDiceFace(rolled[i], el);
+      /* Con dos dados, el que salió 1 no suma: se apaga para que la cuenta
+         se entienda mirando la mesa. */
+      if (rolled.length > 1 && rolled[i] === 1) el.classList.add("dead");
+    });
+
     if (onSettle) onSettle();
 
     if (isBust) {
@@ -1349,6 +1375,9 @@ function startGame() {
   switchScreen("game");
   screens.game.classList.add("in-play");
   renderGameUI();
+  /* Un solo dado hasta que alguien juegue la carta: si la partida anterior
+     terminó con dos, el segundo quedaba en pantalla. */
+  showDice(1);
   /* No el 1: esa cara es quemarse, y arrancar mostrándola parecía una
      tirada perdida antes de que nadie hubiera tocado el dado. */
   setDiceFace(6);

@@ -95,13 +95,25 @@
           <div class="board-track" id="board-track" aria-hidden="true"></div>
           <div class="dice-arena">
             <div class="pool-goal">primero a <span class="num" id="goal-num">100</span></div>
-            <div class="dice-3d" id="dice-3d">
-              <div class="dice-face face-1"><div class="pip"></div></div>
-              <div class="dice-face face-2"><div class="pip"></div><div class="pip"></div></div>
-              <div class="dice-face face-3"><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
-              <div class="dice-face face-4"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
-              <div class="dice-face face-5"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
-              <div class="dice-face face-6"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+            <!-- El segundo dado sólo aparece con la carta de dos dados;
+                 el resto del tiempo está oculto. -->
+            <div class="dice-pair" id="dice-pair">
+              <div class="dice-3d" id="dice-3d">
+                <div class="dice-face face-1"><div class="pip"></div></div>
+                <div class="dice-face face-2"><div class="pip"></div><div class="pip"></div></div>
+                <div class="dice-face face-3"><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+                <div class="dice-face face-4"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+                <div class="dice-face face-5"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+                <div class="dice-face face-6"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+              </div>
+              <div class="dice-3d second" id="dice-3d-b" hidden>
+                <div class="dice-face face-1"><div class="pip"></div></div>
+                <div class="dice-face face-2"><div class="pip"></div><div class="pip"></div></div>
+                <div class="dice-face face-3"><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+                <div class="dice-face face-4"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+                <div class="dice-face face-5"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+                <div class="dice-face face-6"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+              </div>
             </div>
             <div class="snake-eyes-warning" id="snake-warn">× TE QUEMASTE ×</div>
           </div>

@@ -1003,10 +1003,15 @@ body {
 
 /* La carta jugada descansa sobre el fieltro, boca abajo, hasta que el que
    la puso se planta. */
+/* Adentro del anillo de casillas, no encima. El camino ocupa el borde de
+   una grilla de 9×8, así que una celda hacia adentro por cada lado deja la
+   carta en zona libre: 100%/9 de ancho y 100%/8 de alto, más el inset del
+   track. El centro queda para el dado y el rótulo del objetivo. */
 .played-card {
   position: absolute;
-  right: clamp(0.4rem, 1.5vmin, 1rem);
-  bottom: clamp(0.4rem, 1.5vmin, 1rem);
+  top: calc(100% / 8 + clamp(0.9rem, 2.6vmin, 1.8rem));
+  right: calc(100% / 9 + clamp(0.9rem, 2.6vmin, 1.8rem));
+  bottom: auto;
   width: clamp(2.4rem, 6vmin, 3.6rem);
   aspect-ratio: 5 / 7;
   border-radius: 0.5rem;
@@ -1292,6 +1297,16 @@ body {
   z-index: 0;
 }
 
+/* Los dos dados viven siempre en el DOM; el segundo se destapa sólo cuando
+   se juega la carta. Crearlo al vuelo obligaría a repetir las seis caras
+   en JavaScript. */
+.dice-pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--die) * 0.32);
+}
+
 .dice-3d {
   width: var(--die);
   height: var(--die);
@@ -1299,6 +1314,21 @@ body {
   transform-style: preserve-3d;
   transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
   image-rendering: auto;
+  flex: none;
+}
+
+/* Con dos en pantalla se achican para que el par entre en el mismo ancho
+   que ocupaba uno solo. */
+.dice-pair.double .dice-3d {
+  width: calc(var(--die) * 0.72);
+  height: calc(var(--die) * 0.72);
+}
+
+/* El que queda en 1 se apaga: con dos dados ese no suma, y verlo igual que
+   el otro hace pensar que la cuenta está mal. */
+.dice-3d.dead {
+  opacity: 0.4;
+  filter: grayscale(0.7);
 }
 .dice-3d.rolling {
   animation: dice-roll 0.7s cubic-bezier(0.4, 0, 0.2, 1);

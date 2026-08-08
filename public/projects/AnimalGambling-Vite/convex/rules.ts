@@ -42,7 +42,10 @@ export type Card = {
   value?: number;
 };
 
-export const STEAL_VALUES = [8, 15, 22];
+/* Lo que el robo le saca al rival y le suma a quien la juega. Con el
+   objetivo en 100, tres valores chicos hacen que la carta sea un empujón y
+   no una partida ganada de una. */
+export const STEAL_VALUES = [5, 10, 15];
 
 export const CARD_LABEL: Record<CardType, string> = {
   steal: "ROBO",
