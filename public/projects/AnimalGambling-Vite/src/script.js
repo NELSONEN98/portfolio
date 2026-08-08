@@ -271,6 +271,12 @@ function pickCharacter(idx) {
     state.picking = 0;
     state.players[0] = null;
     state.selectedCatP1 = null;
+
+    /* Cambiar de gato después de haber apretado Jugar cancela la espera:
+       el botón volvía a decir "Esperando al rival" y quedaba muerto,
+       porque el sondeo seguía apuntando al personaje anterior. */
+    stopWatchingRoom();
+    $("#btn-play").textContent = "Jugar";
   } else {
     // Local mode: limit to 2 selections max
     const selectedCount = $$(".char-card.selected").length;
@@ -371,11 +377,33 @@ function leaveCurrentRoom() {
   leaveOnlineRoom(roomId);
 }
 
+/* Última jugada ya reproducida de este lado. Sirve para no repetir la
+   animación en cada sondeo y para no reproducir, al entrar, las tiradas
+   que pasaron antes de que llegáramos. */
+let lastSeenEventId = null;
+
+function rivalRollFrom(room) {
+  const ev = room.lastEvent;
+  if (!ev) return null;
+
+  const firstLook = lastSeenEventId === null;
+  const isNew = ev._id !== lastSeenEventId;
+  lastSeenEventId = ev._id;
+
+  if (firstLook || !isNew) return null;
+  if (ev.action !== "roll") return null;
+  // La propia ya se animó al tirarla.
+  if (ev.sessionId === getSessionId()) return null;
+
+  return { roll: ev.payload.roll, isBust: Boolean(ev.payload.isBust) };
+}
+
 function syncGameStateOnline() {
   const roomId = sessionStorage.getItem("roomId");
   if (!roomId) return;
 
   stopWatchingRoom();
+  lastSeenEventId = null;
 
   unwatchRoom = watchRoom(roomId, (room) => {
     if (!room) return;
@@ -397,31 +425,46 @@ function syncGameStateOnline() {
        primer sondeo, con el mySide que quedó de la partida anterior. */
     applySides();
 
-    [room.player1, room.player2].forEach((side, i) => {
-      const p = state.players[i];
-      if (!side || !p) return;
-      p.score = side.score;
-      p.current = side.current;
-      const char = charFromCatId(side.catId);
-      if (char && p.char.id !== char.id) p.char = char;
-    });
+    const applyRoomState = () => {
+      [room.player1, room.player2].forEach((side, i) => {
+        const p = state.players[i];
+        if (!side || !p) return;
+        p.score = side.score;
+        p.current = side.current;
+        const char = charFromCatId(side.catId);
+        if (char && p.char.id !== char.id) p.char = char;
+      });
 
-    state.active = room.turn === "player1" ? 0 : 1;
+      state.active = room.turn === "player1" ? 0 : 1;
 
-    paintFighters();
-    updateScores();
-    updateActiveFighter();
-    updateControls();
+      paintFighters();
+      updateScores();
+      updateActiveFighter();
+      updateControls();
 
-    if (room.status === "finished" && !state.finished) {
-      stopWatchingRoom();
-      /* El ganador lo dice el backend. Deducirlo por puntaje se equivocaba
-         justo en el abandono, donde el que se queda suele ir perdiendo. */
-      const winnerIdx = room.winner === "player2" ? 1 : 0;
-      state.wonByAbandon = Boolean(room.endedByAbandon);
-      if (state.wonByAbandon) notify("Tu rival se levantó de la mesa");
-      winGame(winnerIdx);
+      if (room.status === "finished" && !state.finished) {
+        stopWatchingRoom();
+        /* El ganador lo dice el backend. Deducirlo por puntaje se equivocaba
+           justo en el abandono, donde el que se queda suele ir perdiendo. */
+        const winnerIdx = room.winner === "player2" ? 1 : 0;
+        state.wonByAbandon = Boolean(room.endedByAbandon);
+        if (state.wonByAbandon) notify("Tu rival se levantó de la mesa");
+        winGame(winnerIdx);
+      }
+    };
+
+    /* Cuando tira el rival, su dado también rueda de este lado. El estado
+       se aplica recién cuando frena: si se escribiera ahora, el puntaje
+       subiría mientras el dado todavía está girando y contaría la jugada
+       antes de mostrarla. */
+    const rival = rivalRollFrom(room);
+    if (!rival) {
+      applyRoomState();
+      return;
     }
+
+    setRolling(true);
+    animateDiceRoll(rival.roll, rival.isBust, applyRoomState);
   });
 }
 
@@ -556,7 +599,16 @@ async function rollDiceOnline() {
     setRolling(true);
     const result = await convexRollDice(roomId);
 
-    animateDiceRoll(result.roll, result.isBust);
+    /* El puntaje se aplica cuando el dado frena, no cuando responde el
+       servidor: si no, el número sube antes de que se vea la cara. */
+    animateDiceRoll(result.roll, result.isBust, () => {
+      const me = state.players[state.mySide];
+      if (!me) return;
+      me.current = result.isBust ? 0 : result.newCurrent;
+      if (result.isBust) state.active = state.mySide === 0 ? 1 : 0;
+      updateScores();
+      updateActiveFighter();
+    });
   } catch (error) {
     console.error("Error rolling dice online:", error);
     notify(errorText(error), "error");
@@ -597,7 +649,7 @@ function rollDiceLocal() {
   }, DICE_ROLL_MS);
 }
 
-function animateDiceRoll(roll, isBust) {
+function animateDiceRoll(roll, isBust, onSettle) {
   const dice = $("#dice-3d");
   dice.classList.remove("rolling");
   void dice.offsetWidth;
@@ -606,6 +658,7 @@ function animateDiceRoll(roll, isBust) {
   setTimeout(() => {
     dice.classList.remove("rolling");
     setDiceFace(roll);
+    if (onSettle) onSettle();
 
     if (isBust) {
       showSnakeEyes();
@@ -641,7 +694,20 @@ async function holdScoreOnline() {
     const roomId = sessionStorage.getItem("roomId");
 
     setRolling(true);
-    await convexHoldScore(roomId);
+    const result = await convexHoldScore(roomId);
+
+    /* La mutation ya devuelve el resultado: aplicarlo acá en vez de
+       esperar al sondeo. Con hasta 2s de espera, plantarse se sentía como
+       que el botón no había respondido. */
+    const me = state.players[state.mySide];
+    if (me) {
+      me.score = result.newScore;
+      me.current = 0;
+    }
+    if (!result.gameFinished) state.active = state.mySide === 0 ? 1 : 0;
+
+    updateScores();
+    updateActiveFighter();
     setRolling(false);
   } catch (error) {
     console.error("Error holding score online:", error);

@@ -195,9 +195,21 @@ export const getRoom = query({
   args: { roomId: v.string() },
   async handler(ctx, args) {
     const room = await findRoom(ctx, args.roomId);
+    if (!room) return null;
+
+    /* La última jugada viaja con la sala para que el rival pueda animar el
+       dado. Comparando puntajes no alcanza: una tirada que suma y un
+       plantarse se ven casi igual desde afuera, y un 1 deja el acumulado
+       en cero sin decir que salió un 1. */
+    const lastEvent = await ctx.db
+      .query("gameEvents")
+      .withIndex("by_roomId", (q) => q.eq("roomId", args.roomId))
+      .order("desc")
+      .first();
+
     /* El objetivo viaja con la sala: es el backend quien corta la partida,
        así que las dos pantallas tienen que leerlo de acá. */
-    return room && { ...room, goal: GOAL };
+    return { ...room, goal: GOAL, lastEvent };
   },
 });
 
