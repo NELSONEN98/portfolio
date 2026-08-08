@@ -411,7 +411,9 @@ function moveTokens() {
    ============================================ */
 function cardFace(c) {
   if (c.type === CARD.STEAL) {
-    return `<span class="card-kind">${CARD_LABEL.steal}</span><span class="card-value">${c.value}</span>`;
+    /* En negativo: lo que dice la carta es lo que le pasa al rival, y el
+       signo lo deja claro sin tener que leer el rótulo. */
+    return `<span class="card-kind">${CARD_LABEL.steal}</span><span class="card-value">-${c.value}</span>`;
   }
   const short = { defense: "🛡", curse: "☠", double: "⚄⚄" };
   return `<span class="card-value">${short[c.type]}</span><span class="card-kind">${CARD_LABEL[c.type]}</span>`;
@@ -431,7 +433,7 @@ function renderHand() {
       const playable = c.type !== CARD.DEFENSE && canPlayCards();
       return `<button class="card ${c.type}" data-uid="${c.uid}"
                 ${playable ? "" : "disabled"}
-                title="${CARD_LABEL[c.type]}${c.value ? " " + c.value : ""}">
+                title="${CARD_LABEL[c.type]}${c.value ? " -" + c.value : ""}">
                 ${cardFace(c)}
               </button>`;
     })

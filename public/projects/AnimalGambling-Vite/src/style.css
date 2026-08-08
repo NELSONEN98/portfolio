@@ -15,6 +15,9 @@
   --c-gold: #e4a700;
   --c-red: #c70000;
   --c-red-deep: #7b1414;
+  /* Fuera de la paleta original: la maldición necesitaba un color propio
+     que no se confundiera con el rojo del robo ni con el azul del bonus. */
+  --c-purple: #5b2d8e;
 
   --felt-0: #061a10;
   --felt-1: #0a2e1f;
@@ -794,8 +797,13 @@ body {
   /* Empuja arriba y abajo por igual: la mesa se aparta de los dos
      peleadores sin moverse del centro. */
   margin-block: var(--table-gap);
-  width: min(100%, 79.2rem, 55.2dvh);
-  aspect-ratio: 2 / 1;
+  /* Más alta que el 2:1 original: el camino de casillas necesita franja
+     propia arriba y abajo sin encimarse con el dado del centro.
+     El techo en dvh baja de 55.2 a 46 para compensar: a 3:2 la mesa crece
+     un tercio de alto, y ahora comparte la pantalla con la fila de cartas
+     que antes no existía. */
+  width: min(100%, 79.2rem, 46dvh);
+  aspect-ratio: 3 / 2;
   padding: clamp(0.7rem, 1.8vmin, 1.6rem);
   border-radius: clamp(1rem, 2.4vmin, 1.8rem);
   background: linear-gradient(145deg, #5a2e18, #2a120a 42%, #4a2414 72%, #1c0c06);
@@ -817,32 +825,34 @@ body {
    por porcentaje del perímetro —lo calcula renderBoard()— en lugar de con
    un grid: el recorrido es circular y un grid de 24 celdas obligaría a
    inventar celdas vacías en el medio. */
+/* El recorrido va sobre el fieltro, corrido hacia adentro para no pisar el
+   filo ni las troneras de las esquinas. */
 .board-track {
   position: absolute;
-  inset: 0;
+  inset: clamp(1.1rem, 3.4vmin, 2.2rem);
   pointer-events: none;
   z-index: 3;
 }
 
 .square {
   position: absolute;
-  width: clamp(0.85rem, 2.4vmin, 1.5rem);
+  width: clamp(1.3rem, 3.6vmin, 2.2rem);
   aspect-ratio: 1;
-  border-radius: 0.3rem;
+  border-radius: 0.35rem;
   transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.18);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55);
 }
 
 /* Los dos tipos que hacen algo se leen por color, no por ícono: a este
    tamaño un símbolo no se distingue. */
 .square.penalty {
   background: var(--c-red);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0.5rem rgba(199, 0, 0, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0.6rem rgba(199, 0, 0, 0.75);
 }
 .square.bonus {
-  background: var(--c-gold);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0.5rem rgba(228, 167, 0, 0.7);
+  background: var(--c-blue);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0.6rem rgba(7, 36, 117, 0.9);
 }
 
 /* Fichas: dorada la del jugador 1, blanca la del 2. Se mueven con
@@ -884,7 +894,10 @@ body {
 }
 
 .card {
-  --card-w: clamp(4.6rem, 11vmin, 7rem);
+  /* En vmin, no en vh: a 5:7 la carta es más alta que ancha, y en una
+     pantalla apaisada un vh generoso la hacía comerse el alto que
+     necesitan la mesa y los peleadores. */
+  --card-w: clamp(3.6rem, 8.5vmin, 5.6rem);
   width: var(--card-w);
   aspect-ratio: 5 / 7;
   border: none;
@@ -928,10 +941,14 @@ body {
   line-height: 1;
 }
 
-.card.steal   { background: var(--c-gold); }
-.card.defense { background: #fff; }
-.card.curse   { background: var(--c-red-deep); color: #fff; }
-.card.double  { background: var(--c-blue); color: #fff; }
+/* Un color por efecto: quitar, proteger, estorbar, y la que sólo te
+   beneficia a vos. */
+.card.steal   { background: var(--c-red); color: #fff; }
+.card.defense { background: var(--c-green); color: #fff; }
+.card.curse   { background: var(--c-purple); color: #fff; }
+/* Dos dados pasa a dorado: el azul quedó reservado para las casillas de
+   bonus y repetirlo acá los mezclaba. */
+.card.double  { background: var(--c-gold); color: var(--c-black); }
 
 /* La carta jugada descansa sobre el fieltro, boca abajo, hasta que el que
    la puso se planta. */
