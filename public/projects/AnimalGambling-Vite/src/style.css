@@ -1242,12 +1242,6 @@ body {
 }
 .rival-card:first-child { margin-left: 0; }
 
-.rival-count {
-  margin-left: 0.5rem;
-  font-family: var(--display);
-  font-size: clamp(0.75rem, 1.8vmin, 1rem);
-  color: var(--bone-dim);
-}
 
 /* ---- recibir una carta ----
    Tres tiempos: sube desde abajo, el abanico se abre para hacerle lugar y
@@ -1289,6 +1283,77 @@ body {
   .card.recien-llegada,
   .card.lanzada { animation: none; }
   .hand-fan.abierto .card { transform: rotate(var(--giro, 0deg)); margin-top: calc(var(--card-w) * 1.4 * var(--solape, 0.42) * -1); }
+}
+
+/* ---- la carta que entrega el bonus ----
+   Aparece grande en el medio, se deja leer, y baja hasta el abanico. El
+   destino es la esquina inferior izquierda porque es donde vive la mano;
+   si el abanico se mudara, este es el punto a corregir. */
+.card-gained {
+  position: fixed;
+  inset: 0;
+  z-index: 320;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.card-gained .card {
+  --card-w: clamp(10rem, 30vmin, 16rem);
+  cursor: default;
+  box-shadow: 0 0 0 3px #fff, 0 2rem 4rem rgba(0, 0, 0, 0.8);
+}
+
+.card-gained.entra .card {
+  animation: carta-ganada-entra 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.35);
+}
+
+/* El viaje sale del centro hacia la mano y se achica en el camino: es lo
+   que ata la carta que se vio con el mazo donde queda. */
+.card-gained.viaja .card {
+  animation: carta-ganada-viaja 0.52s cubic-bezier(0.5, 0, 0.75, 0.4) forwards;
+}
+
+.card-gained-label {
+  position: absolute;
+  top: calc(50% + clamp(7rem, 20vmin, 11rem));
+  font-family: var(--display);
+  font-size: clamp(0.9rem, 2.4vmin, 1.3rem);
+  letter-spacing: 0.14em;
+  color: var(--c-gold);
+  text-shadow: 0 0 1.4rem rgba(228, 167, 0, 0.7);
+  animation: carta-ganada-entra 0.42s ease-out;
+}
+.card-gained.viaja .card-gained-label {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+@keyframes carta-ganada-entra {
+  from { opacity: 0; transform: scale(0.5) rotate(-12deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* Termina abajo a la izquierda, donde está el abanico. En vw y vh para que
+   apunte al mismo lugar en cualquier pantalla. */
+@keyframes carta-ganada-viaja {
+  from { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+  to   { opacity: 0; transform: translate(-42vw, 18vh) scale(0.22) rotate(-14deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-gained .card,
+  .card-gained-label { animation: none; }
+  .card-gained.viaja .card { opacity: 0; }
+}
+
+/* En pantallas angostas la mano está abajo al centro, así que la carta cae
+   ahí en vez de al costado. */
+@media (max-width: 560px) {
+  @keyframes carta-ganada-viaja {
+    from { opacity: 1; transform: translate(0, 0) scale(1); }
+    to   { opacity: 0; transform: translate(0, 34vh) scale(0.22); }
+  }
 }
 
 /* Mantener apretado la muestra grande y centrada. Sin fondo oscuro: es una

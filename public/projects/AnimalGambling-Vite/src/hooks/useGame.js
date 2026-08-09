@@ -103,8 +103,12 @@ export function useGame() {
     } else if (casilla === SQUARE.BONUS) {
       const ocupadas = (hand?.length ?? 0) + (p.pendingCards?.length ?? 0);
       if (ocupadas < HAND_LIMIT) {
-        hand = [...(hand ?? []), randomBonusCard(rand, Date.now())];
-        hechos.push(evento("bonus", { nombre: p.char.name }));
+        const ganada = randomBonusCard(rand, Date.now());
+        hand = [...(hand ?? []), ganada];
+        /* La carta viaja con el hecho: la interfaz la muestra grande antes
+           de que llegue al abanico, y comparando manos no podría separar la
+           ganada de una devuelta al quemarse. */
+        hechos.push(evento("bonus", { nombre: p.char.name, carta: ganada }));
       } else {
         hechos.push(evento("bonusLleno"));
       }

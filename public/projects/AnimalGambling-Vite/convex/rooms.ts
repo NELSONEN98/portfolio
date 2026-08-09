@@ -283,6 +283,10 @@ export const rollDice = mutation({
     let score = me.player.score;
     let hand = mine.hand;
     let landed: string = SQUARE.PLAIN;
+    /* Qué carta entregó la casilla. Va en la respuesta porque el cliente la
+       muestra grande antes de guardarla, y comparando manos no podría
+       distinguir la ganada de una devuelta al quemarse. */
+    let gainedCard: Card | null = null;
 
     if (square === SQUARE.PENALTY) {
       score = applyPenalty(score);
@@ -294,7 +298,10 @@ export const rollDice = mutation({
          con una de más. */
       const ocupadas = hand.length + mine.pendingCards.length;
       // Mano llena: la casilla se pisa igual pero no entrega nada.
-      if (ocupadas < HAND_LIMIT) hand = [...hand, randomBonusCard(rand, Date.now())];
+      if (ocupadas < HAND_LIMIT) {
+        gainedCard = randomBonusCard(rand, Date.now());
+        hand = [...hand, gainedCard];
+      }
     }
 
     await ctx.db.insert("gameEvents", {
@@ -342,7 +349,7 @@ export const rollDice = mutation({
           curseTurns: Math.max(0, mine.curseTurns - 1),
         },
       });
-      return { ...outcome, roll: outcome.dice[0], pos, landed, newTurn: me.other, score };
+      return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, newTurn: me.other, score };
     }
 
     const newCurrent = me.player.current + outcome.gained;
@@ -350,7 +357,7 @@ export const rollDice = mutation({
       [me.key]: { ...base, current: newCurrent },
     });
 
-    return { ...outcome, roll: outcome.dice[0], pos, landed, newCurrent, score };
+    return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, newCurrent, score };
   },
 });
 

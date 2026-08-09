@@ -9,6 +9,7 @@ import { ROSTER, charFromCatId, warmRosterFrames } from "./roster";
 import Preloader from "./components/Preloader";
 import Toasts from "./components/Toasts";
 import RulesModal from "./components/RulesModal";
+import CardGained from "./components/CardGained";
 
 import TitleScreen from "./screens/TitleScreen";
 import MenuScreen from "./screens/MenuScreen";
@@ -23,7 +24,9 @@ import GameOverScreen from "./screens/GameOverScreen";
    en lugar de un cartel. */
 const MENSAJES = {
   penitencia: (e) => [`Penitencia — ${e.nombre} pierde ${e.puntos}`, "error"],
-  bonus: (e) => [`Bonus — carta nueva para ${e.nombre}`],
+  /* Sin aviso cuando la carta se muestra sola: dos anuncios de lo mismo se
+     pisan. El texto queda para el caso en que no hay carta que enseñar. */
+  bonus: (e) => (e.carta ? null : [`Bonus — carta nueva para ${e.nombre}`]),
   bonusLleno: () => ["Bonus, pero la mano está llena"],
   dosDados: () => ["Dos dados en tu próxima tirada"],
   cartaPuesta: (e) => [
@@ -49,6 +52,9 @@ export default function App() {
   const [revelada, setRevelada] = useState(null);
   const [reglasAbiertas, setReglasAbiertas] = useState(false);
   const [esperandoRival, setEsperandoRival] = useState(false);
+  /* La carta que acabás de ganar, mientras dura su entrega. Sólo se llena
+     para el jugador que la recibió: al rival no se le muestra. */
+  const [cartaGanada, setCartaGanada] = useState(null);
 
   const online = modo === "online";
 
@@ -81,8 +87,10 @@ export default function App() {
     if (!juego.events.length) return;
     juego.events.forEach((e) => {
       const armar = MENSAJES[e.tipo];
-      if (armar) notify(...armar(e));
+      const aviso = armar?.(e);
+      if (aviso) notify(...aviso);
       if (e.tipo === "cartaRevelada") setRevelada({ carta: e.carta, bloqueada: e.bloqueada });
+      if (e.tipo === "bonus" && e.carta) setCartaGanada(e.carta);
       if (e.tipo === "ganado") juego.setFinished(true);
     });
     juego.consumeEvents();
@@ -252,6 +260,12 @@ export default function App() {
     try {
       const r = await sala.rollDice(sala.roomId);
       setTirada({ dice: r.dice, isBust: r.isBust, gained: r.gained ?? 0 });
+      /* Llega por la respuesta de la propia tirada y no por el sondeo: así
+         la entrega la ve sólo quien la ganó. Por el sondeo pasa también por
+         la pantalla del rival. */
+      if (r.gainedCard) {
+        setTimeout(() => setCartaGanada(r.gainedCard), 700);
+      }
     } catch (e) {
       juego.setRolling(false);
       notify(errorText(e), "error");
@@ -418,6 +432,7 @@ export default function App() {
         </button>
       )}
 
+      <CardGained carta={cartaGanada} onDone={() => setCartaGanada(null)} />
       <RulesModal abierta={reglasAbiertas} onClose={() => setReglasAbiertas(false)} />
       <Toasts toasts={toasts} onDismiss={dismiss} />
     </>
