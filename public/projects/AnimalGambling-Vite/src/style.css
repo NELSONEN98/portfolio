@@ -1150,9 +1150,13 @@ body {
 }
 
 /* Fuera de turno siguen a la vista —saber qué tenés es parte del juego—
-   pero no se pueden soltar. */
+   pero no se pueden soltar.
+
+   Se apagan con filtro y no con opacity: las cartas se superponen un 42%,
+   así que una translúcida deja ver la de abajo y el abanico entero parece
+   de vidrio. El filtro oscurece sin dejar pasar nada. */
 .hand-fan .card.no-jugable {
-  opacity: 0.5;
+  filter: brightness(0.62) saturate(0.75);
   cursor: default;
 }
 
@@ -1185,9 +1189,9 @@ body {
   .hand-fan .card { transition: none; }
 }
 
-/* En pantallas angostas el abanico se acuesta abajo: al costado le comería
-   la mitad del ancho a la mesa. */
-@media (max-width: 620px) {
+/* Recién cuando el costado le comería ancho a la mesa el abanico se
+   acuesta abajo. Medido: hasta 560px de ancho todavía entra al lado. */
+@media (max-width: 560px) {
   .hand-fan {
     position: static;
     transform: translateY(var(--ui-shift));
@@ -1206,10 +1210,10 @@ body {
 }
 
 .card {
-  /* Un 30% más grandes que antes. En vmin, no en vh: a 5:7 la carta es más
-     alta que ancha, y en una pantalla apaisada un vh generoso le come el
-     alto a la mesa y a los peleadores. */
-  --card-w: clamp(4.7rem, 11vmin, 7.3rem);
+  /* En vmin y no en vh: a 5:7 la carta es más alta que ancha, y en una
+     pantalla apaisada un vh generoso le come el alto a la mesa y a los
+     peleadores. */
+  --card-w: clamp(6.1rem, 14.3vmin, 9.5rem);
   width: var(--card-w);
   aspect-ratio: 5 / 7;
   border: none;
@@ -1283,12 +1287,23 @@ body {
 /* A 5:7 la carta es un 40% más alta que ancha, así que en pantallas de
    poco alto es lo primero que empuja los controles fuera de la vista.
    Acá manda el alto disponible y no el lado menor. */
-@media (max-height: 800px) {
+/* Estos topes existían porque la mano iba abajo y le comía alto a la mesa.
+   Al costado no le saca alto a nada, así que sólo aplican cuando el
+   abanico está acostado —por debajo de 560px— y en la carta de la mesa,
+   que sí vive dentro del fieltro.
+
+   Sin esta condición, cualquier laptop de menos de 800px de alto anulaba
+   el tamaño del abanico y las cartas se veían chicas. */
+@media (max-height: 800px) and (max-width: 560px) {
   .card { --card-w: clamp(3.4rem, 8vh, 5.4rem); }
 }
-@media (max-height: 620px) {
+@media (max-height: 620px) and (max-width: 560px) {
   .card { --card-w: clamp(2.8rem, 6.5vh, 4.2rem); }
-  .hand-fan .card { --card-w: clamp(3rem, 7vh, 4.4rem); }
+}
+
+/* La carta puesta sobre el fieltro sí depende del alto de la mesa. */
+@media (max-height: 700px) {
+  .played-card { width: clamp(2.6rem, 6.5vmin, 4rem); }
 }
 
 /* La carta jugada descansa sobre el fieltro, boca abajo, hasta que el que
