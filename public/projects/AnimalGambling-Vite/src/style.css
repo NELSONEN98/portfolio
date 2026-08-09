@@ -1053,6 +1053,22 @@ body {
   place-items: center;
 }
 
+/* La salida, a cuadros de bandera. Es de donde arrancan las fichas y por
+   donde vuelven a pasar en cada vuelta, así que el recorrido necesita un
+   punto de referencia; sin él, un camino circular no tiene principio.
+
+   El damero sale de un gradiente cónico repetido y no de cuadraditos
+   sueltos: son cuatro celdas y no vale sumar nodos al DOM por eso. */
+.square.meta {
+  background-image: repeating-conic-gradient(#f2f2f2 0% 25%, #111 0% 50%);
+  background-size: 50% 50%;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 0 0.6rem rgba(255, 255, 255, 0.4);
+}
+/* Sobre los cuadros no entra ningún ícono: acá manda la meta. */
+.square.meta svg { display: none; }
+
 /* El ícono ocupa poco más de la mitad de la casilla: lleno se empasta
    contra el borde y deja de leerse como figura. */
 .square svg {
@@ -1622,7 +1638,7 @@ body {
 
 /* La carta puesta sobre el fieltro sí depende del alto de la mesa. */
 @media (max-height: 700px) {
-  .played-card { width: clamp(2.6rem, 6.5vmin, 4rem); }
+  .played-card { width: clamp(3.4rem, 8.5vmin, 5.2rem); }
 }
 
 /* La carta jugada descansa sobre el fieltro, boca abajo, hasta que el que
@@ -1636,7 +1652,9 @@ body {
   top: calc(100% / 8 + clamp(0.9rem, 2.6vmin, 1.8rem));
   right: calc(100% / 9 + clamp(0.9rem, 2.6vmin, 1.8rem));
   bottom: auto;
-  width: clamp(3.2rem, 8vmin, 5rem);
+  /* Un 30% más grandes: sobre el fieltro compiten con el dado y las
+     casillas, y al tamaño anterior no se leían de un vistazo. */
+  width: clamp(4.2rem, 10.4vmin, 6.5rem);
   aspect-ratio: 5 / 7;
   z-index: 5;
   perspective: 700px;
@@ -1709,7 +1727,7 @@ body {
 /* La cara descubierta es la misma carta que estaba en la mano: mismo
    color por efecto y mismo ícono. */
 .pc-front {
-  --card-w: clamp(3.2rem, 8vmin, 5rem);
+  --card-w: clamp(4.2rem, 10.4vmin, 6.5rem);
   transform: rotateY(180deg);
   color: #fff;
   background: var(--c-bronze);

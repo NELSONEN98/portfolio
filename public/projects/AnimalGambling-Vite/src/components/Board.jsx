@@ -99,10 +99,14 @@ export default function Board({ board, players }) {
         const { col, row } = squareCell(i);
         const Icono = SQUARE_ICON[tipo];
         const golpeada = impacto?.pos === i;
+        /* La casilla 0 es de dónde salen las fichas y por dónde vuelven a
+           pasar cada vuelta: se marca como meta para que el recorrido tenga
+           un principio visible. */
+        const esMeta = i === 0;
         return (
           <span
             key={golpeada ? `${i}-${impacto.key}` : i}
-            className={`square ${tipo}${golpeada ? " impacto" : ""}`}
+            className={`square ${tipo}${golpeada ? " impacto" : ""}${esMeta ? " meta" : ""}`}
             style={{ gridColumn: col, gridRow: row }}
           >
             {Icono ? <Icono /> : null}
