@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { ms } from "../theme";
 
 /* Piso en pantalla: un preloader que aparece cien milisegundos y se va
    parece un parpadeo defectuoso, no una presentación. */
-const MINIMO_MS = 3100;
+const MINIMO_MS = ms("pantalla.preloaderMinimo");
 
 export default function Preloader() {
   const [yendose, setYendose] = useState(false);

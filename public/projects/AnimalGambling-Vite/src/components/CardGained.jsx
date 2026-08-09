@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CardFace } from "./Hand";
+import { ms } from "../theme";
 
 /* La carta que entrega una casilla de bonus: aparece grande en el medio,
  * se deja ver, y después baja hasta el abanico.
@@ -12,11 +13,35 @@ import { CardFace } from "./Hand";
  * desde el primer cuadro no habría tiempo de leerla, y saber qué te tocó
  * es el sentido de mostrarla.
  */
-const LECTURA_MS = 900;
-const VIAJE_MS = 520;
+const LECTURA_MS = ms("cartaGanada.lectura");
+const VIAJE_MS = ms("cartaGanada.viaja");
+
+/* Dónde está el mazo respecto al centro de la pantalla, para que la carta
+   salga exactamente de ahí.
+ *
+ * Se mide en vez de calcularse: la mesa se dimensiona con `dvh` y `rem` a
+ * la vez, así que su posición en pantalla no se puede expresar en `vmin`
+ * sin quedar cerca pero mal, y peor, quedar mal de forma distinta en cada
+ * pantalla. Medido, el origen es correcto siempre y sobrevive a cualquier
+ * cambio del tablero.
+ *
+ * Devuelve null si no encuentra el mazo, y en ese caso la animación cae en
+ * los valores de respaldo del CSS: que la carta salga de un lugar
+ * aproximado es mucho mejor que no mostrarla. */
+function medirMazo() {
+  const mazo = document.querySelector(".bonus-deck");
+  if (!mazo) return null;
+  const r = mazo.getBoundingClientRect();
+  if (!r.width) return null;
+  return {
+    x: Math.round(r.left + r.width / 2 - window.innerWidth / 2),
+    y: Math.round(r.top + r.height / 2 - window.innerHeight / 2),
+  };
+}
 
 export default function CardGained({ carta, onDone }) {
   const [fase, setFase] = useState("entra");
+  const [origen, setOrigen] = useState(null);
 
   /* onDone queda en una referencia y fuera de las dependencias.
      Llega como función nueva en cada pintado del padre, y el padre se
@@ -29,6 +54,9 @@ export default function CardGained({ carta, onDone }) {
 
   useEffect(() => {
     if (!carta) return;
+    /* Se mide en cada entrega y no una sola vez: entre una y otra pudo
+       girarse el teléfono o cambiar el tamaño de la ventana. */
+    setOrigen(medirMazo());
     setFase("entra");
 
     const a = setTimeout(() => setFase("viaja"), LECTURA_MS);
@@ -45,7 +73,13 @@ export default function CardGained({ carta, onDone }) {
   if (!carta) return null;
 
   return (
-    <div className={`card-gained ${fase}`} aria-live="polite">
+    <div
+      className={`card-gained ${fase}`}
+      aria-live="polite"
+      style={
+        origen ? { "--mazo-x": `${origen.x}px`, "--mazo-y": `${origen.y}px` } : undefined
+      }
+    >
       <div className={`card ${carta.type}`}>
         <CardFace carta={carta} />
       </div>

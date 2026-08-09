@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CardFace } from "./Hand";
 import { CARD, CARD_LABEL } from "../../convex/rules";
+import { ms } from "../theme";
 
 /* La carta que se revela al plantarse: sale del mazo, se agranda en el
  * medio para que se lea, y vuela hacia el rival.
@@ -13,8 +14,8 @@ import { CARD, CARD_LABEL } from "../../convex/rules";
  * componente: el color del destello depende del tipo de carta y el que
  * sabe dónde está cada peleador es la pantalla.
  */
-const LECTURA_MS = 850;
-const VUELO_MS = 520;
+const LECTURA_MS = ms("cartaLanzada.lectura");
+const VUELO_MS = ms("cartaLanzada.vuela");
 
 export default function CardCast({ carta, bloqueada, haciaArriba, onDone }) {
   const [fase, setFase] = useState("sale");

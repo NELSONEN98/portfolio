@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState } from "react";
+import { DADO, ms } from "../theme";
 
-/* Rotaciones que dejan cada cara mirando al frente. */
-const CARAS = {
-  1: { x: 0, y: 0 },
-  2: { x: 0, y: -90 },
-  3: { x: -90, y: 0 },
-  4: { x: 90, y: 0 },
-  5: { x: 0, y: 90 },
-  6: { x: 0, y: 180 },
-};
+/* Rotaciones que dejan cada cara mirando al frente. Salen del tema porque
+   son números, no CSS: cuando el dado se rehaga en React Native van a
+   servir igual. */
+const CARAS = Object.fromEntries(
+  Object.entries(DADO.rotaciones).map(([n, [x, y]]) => [n, { x, y }])
+);
 
-/* La animación dura 0.7s en el CSS (.dice-3d.rolling). La cara se revela
-   50ms antes de que termine, para que el corte caiga todavía dentro del
-   movimiento. Si cambia una, cambia la otra. */
-export const DICE_ROLL_MS = 650;
+/* La cara se revela un poco antes de que el giro termine, para que el
+   corte caiga todavía dentro del movimiento. Las dos duraciones salen del
+   mismo catálogo, así que la diferencia entre ellas es una decisión y no
+   un descuido. */
+export const DICE_ROLL_MS = ms("dado.esperaTirada");
+const GIRO_MINIMO_MS = ms("dado.giroMinimo");
 
 const PIPS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6 };
 
@@ -44,21 +44,41 @@ function Cubo({ valor, girando, muerto }) {
 /* `tirada` es null cuando no hay nada en el aire. `dobles` decide si se ve
    el segundo dado: se muestra al jugar la carta, no al tirar, porque ver
    aparecer el segundo es la única confirmación de que la carta hizo algo. */
-export default function Dice({ tirada, dobles, onSettle, onRoll, puedeTirar }) {
+export default function Dice({ tirada, esperando, dobles, onSettle, onRoll, puedeTirar }) {
   const [girando, setGirando] = useState(false);
   const [caras, setCaras] = useState([6]);
   const settle = useRef(onSettle);
   settle.current = onSettle;
 
+  /* Cuándo empezó a girar. En online el dado arranca al apretar y el
+     resultado llega después, así que el giro que ya ocurrió durante la
+     espera cuenta: sin descontarlo, el jugador pagaba la latencia de la red
+     Y ADEMÁS los 650ms enteros de animación. */
+  const desde = useRef(0);
+
+  /* Gira desde el toque, sin esperar al servidor. Antes el dado no se movía
+     hasta que llegaba la respuesta, y ese hueco sin nada en pantalla es lo
+     que se sentía como que el juego iba lento. */
+  useEffect(() => {
+    if (!esperando) return;
+    desde.current = Date.now();
+    setGirando(true);
+  }, [esperando]);
+
   useEffect(() => {
     if (!tirada) return;
     setGirando(true);
+    if (!desde.current) desde.current = Date.now();
+
+    const yaGiro = Date.now() - desde.current;
+    const resta = Math.max(GIRO_MINIMO_MS, DICE_ROLL_MS - yaGiro);
 
     const t = setTimeout(() => {
       setGirando(false);
+      desde.current = 0;
       setCaras(tirada.dice);
       settle.current?.(tirada);
-    }, DICE_ROLL_MS);
+    }, resta);
 
     return () => clearTimeout(t);
   }, [tirada]);
