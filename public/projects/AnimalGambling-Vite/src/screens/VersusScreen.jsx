@@ -24,6 +24,7 @@ export default function VersusScreen({
   revelada,
   online,
   miLado = 0,
+  impacto,
   onRoll,
   onHold,
   onPlayCard,
@@ -49,6 +50,7 @@ export default function VersusScreen({
           activo={playing && i === active}
           /* Sólo la del rival: la propia ya está en el abanico de abajo. */
           mostrarMano={online && i !== miLado}
+          impacto={impacto?.lado === i ? impacto.tipo : null}
         />
       ))}
 

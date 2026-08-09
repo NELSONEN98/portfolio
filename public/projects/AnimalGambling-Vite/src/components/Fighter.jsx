@@ -8,7 +8,7 @@ import RivalHand from "./RivalHand";
  * el que espera, morado el maldito. Con el color atado a la posición, en
  * online te cambiaba según hubieras creado la sala o entrado.
  */
-export default function Fighter({ jugador, lado, activo, ganador, perdedor, mostrarMano }) {
+export default function Fighter({ jugador, lado, activo, ganador, perdedor, mostrarMano, impacto }) {
   const score = useAnimatedNumber(jugador?.score ?? 0);
   const current = useAnimatedNumber(jugador?.current ?? 0);
 
@@ -23,6 +23,9 @@ export default function Fighter({ jugador, lado, activo, ganador, perdedor, most
     maldito ? "cursed" : "",
     ganador ? "winner" : "",
     perdedor ? "loser" : "",
+    /* Lo que le acaba de llegar: tiñe el marco y el puntaje del color de
+       la carta que lo golpeó, mientras dura el destello. */
+    impacto ? `impacto-${impacto}` : "",
   ]
     .filter(Boolean)
     .join(" ");

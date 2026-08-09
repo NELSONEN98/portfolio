@@ -1285,6 +1285,129 @@ body {
   .hand-fan.abierto .card { transform: rotate(var(--giro, 0deg)); margin-top: calc(var(--card-w) * 1.4 * var(--solape, 0.42) * -1); }
 }
 
+/* ---- la carta que se lanza ----
+   Sale del mazo, se agranda para que se lea, y vuela hacia el rival. La
+   bloqueada no viaja: se desvanece donde está, y ese corte es la
+   información — salió y no llegó a ninguna parte. */
+.card-cast {
+  position: fixed;
+  inset: 0;
+  z-index: 320;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.card-cast .card {
+  --card-w: clamp(10rem, 30vmin, 16rem);
+  cursor: default;
+  box-shadow: 0 0 0 3px #fff, 0 2rem 4rem rgba(0, 0, 0, 0.8);
+}
+
+.card-cast.sale .card {
+  animation: carta-sale 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.35);
+}
+
+/* Vuela hacia donde está el rival: el signo de --vuelo-y lo pone la
+   pantalla, que es la que sabe si le tocó arriba o abajo. */
+.card-cast.vuela .card {
+  animation: carta-vuela 0.52s cubic-bezier(0.5, 0, 0.8, 0.4) forwards;
+}
+.card-cast.bloqueada .card {
+  animation: carta-frenada 0.52s ease-out forwards;
+}
+
+.card-cast-label {
+  position: absolute;
+  top: calc(50% + clamp(7rem, 20vmin, 11rem));
+  font-family: var(--display);
+  font-size: clamp(0.9rem, 2.4vmin, 1.3rem);
+  letter-spacing: 0.16em;
+  color: #fff;
+  text-shadow: 0 0 1.4rem rgba(0, 0, 0, 0.9);
+}
+.card-cast.bloqueada .card-cast-label { color: var(--c-green); }
+.card-cast.vuela .card-cast-label,
+.card-cast.bloqueada .card-cast-label {
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+@keyframes carta-sale {
+  from { opacity: 0; transform: translateY(28vh) scale(0.25) rotate(-10deg); }
+  to   { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+}
+@keyframes carta-vuela {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(var(--vuelo-y, -36vh)) scale(0.3); }
+}
+/* Frenada en seco y desvanecida: no avanza ni un pixel hacia el rival. */
+@keyframes carta-frenada {
+  0%   { opacity: 1; transform: scale(1) rotate(0deg); }
+  25%  { transform: scale(1.06) rotate(-3deg); }
+  100% { opacity: 0; transform: scale(0.86) rotate(4deg); }
+}
+
+/* ---- el golpe en el rival ----
+   El marco y el puntaje toman el color de la carta que llegó. Sale de
+   --side, la misma variable de la que ya salen los dos, así que no pueden
+   quedar de colores distintos. */
+.fighter.impacto-robo {
+  --side: var(--c-red);
+  --side-glow: rgba(199, 0, 0, 0.75);
+}
+.fighter.impacto-maldicion {
+  --side: var(--c-purple);
+  --side-glow: rgba(91, 45, 142, 0.75);
+}
+
+.fighter.impacto-robo .fighter-frame,
+.fighter.impacto-maldicion .fighter-frame {
+  animation: golpe-marco 0.9s ease-out;
+}
+
+/* El papel donde vive el dibujo se tiñe del color del golpe. Es la
+   superficie más grande del peleador, así que es lo que hace que el golpe
+   se vea desde el otro lado de la pantalla y no haya que mirar el marco.
+   Pisa al color del gato mientras dura, y vuelve solo. */
+.fighter.impacto-robo .fighter-art,
+.fighter.impacto-maldicion .fighter-art {
+  animation: golpe-fondo 0.9s ease-out;
+}
+
+@keyframes golpe-fondo {
+  0%   { background-color: var(--side); filter: brightness(1.5); }
+  35%  { background-color: var(--side); filter: brightness(1.15); }
+  100% { filter: brightness(1); }
+}
+.fighter.impacto-robo .f-score,
+.fighter.impacto-maldicion .f-score {
+  animation: golpe-numero 0.9s ease-out;
+}
+
+@keyframes golpe-marco {
+  0%   { box-shadow: 0 0 0 0.3rem var(--side), 0 0 0 var(--side-glow); }
+  20%  { box-shadow: 0 0 0 0.5rem var(--side), 0 0 5rem var(--side-glow); transform: translateX(-0.5rem); }
+  40%  { transform: translateX(0.4rem); }
+  60%  { transform: translateX(-0.25rem); }
+  100% { box-shadow: 0 0 0 0.3rem var(--side), 0 0 2rem var(--side-glow); transform: translateX(0); }
+}
+@keyframes golpe-numero {
+  0%   { text-shadow: 0 0 0 var(--side-glow); transform: scale(1); }
+  20%  { text-shadow: 0 0 3rem var(--side-glow); transform: scale(1.18); }
+  100% { text-shadow: 0 0 1.6rem var(--side-glow); transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-cast .card,
+  .fighter.impacto-robo .fighter-frame,
+  .fighter.impacto-maldicion .fighter-frame,
+  .fighter.impacto-robo .f-score,
+  .fighter.impacto-maldicion .f-score { animation: none; }
+  .card-cast.vuela .card,
+  .card-cast.bloqueada .card { opacity: 0; }
+}
+
 /* ---- la carta que entrega el bonus ----
    Aparece grande en el medio, se deja leer, y baja hasta el abanico. El
    destino es la esquina inferior izquierda porque es donde vive la mano;

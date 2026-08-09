@@ -10,6 +10,7 @@ import Preloader from "./components/Preloader";
 import Toasts from "./components/Toasts";
 import RulesModal from "./components/RulesModal";
 import CardGained from "./components/CardGained";
+import CardCast, { COLOR_IMPACTO } from "./components/CardCast";
 
 import TitleScreen from "./screens/TitleScreen";
 import MenuScreen from "./screens/MenuScreen";
@@ -55,6 +56,11 @@ export default function App() {
   /* La carta que acabás de ganar, mientras dura su entrega. Sólo se llena
      para el jugador que la recibió: al rival no se le muestra. */
   const [cartaGanada, setCartaGanada] = useState(null);
+  /* La carta que está viajando hacia el rival, y el golpe que deja al
+     llegar. Van separados porque el destello arranca cuando la carta
+     aterriza, no cuando sale. */
+  const [lanzada, setLanzada] = useState(null);
+  const [impacto, setImpacto] = useState(null);
 
   const online = modo === "online";
 
@@ -89,7 +95,10 @@ export default function App() {
       const armar = MENSAJES[e.tipo];
       const aviso = armar?.(e);
       if (aviso) notify(...aviso);
-      if (e.tipo === "cartaRevelada") setRevelada({ carta: e.carta, bloqueada: e.bloqueada });
+      if (e.tipo === "cartaRevelada") {
+        setRevelada({ carta: e.carta, bloqueada: e.bloqueada });
+        setLanzada({ carta: e.carta, bloqueada: e.bloqueada, key: Math.random() });
+      }
       if (e.tipo === "bonus" && e.carta) setCartaGanada(e.carta);
       if (e.tipo === "ganado") juego.setFinished(true);
     });
@@ -163,10 +172,11 @@ export default function App() {
     if (ev.action === "hold" || ev.action === "hold_and_win") {
       (ev.payload?.resolved ?? []).forEach((r, i) => {
         // De a una y con pausa: juntas no se sabría cuál hizo qué.
-        setTimeout(
-          () => setRevelada({ carta: { type: r.type, value: r.value }, bloqueada: r.blocked }),
-          i * 900
-        );
+        const carta = { type: r.type, value: r.value };
+        setTimeout(() => {
+          setRevelada({ carta, bloqueada: r.blocked });
+          setLanzada({ carta, bloqueada: r.blocked, key: Math.random() });
+        }, i * 1500);
       });
     }
   }, [sala]);
@@ -296,10 +306,11 @@ export default function App() {
     try {
       const r = await sala.holdScore(sala.roomId);
       (r.resolved ?? []).forEach((x, i) => {
-        setTimeout(
-          () => setRevelada({ carta: { type: x.type, value: x.value }, bloqueada: x.blocked }),
-          i * 900
-        );
+        const carta = { type: x.type, value: x.value };
+        setTimeout(() => {
+          setRevelada({ carta, bloqueada: x.blocked });
+          setLanzada({ carta, bloqueada: x.blocked, key: Math.random() });
+        }, i * 1500);
       });
     } catch (e) {
       notify(errorText(e), "error");
@@ -330,6 +341,25 @@ export default function App() {
     if (online) sala.salir();
     go("menu");
   };
+
+  /* A quién le llega: en online siempre al otro lado del que mira; en
+     local, al que no está jugando el turno. */
+  const ladoRival = online ? (juego.miLado === 0 ? 1 : 0) : juego.active === 0 ? 1 : 0;
+
+  /* En online el rival siempre está arriba: vos te ves siempre abajo, y
+     para eso están las posiciones que se dan vuelta.
+     En local no hay flip, así que cada uno está donde manda su lado: el
+     primero arriba, el segundo abajo. */
+  const rivalArriba = online ? true : ladoRival === 0;
+
+  const alAterrizar = useCallback(() => {
+    const tipo = lanzada && !lanzada.bloqueada ? COLOR_IMPACTO[lanzada.carta.type] : null;
+    setLanzada(null);
+    if (!tipo) return;
+    /* El golpe arranca cuando la carta llega, no cuando sale. */
+    setImpacto({ lado: ladoRival, tipo, key: Math.random() });
+    setTimeout(() => setImpacto(null), 950);
+  }, [lanzada, ladoRival]);
 
   const yo = online ? juego.players[juego.miLado] : juego.players[juego.active];
   /* En online el ganador lo declara el backend: deducirlo por puntaje se
@@ -399,6 +429,7 @@ export default function App() {
             revelada={revelada}
             online={online}
             miLado={juego.miLado}
+            impacto={impacto}
             onRoll={tirar}
             onHold={plantarse}
             onPlayCard={jugarCarta}
@@ -432,6 +463,13 @@ export default function App() {
         </button>
       )}
 
+      <CardCast
+        key={lanzada?.key}
+        carta={lanzada?.carta}
+        bloqueada={lanzada?.bloqueada}
+        haciaArriba={rivalArriba}
+        onDone={alAterrizar}
+      />
       <CardGained carta={cartaGanada} onDone={() => setCartaGanada(null)} />
       <RulesModal abierta={reglasAbiertas} onClose={() => setReglasAbiertas(false)} />
       <Toasts toasts={toasts} onDismiss={dismiss} />
