@@ -123,7 +123,7 @@ body {
   height: 40rem;
   background: radial-gradient(circle, rgba(232, 225, 204, 0.4), transparent 60%);
   filter: blur(40px);
-  animation: drift 18s infinite linear;
+  animation: drift var(--dur-ambiente-humo) var(--ease-ambiente-humo) infinite;
 }
 .smoke-wisp:nth-child(1) { top: -10%; left: 10%; animation-delay: 0s; }
 .smoke-wisp:nth-child(2) { top: 30%; right: 5%; animation-delay: -6s; animation-duration: 22s; }
@@ -602,19 +602,19 @@ body {
    between frames: it snaps, which is the whole point of a boil. */
 .boil[data-cat="cat1"] {
   background-image: url("cat1/frame0000.webp");
-  animation: cat1-boil 0.5s step-end infinite;
+  animation: cat1-boil var(--dur-peleador-boil-cat1) var(--ease-peleador-boil-cat1) infinite;
 }
 .boil[data-cat="cat2"] {
   background-image: url("cat2/frame0000.webp");
-  animation: cat2-boil 0.5s step-end infinite;
+  animation: cat2-boil var(--dur-peleador-boil-cat2) var(--ease-peleador-boil-cat2) infinite;
 }
 .boil[data-cat="cat3"] {
   background-image: url("cat3/frame0000.webp");
-  animation: cat3-boil 0.56s step-end infinite;
+  animation: cat3-boil var(--dur-peleador-boil-cat3) var(--ease-peleador-boil-cat3) infinite;
 }
 .boil[data-cat="cat4"] {
   background-image: url("cat4/frame0000.webp");
-  animation: cat4-boil 0.56s step-end infinite;
+  animation: cat4-boil var(--dur-peleador-boil-cat4) var(--ease-peleador-boil-cat4) infinite;
 }
 
 /* Negative delay, not positive: it starts immediately, just out of phase,
@@ -678,6 +678,26 @@ body {
   --side: #fff;
   --side-glow: rgba(255, 255, 255, 0.3);
 }
+
+/* El que espera se ve en blanco y negro: el dibujo, su fondo, el marco y
+   los dos números, porque el filtro cae sobre el peleador entero y no hay
+   que ir apagando color por color. Con los dos a color había que buscar el
+   resaltado dorado para saber de quién era el turno; sin color, el turno se
+   lee sin buscar nada.
+
+   El filtro se levanta mientras dura un impacto, y esa excepción es el
+   punto: el golpe le llega justamente al que NO está jugando, y el color
+   del destello —rojo si le robaron, morado si lo maldijeron— es toda la
+   información que ese destello lleva. En gris serían el mismo parpadeo. */
+.fighter:not(.active):not(.impacto-robo):not(.impacto-maldicion) {
+  filter: grayscale(1);
+}
+/* Acompaña al cambio de turno en vez de cortar de golpe. */
+.fighter { transition: filter 0.3s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fighter { transition: none; }
+}
 .fighter.active {
   --side: var(--c-gold);
   --side-glow: rgba(228, 167, 0, 0.45);
@@ -706,7 +726,7 @@ body {
    más. Los keyframes usan la misma variable en vez de repetir el morado:
    si mañana cambia, cambia en un solo lugar. */
 .fighter.cursed .fighter-frame {
-  animation: cursed-pulse 2.2s ease-in-out infinite;
+  animation: cursed-pulse var(--dur-peleador-maldito) var(--ease-peleador-maldito) infinite;
 }
 @keyframes cursed-pulse {
   0%, 100% {
@@ -726,7 +746,7 @@ body {
 /* El puntaje late con el marco: es la misma condición y conviene que se
    lean como una sola cosa. */
 .fighter.cursed .f-score {
-  animation: cursed-score 2.2s ease-in-out infinite;
+  animation: cursed-score var(--dur-peleador-maldito-puntaje) var(--ease-peleador-maldito-puntaje) infinite;
 }
 @keyframes cursed-score {
   0%, 100% { text-shadow: 0 0 1.2rem rgba(91, 45, 142, 0.6); }
@@ -748,7 +768,7 @@ body {
     0 1.6rem 2.8rem rgba(0, 0, 0, 0.55);
 }
 .fighter.winner .fighter-frame {
-  animation: winner-pulse 1.2s infinite;
+  animation: winner-pulse var(--dur-peleador-ganador) infinite;
 }
 /* Late en el color del que ganó, no siempre en ámbar. */
 @keyframes winner-pulse {
@@ -819,7 +839,7 @@ body {
   transform-origin: center;
 }
 .bump {
-  animation: num-bump 0.38s ease-out;
+  animation: num-bump var(--dur-numero-sube) var(--ease-numero-sube);
 }
 
 /* El golpe va a la izquierda del marcador, fuera del flujo: si ocupara
@@ -848,7 +868,7 @@ body {
 }
 
 .f-hit.show {
-  animation: hit-float 1.5s ease-out;
+  animation: hit-float var(--dur-numero-perdido) var(--ease-numero-perdido);
 }
 
 /* Sube y se desvanece: el movimiento hacia arriba lo despega del número
@@ -877,7 +897,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .f-hit.show { animation: hit-float 1.5s steps(1, end); }
+  .f-hit.show { animation: hit-float var(--dur-numero-perdido) steps(1, end); }
 }
 
 /* Mientras el número baja va en rojo: penitencia y robo se distinguen de
@@ -888,7 +908,7 @@ body {
   text-shadow: 0 0 1.6rem rgba(199, 0, 0, 0.75) !important;
 }
 .f-score.down {
-  animation: num-drop 0.38s ease-out;
+  animation: num-drop var(--dur-numero-baja) var(--ease-numero-baja);
 }
 @keyframes num-drop {
   0%   { transform: translateY(0) scale(1); }
@@ -1097,7 +1117,7 @@ body {
    El color lo pone el tipo de casilla, así que el mismo movimiento se lee
    como castigo o como premio sin cambiar la animación. */
 .square.impacto {
-  animation: casilla-golpe 0.9s ease-out;
+  animation: casilla-golpe var(--dur-tablero-casilla-golpe) var(--ease-tablero-casilla-golpe);
   z-index: 5;
 }
 @keyframes casilla-golpe {
@@ -1117,7 +1137,7 @@ body {
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 4;
-  animation: onda 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  animation: onda var(--dur-tablero-onda) var(--ease-tablero-onda) forwards;
 }
 .impacto-onda.penalty { box-shadow: 0 0 0 2px var(--c-red); }
 .impacto-onda.bonus { box-shadow: 0 0 0 2px var(--c-blue); }
@@ -1130,7 +1150,7 @@ body {
 /* La ficha rebota al frenar. Va aparte del impacto porque pasa siempre,
    caiga donde caiga: es el acuse de que el movimiento terminó. */
 .token.aterriza {
-  animation: ficha-aterriza 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+  animation: ficha-aterriza var(--dur-tablero-aterriza) var(--ease-tablero-aterriza);
 }
 @keyframes ficha-aterriza {
   0%   { transform: translate(-50%, -50%) scale(1); }
@@ -1153,8 +1173,14 @@ body {
   border-radius: 50%;
   transform: translate(-50%, -50%);
   z-index: 4;
-  transition: left 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-              top 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Este tiempo NO es decorativo: es el paso de una casilla a la vecina, y
+     Board.jsx encadena tantos como haya que caminar antes de disparar el
+     rebote. Lo escribe él en `--paso`, porque en recorridos largos los
+     pasos se acortan para no pasarse del techo de viaje; el valor del
+     catálogo queda de respaldo por si el estilo se aplica antes de que
+     haya un recorrido en curso. */
+  transition: left var(--paso, var(--dur-tablero-paso-ficha)) var(--ease-tablero-paso-ficha),
+              top var(--paso, var(--dur-tablero-paso-ficha)) var(--ease-tablero-paso-ficha);
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.7), 0 0 0.8rem rgba(0, 0, 0, 0.6);
 }
 .token.p1 { background: var(--c-gold); }
@@ -1162,9 +1188,16 @@ body {
 
 /* Cuando los dos caen en la misma casilla se separan un poco para que no
    quede una sola ficha a la vista. Escala con la ficha: fijo en rem, dos
-   fichas grandes seguían tapándose. */
-.token.p1 { margin-left: clamp(-0.85rem, -1.4vmin, -0.45rem); }
-.token.p2 { margin-left: clamp(0.45rem, 1.4vmin, 0.85rem); }
+   fichas grandes seguían tapándose.
+
+   Va condicionado a `.juntas` —lo pone Board.jsx cuando las posiciones
+   coinciden— y no suelto en `.p1`/`.p2`: aplicado siempre, cada ficha
+   quedaba corrida del centro de su casilla aunque estuviera sola en ella.
+   El desplazamiento también se achicó: separadas más de medio ancho de
+   ficha parecían estar en casillas distintas, que es justo lo contrario de
+   lo que este ajuste quiere decir. */
+.token.juntas.p1 { margin-left: clamp(-0.6rem, -1vmin, -0.35rem); }
+.token.juntas.p2 { margin-left: clamp(0.35rem, 1vmin, 0.6rem); }
 
 @media (prefers-reduced-motion: reduce) {
   .token { transition: none; }
@@ -1212,6 +1245,36 @@ body {
   transition: transform 0.18s, box-shadow 0.18s, margin 0.18s;
 }
 
+/* ---- arrastrar la carta hacia la mesa ----
+   La carta sigue al dedo. Se endereza y crece un poco al despegarse: deja
+   de ser una del montón y pasa a ser la que estás sacando.
+
+   Sin transición mientras dura el gesto, y eso es lo que hace que se sienta
+   agarrada: con los 0.18s de arriba la carta iba siempre un instante atrás
+   del dedo, y ese retraso se lee como que no responde. Al soltar vuelve la
+   transición y la carta regresa sola a su lugar en el abanico. */
+.hand-fan .card.arrastrando {
+  transform: translate(var(--drag-x, 0), var(--drag-y, 0)) rotate(0deg) scale(1.06);
+  transition: none;
+  cursor: grabbing;
+  box-shadow: 0 0 0 2px #fff, 0 1rem 2rem rgba(0, 0, 0, 0.7);
+}
+
+/* Ya se alejó lo suficiente: soltando acá, se juega. Avisarlo antes de que
+   levante el dedo es lo que evita que el gesto sea una apuesta —se ve si va
+   a funcionar mientras todavía se puede volver atrás—. */
+.hand-fan .card.arrastrando.listo {
+  box-shadow: 0 0 0 3px var(--c-gold), 0 0 1.6rem rgba(228, 167, 0, 0.7),
+    0 1rem 2rem rgba(0, 0, 0, 0.7);
+}
+
+/* Con el gesto activo el navegador no debe interpretar el movimiento como
+   desplazamiento de la página; sin esto, en el teléfono el arrastre pelea
+   contra el scroll y la carta se traba. */
+.hand-fan .card:not(.no-jugable) {
+  touch-action: none;
+}
+
 /* La de arriba se despega al pasarle por encima, para poder leerla sin
    sacarla del abanico. */
 .hand-fan .card:hover:not(.no-jugable) {
@@ -1243,8 +1306,30 @@ body {
 /* Cuelga de .fighter, que ya es contexto de posicionamiento por su
    transform. Cada lado la lleva del borde de afuera, para no meterse entre
    el dibujo y el marcador. */
+/* La mano va del lado del marcador, no del dibujo: el marcador es lo que
+   mirás para saber cómo viene el rival, y las cartas que le quedan son
+   parte de esa misma lectura. De qué lado cae el marcador lo decide el
+   `flex-direction` del peleador — `row` lo manda a la derecha,
+   `row-reverse` a la izquierda — así que estas cuatro reglas siguen a
+   aquellas. Antes las dos manos iban a la derecha, y en el lado 2, que va
+   invertido, quedaba en la punta opuesta al marcador. */
 .rival-hand.lado-1 { top: -0.6rem; right: 0; }
-.rival-hand.lado-2 { bottom: -0.6rem; right: 0; }
+.rival-hand.lado-2 { bottom: -0.6rem; left: 0; }
+
+/* Con el flip los dos peleadores intercambian posición y orientación, así
+   que la mano tiene que acompañar en los dos ejes. */
+.versus-screen.flip .rival-hand.lado-1 {
+  top: auto;
+  bottom: -0.6rem;
+  right: auto;
+  left: 0;
+}
+.versus-screen.flip .rival-hand.lado-2 {
+  bottom: auto;
+  top: -0.6rem;
+  left: auto;
+  right: 0;
+}
 
 .rival-card {
   width: clamp(1.5rem, 3.4vmin, 2.3rem);
@@ -1276,7 +1361,7 @@ body {
 }
 
 .card.recien-llegada {
-  animation: carta-llega 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  animation: carta-llega var(--dur-carta-mano-llega) var(--ease-carta-mano-llega);
 }
 @keyframes carta-llega {
   from { opacity: 0; transform: rotate(var(--giro, 0deg)) translateY(6rem) scale(0.7); }
@@ -1287,7 +1372,7 @@ body {
    Sale hacia arriba antes de desaparecer de la mano. Si se jugara de una,
    el movimiento no se vería nunca. */
 .card.lanzada {
-  animation: carta-lanzada 0.26s ease-in forwards;
+  animation: carta-lanzada var(--dur-carta-mano-lanzada) var(--ease-carta-mano-lanzada) forwards;
   pointer-events: none;
 }
 @keyframes carta-lanzada {
@@ -1321,16 +1406,16 @@ body {
 }
 
 .card-cast.sale .card {
-  animation: carta-sale 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.35);
+  animation: carta-sale var(--dur-carta-lanzada-sale) var(--ease-carta-lanzada-sale);
 }
 
 /* Vuela hacia donde está el rival: el signo de --vuelo-y lo pone la
    pantalla, que es la que sabe si le tocó arriba o abajo. */
 .card-cast.vuela .card {
-  animation: carta-vuela 0.52s cubic-bezier(0.5, 0, 0.8, 0.4) forwards;
+  animation: carta-vuela var(--dur-carta-lanzada-vuela) var(--ease-carta-lanzada-vuela) forwards;
 }
 .card-cast.bloqueada .card {
-  animation: carta-frenada 0.52s ease-out forwards;
+  animation: carta-frenada var(--dur-carta-lanzada-frenada) var(--ease-carta-lanzada-frenada) forwards;
 }
 
 .card-cast-label {
@@ -1364,6 +1449,48 @@ body {
   100% { opacity: 0; transform: scale(0.86) rotate(4deg); }
 }
 
+/* ---- lo que costó caer en rojo ----
+   El −N sale de la casilla misma y sube. El marcador ya muestra su propio
+   −N, pero está en el borde de la pantalla: sin este, hay que atar dos
+   cosas que pasan a la vez en puntas opuestas para entender que una causó
+   la otra.
+
+   Va por encima de las fichas para que no lo tape la que acaba de caer,
+   que es justo la que está parada ahí. */
+.casilla-hit {
+  position: absolute;
+  z-index: 7;
+  font-family: var(--display);
+  /* Más chico que el del marcador: acá compite con las casillas, y a la
+     medida de aquel tapaba media fila del tablero. */
+  font-size: clamp(1rem, 2.8vmin, 1.8rem);
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--c-red);
+  /* El contorno negro es lo que lo despega del fieltro y del rojo de la
+     propia casilla, que si no se comen la cifra. */
+  text-shadow: 0 0 0.7rem rgba(199, 0, 0, 0.95), 0 0 0 2px #000, 0 2px 3px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  animation: casilla-hit-float var(--dur-tablero-penitencia-numero)
+    var(--ease-tablero-penitencia-numero) forwards;
+}
+
+/* El translate va dentro del keyframe y no en una regla aparte: declarado
+   afuera, la animación lo pisaría y el número saldría corrido media
+   casilla. */
+@keyframes casilla-hit-float {
+  0%   { opacity: 0; transform: translate(-50%, -30%) scale(0.6); }
+  18%  { opacity: 1; transform: translate(-50%, -95%) scale(1.15); }
+  60%  { opacity: 1; transform: translate(-50%, -145%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -235%) scale(0.9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .casilla-hit {
+    animation: casilla-hit-float var(--dur-tablero-penitencia-numero) steps(1, end) forwards;
+  }
+}
+
 /* ---- el golpe en el rival ----
    El marco y el puntaje toman el color de la carta que llegó. Sale de
    --side, la misma variable de la que ya salen los dos, así que no pueden
@@ -1379,7 +1506,7 @@ body {
 
 .fighter.impacto-robo .fighter-frame,
 .fighter.impacto-maldicion .fighter-frame {
-  animation: golpe-marco 0.9s ease-out;
+  animation: golpe-marco var(--dur-peleador-golpe-marco) var(--ease-peleador-golpe-marco);
 }
 
 /* El papel donde vive el dibujo se tiñe del color del golpe. Es la
@@ -1388,7 +1515,7 @@ body {
    Pisa al color del gato mientras dura, y vuelve solo. */
 .fighter.impacto-robo .fighter-art,
 .fighter.impacto-maldicion .fighter-art {
-  animation: golpe-fondo 0.9s ease-out;
+  animation: golpe-fondo var(--dur-peleador-golpe-fondo) var(--ease-peleador-golpe-fondo);
 }
 
 @keyframes golpe-fondo {
@@ -1398,7 +1525,7 @@ body {
 }
 .fighter.impacto-robo .f-score,
 .fighter.impacto-maldicion .f-score {
-  animation: golpe-numero 0.9s ease-out;
+  animation: golpe-numero var(--dur-peleador-golpe-numero) var(--ease-peleador-golpe-numero);
 }
 
 @keyframes golpe-marco {
@@ -1428,6 +1555,103 @@ body {
    Aparece grande en el medio, se deja leer, y baja hasta el abanico. El
    destino es la esquina inferior izquierda porque es donde vive la mano;
    si el abanico se mudara, este es el punto a corregir. */
+/* ---- el mazo de bonus ----
+   Cuelga a la izquierda de la arena del dado. Va absoluto y no dentro del
+   flujo en columna: el dado tiene que seguir centrado en la mesa, y meter
+   el mazo como hermano lo correría hacia la derecha. */
+/* En la esquina de abajo a la izquierda del fieltro, en espejo de las
+   cartas jugadas que van arriba a la derecha: los dos montones quedan fuera
+   del camino de las fichas y lejos del dado del centro. Se apoya sobre el
+   borde interior del tablero con el mismo margen que aquéllas. */
+.bonus-deck {
+  position: absolute;
+  left: calc(100% / 9 + clamp(0.9rem, 2.6vmin, 1.8rem));
+  bottom: calc(100% / 8 + clamp(0.9rem, 2.6vmin, 1.8rem));
+  width: var(--carta-mesa-w);
+  aspect-ratio: 5 / 7;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.bonus-deck-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.4rem;
+  /* Cada una asoma un poco por detrás de la de arriba. */
+  transform: translate(calc(var(--i) * 0.16rem), calc(var(--i) * -0.16rem));
+
+  /* Textura de reverso de naipe: dos enrejados diagonales cruzados sobre el
+     fondo azul del bonus. Van en gradientes y no en una imagen porque a
+     este tamaño una textura fotográfica se convierte en ruido, y además
+     escala sola con la carta en vez de pixelarse. */
+  background-color: var(--c-blue);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 6px),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.12) 0%, transparent 45%, rgba(0, 0, 0, 0.4) 100%);
+
+  /* El aro blanco de afuera es el canto de la carta; el de adentro, el
+     marco impreso que llevan los reversos de verdad. */
+  box-shadow:
+    0 0 0 2px #fff,
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    inset 0 0 0 4px rgba(4, 23, 68, 0.9),
+    0 0.3rem 0.6rem rgba(0, 0, 0, 0.55);
+
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.92);
+}
+/* La cartita blanca con el signo de pregunta azul, dentro de la carta azul
+   del mazo. Los dos colores son los mismos del bonus, invertidos: una
+   carta dentro de otra, que es justo lo que el mazo tiene. */
+.bonus-deck-mark {
+  width: 54%;
+  aspect-ratio: 5 / 7;
+  border-radius: 0.22rem;
+  background: #fff;
+  /* Una sombra corta la despega del fondo azul; sin ella, sobre el enrejado
+     del reverso la cartita se lee como un recorte plano. */
+  box-shadow: 0 0.12rem 0.35rem rgba(0, 0, 0, 0.45);
+
+  display: grid;
+  place-items: center;
+
+  font-family: var(--display);
+  /* Relativo al ancho de la carta, no fijo: el mazo se achica en pantallas
+     bajas y el signo tiene que achicarse con él. */
+  font-size: calc(var(--carta-mesa-w) * 0.3);
+  line-height: 1;
+  color: var(--c-blue);
+}
+
+/* Al entregar, el mazo acusa el golpe: sin esto la carta parece salir de un
+   objeto decorativo en vez de de este mazo. */
+.bonus-deck.entregando {
+  animation: mazo-entrega var(--dur-carta-ganada-entra) var(--ease-carta-ganada-entra);
+}
+@keyframes mazo-entrega {
+  0%   { transform: translateY(0) scale(1); }
+  35%  { transform: translateY(-8%) scale(1.1); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bonus-deck.entregando { animation: none; }
+}
+
+/* Desde dónde sale la carta ganada. Los valores reales los escribe
+   CardGained como estilo en línea, midiendo el mazo: la mesa se dimensiona
+   con `dvh` y `rem` a la vez, así que su lugar en pantalla no se puede
+   expresar acá sin errarle distinto en cada pantalla.
+   Estos quedan de respaldo por si el mazo no está en el DOM —esquina de
+   abajo a la izquierda, aproximada—: que la carta salga de un lugar
+   cercano es mucho mejor que no salir de ninguna parte. */
+.card-gained {
+  --mazo-x: -20vmin;
+  --mazo-y: 14vmin;
+}
+
 .card-gained {
   position: fixed;
   inset: 0;
@@ -1444,13 +1668,13 @@ body {
 }
 
 .card-gained.entra .card {
-  animation: carta-ganada-entra 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.35);
+  animation: carta-ganada-entra var(--dur-carta-ganada-entra) var(--ease-carta-ganada-entra);
 }
 
 /* El viaje sale del centro hacia la mano y se achica en el camino: es lo
    que ata la carta que se vio con el mazo donde queda. */
 .card-gained.viaja .card {
-  animation: carta-ganada-viaja 0.52s cubic-bezier(0.5, 0, 0.75, 0.4) forwards;
+  animation: carta-ganada-viaja var(--dur-carta-ganada-viaja) var(--ease-carta-ganada-viaja) forwards;
 }
 
 .card-gained-label {
@@ -1461,16 +1685,25 @@ body {
   letter-spacing: 0.14em;
   color: var(--c-gold);
   text-shadow: 0 0 1.4rem rgba(228, 167, 0, 0.7);
-  animation: carta-ganada-entra 0.42s ease-out;
+  animation: carta-ganada-entra var(--dur-carta-ganada-entra) ease-out;
 }
 .card-gained.viaja .card-gained-label {
   opacity: 0;
   transition: opacity 0.2s;
 }
 
+/* Sale del mazo que está a la izquierda del dado y crece hacia el centro.
+   Antes nacía en el medio de la pantalla, del aire: se veía aparecer una
+   carta sin saber de dónde. El origen va en vmin porque el mazo cuelga de
+   la arena del dado, que está centrada en la mesa, y vmin sigue esa
+   proporción en cualquier pantalla. */
 @keyframes carta-ganada-entra {
-  from { opacity: 0; transform: scale(0.5) rotate(-12deg); }
-  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+  from {
+    opacity: 0;
+    transform: translate(var(--mazo-x, -25vmin), var(--mazo-y, 0)) scale(0.14) rotate(-16deg);
+  }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
 }
 
 /* Termina abajo a la izquierda, donde está el abanico. En vw y vh para que
@@ -1502,10 +1735,36 @@ body {
   position: fixed;
   inset: 0;
   z-index: 300;
-  display: grid;
-  place-items: center;
+  /* Columna en vez de grid centrado: ahora abajo de la carta va la
+     explicación, y las dos tienen que quedar centradas como un bloque. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.7rem, 2vmin, 1.2rem);
   pointer-events: none;
-  animation: preview-in 0.16s ease-out;
+  animation: preview-in var(--dur-carta-mano-preview) var(--ease-carta-mano-preview);
+}
+
+/* Qué hace la carta. En caja oscura y no suelto sobre la mesa: el texto cae
+   sobre el fieltro, las casillas y las fichas, y sin un fondo propio se
+   vuelve ilegible justo encima del tablero. */
+.card-preview-hint {
+  margin: 0;
+  max-width: min(30ch, 78vw);
+  text-align: center;
+  text-wrap: balance;
+
+  font-family: var(--display);
+  font-size: clamp(0.72rem, 2vmin, 1rem);
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  color: var(--bone);
+
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.5rem;
+  background: rgba(5, 17, 10, 0.92);
+  box-shadow: 0 0 0 1px rgba(232, 225, 204, 0.22), 0 1rem 2rem rgba(0, 0, 0, 0.6);
 }
 
 .card-preview .card {
@@ -1612,7 +1871,31 @@ body {
 
 /* Un color por efecto: quitar, proteger, estorbar, y la que sólo te
    beneficia a vos. */
-.card.steal   { background: var(--c-red); color: #fff; }
+/* El robo es la única en negro. Es la carta que más se juega y la que más
+   duele recibir, y sobre el fieltro verde el negro la separa del resto sin
+   competir con el rojo, que quedó reservado para el destello del golpe: si
+   la carta y el impacto fueran del mismo rojo, el momento de recibirla se
+   confundiría con el de tenerla en la mano. */
+.card.steal   { background: var(--c-black); color: #fff; }
+
+/* La rata es lo que identifica la carta de lejos, así que se lleva casi
+   todo el alto disponible. Puede ser más grande que los íconos de las
+   otras porque el rótulo y el número comparten una sola línea abajo en vez
+   de ocupar dos. */
+.card.steal .card-icon {
+  width: calc(var(--card-w) * 0.68);
+  height: calc(var(--card-w) * 0.68);
+}
+
+/* El número dentro del rótulo, no debajo: se lee "ROBAR −15" de un saque.
+   Va más grande que la palabra porque es el dato que cambia entre una
+   carta y otra —la palabra es siempre la misma—. */
+.card-steal-num {
+  font-weight: 400;
+  font-size: 1.5em;
+  vertical-align: -0.06em;
+  margin-left: 0.15em;
+}
 .card.defense { background: var(--c-green); color: #fff; }
 .card.curse   { background: var(--c-purple); color: #fff; }
 /* Dos dados pasa a dorado: el azul quedó reservado para las casillas de
@@ -1636,10 +1919,6 @@ body {
   .card { --card-w: clamp(3.6rem, 8.5vh, 5.5rem); }
 }
 
-/* La carta puesta sobre el fieltro sí depende del alto de la mesa. */
-@media (max-height: 700px) {
-  .played-card { width: clamp(3.4rem, 8.5vmin, 5.2rem); }
-}
 
 /* La carta jugada descansa sobre el fieltro, boca abajo, hasta que el que
    la puso se planta. */
@@ -1647,18 +1926,62 @@ body {
    una grilla de 9×8, así que una celda hacia adentro por cada lado deja la
    carta en zona libre: 100%/9 de ancho y 100%/8 de alto, más el inset del
    track. El centro queda para el dado y el rótulo del objetivo. */
-.played-card {
+/* La fila de cartas puestas. Va anclada por la derecha y sin `left`, así
+   que crece hacia adentro del fieltro a medida que se suman cartas en vez
+   de empujar el borde. */
+.played-cards {
   position: absolute;
   top: calc(100% / 8 + clamp(0.9rem, 2.6vmin, 1.8rem));
   right: calc(100% / 9 + clamp(0.9rem, 2.6vmin, 1.8rem));
   bottom: auto;
-  /* Un 30% más grandes: sobre el fieltro compiten con el dado y las
-     casillas, y al tamaño anterior no se leían de un vistazo. */
-  width: clamp(4.2rem, 10.4vmin, 6.5rem);
-  aspect-ratio: 5 / 7;
   z-index: 5;
+
+  display: flex;
+  align-items: flex-start;
+  /* Bastante aire entre carta y carta: pegadas se leían como un bloque
+     único y el punto de ponerlas en fila es poder contarlas de un vistazo. */
+  gap: clamp(0.55rem, 1.8vmin, 1.1rem);
+
+  --pc-ancho: var(--carta-mesa-w);
+}
+
+/* Con varias en fila, el ancho de una sola no entra: el fieltro tiene que
+   seguir mostrando el dado y el tablero. Se achican por tramos en vez de
+   solaparse, porque solapadas volvíamos al problema de no poder contarlas. */
+.played-cards[data-n="3"] { --pc-ancho: clamp(3.4rem, 8.4vmin, 5.2rem); }
+.played-cards[data-n="4"] { --pc-ancho: clamp(2.9rem, 7.2vmin, 4.5rem); }
+.played-cards[data-n="5"] { --pc-ancho: clamp(2.5rem, 6.2vmin, 3.9rem); }
+
+.played-card {
+  position: relative;
+  width: var(--pc-ancho);
+  aspect-ratio: 5 / 7;
+  flex: none;
   perspective: 700px;
-  animation: card-drop 0.3s ease-out;
+  animation: card-drop var(--dur-carta-mesa-cae) var(--ease-carta-mesa-cae) backwards;
+  /* Caen una tras otra, no todas juntas: es lo que hace ver que son varias
+     y no un bloque que apareció de golpe. */
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .played-card { animation: none; }
+}
+
+/* Las cartas puestas sobre el fieltro también dependen del alto de la mesa.
+   Ajusta la variable de la fila y no el ancho de cada carta: tocando
+   `width` directo pisaría el escalonado por cantidad, y con cuatro cartas
+   se saldrían del fieltro justo en las pantallas donde menos lugar hay.
+   Va DESPUÉS del bloque base porque comparte especificidad con él y, más
+   arriba, perdería por orden y no se aplicaría nunca. */
+@media (max-height: 700px) {
+  /* Se achica la medida común y no sólo la fila: el mazo de bonus vive del
+     mismo token, y encogiendo una sola quedarían de distinto tamaño sobre
+     la misma mesa justo donde menos lugar hay. */
+  .pool-felt { --carta-mesa-w: clamp(3.4rem, 8.5vmin, 5.2rem); }
+  .played-cards[data-n="3"] { --pc-ancho: clamp(2.9rem, 7.2vmin, 4.4rem); }
+  .played-cards[data-n="4"] { --pc-ancho: clamp(2.5rem, 6.2vmin, 3.8rem); }
+  .played-cards[data-n="5"] { --pc-ancho: clamp(2.2rem, 5.4vmin, 3.3rem); }
 }
 
 @keyframes card-drop {
@@ -1697,22 +2020,9 @@ body {
 
 /* Las de abajo de la pila: sólo el borde asomando, corrido. Dibujar la
    carta entera sería ruido — lo único que importa es que son varias. */
-.pc-stacked {
-  position: absolute;
-  inset: 0;
-  border-radius: 0.5rem;
-  transform: translate(calc(var(--i) * 0.22rem), calc(var(--i) * -0.22rem));
-  background: var(--c-red-deep);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.45);
-  z-index: -1;
-}
-
-/* El número de cartas, sobre el reverso. */
-.pc-back b {
-  font-weight: 400;
-  font-size: 0.75em;
-  opacity: 0.85;
-}
+/* Acá vivían `.pc-stacked` —los bordes que asomaban por detrás— y el
+   número sobre el reverso. Los dos existían para contar cartas que no se
+   veían; con la fila se cuentan solas. */
 
 .pc-back {
   font-size: clamp(0.9rem, 2.4vmin, 1.4rem);
@@ -1727,12 +2037,23 @@ body {
 /* La cara descubierta es la misma carta que estaba en la mano: mismo
    color por efecto y mismo ícono. */
 .pc-front {
-  --card-w: clamp(4.2rem, 10.4vmin, 6.5rem);
+  /* Sigue al ancho que fijó la fila: con varias cartas puestas éstas se
+     achican, y el contenido de la cara tiene que achicarse con ellas o se
+     desborda. */
+  --card-w: var(--pc-ancho);
   transform: rotateY(180deg);
   color: #fff;
   background: var(--c-bronze);
 }
-.pc-front.steal   { background: var(--c-red); }
+/* Sobre la mesa la carta se revela chica, así que la rata cede más lugar
+   todavía a la cifra: es lo que hay que poder leer desde el otro lado del
+   fieltro. El fondo acompaña al de la mano — una carta tiene que verse
+   igual esté donde esté, o parecen dos cartas distintas. */
+.pc-front.steal   { background: var(--c-black); }
+.pc-front.steal .card-icon {
+  width: calc(var(--card-w) * 0.56);
+  height: calc(var(--card-w) * 0.56);
+}
 .pc-front.defense { background: var(--c-green); }
 .pc-front.curse   { background: var(--c-purple); }
 .pc-front.double  { background: var(--c-gold); color: var(--c-black); }
@@ -1790,7 +2111,7 @@ body {
     var(--bulb) var(--bulb-gap);
 
   filter: drop-shadow(0 0 0.35rem rgba(228, 167, 0, 0.9));
-  animation: bulbs-on 1.1s steps(1, end) infinite;
+  animation: bulbs-on var(--dur-ambiente-luces) steps(1, end) infinite;
 }
 
 .pool-table::before {
@@ -1830,6 +2151,11 @@ body {
   position: relative;
   width: 100%;
   height: 100%;
+  /* Medida única de las cartas que descansan sobre el fieltro: las jugadas
+     boca abajo y el mazo de bonus. Declarada acá, en el padre común, para
+     que no puedan separarse — son cartas del mismo juego sobre la misma
+     mesa y verlas de distinto tamaño las haría parecer de dos mazos. */
+  --carta-mesa-w: clamp(4.2rem, 10.4vmin, 6.5rem);
   border-radius: clamp(0.4rem, 1vmin, 0.8rem);
   background: radial-gradient(ellipse 72% 82% at 50% 45%, var(--felt-3), var(--felt-1) 62%, var(--felt-0));
   box-shadow:
@@ -1852,6 +2178,24 @@ body {
   order: -1;
   /* Se despega del dado. El gap de .dice-arena los tenía a 1rem. */
   margin-bottom: clamp(1rem, 3vmin, 2.4rem);
+
+  /* Se va después del primer dado. No basta con desvanecerlo: vive dentro
+     del flujo de .dice-arena, así que si sólo bajara la opacidad seguiría
+     ocupando su alto y dejaría un hueco encima del dado. Colapsa el alto y
+     el margen a la vez para que el dado suba solo hasta el centro en lugar
+     de saltar cuando el cartel desaparece. */
+  overflow: hidden;
+  max-height: 6rem;
+  transition: opacity 0.4s ease, max-height 0.4s ease, margin-bottom 0.4s ease;
+}
+.pool-goal.oculto {
+  opacity: 0;
+  max-height: 0;
+  margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pool-goal { transition: none; }
 }
 .pool-goal .num {
   color: var(--c-gold);
@@ -1968,7 +2312,7 @@ body {
   background: var(--chip-red);
   border: 0.3rem dashed var(--bone);
   background-clip: padding-box;
-  animation: chip-in 0.4s ease-out backwards;
+  animation: chip-in var(--dur-ambiente-ficha-entra) var(--ease-ambiente-ficha-entra) backwards;
 }
 .chip::after {
   content: "";
@@ -2073,7 +2417,7 @@ body {
   padding: calc(var(--die) * 0.12);
   border-radius: calc(var(--die) * 0.22);
   box-shadow: 0 0 0 2px var(--c-gold), 0 0 1.6rem rgba(228, 167, 0, 0.45);
-  animation: double-on 0.35s ease-out;
+  animation: double-on var(--dur-dado-dobles) var(--ease-dado-dobles);
 }
 
 @keyframes double-on {
@@ -2092,7 +2436,7 @@ body {
   filter: grayscale(0.7);
 }
 .dice-3d.rolling {
-  animation: dice-roll 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: dice-roll var(--dur-dado-tirada) var(--ease-dado-tirada);
 }
 /* Hop height rides on --die too — a fixed 6rem arc that looked right on
    desktop threw the die clean off a phone-sized felt. */
@@ -2174,7 +2518,7 @@ body {
   white-space: nowrap;
 }
 .snake-eyes-warning.show {
-  animation: warn-flash 1.4s ease-out;
+  animation: warn-flash var(--dur-dado-quemado) var(--ease-dado-quemado);
 }
 @keyframes warn-flash {
   0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
@@ -2322,7 +2666,7 @@ body {
     0 0 3rem var(--neon-amber-glow),
     0 0 6rem rgba(245, 185, 66, 0.5);
   line-height: 0.9;
-  animation: flicker 3s infinite;
+  animation: flicker var(--dur-pantalla-flicker-gameover) infinite;
 }
 
 .gameover-stage {
@@ -2448,7 +2792,7 @@ body {
   height: 0.8rem;
   background: var(--neon-amber);
   box-shadow: 0 0 0.8rem var(--neon-amber-glow);
-  animation: particle-fall 3s linear forwards;
+  animation: particle-fall var(--dur-pantalla-particula) var(--ease-pantalla-particula) forwards;
 }
 .particle.gold { background: var(--neon-amber); box-shadow: 0 0 0.8rem var(--neon-amber-glow); }
 .particle.red { background: var(--blood); box-shadow: 0 0 0.8rem var(--blood); }
@@ -2588,7 +2932,7 @@ body {
   text-shadow:
     0 0 0.8rem var(--neon-amber),
     0 0 2rem var(--neon-amber-glow);
-  animation: flicker 6s infinite;
+  animation: flicker var(--dur-pantalla-flicker-reglas) infinite;
 }
 .rules-close {
   position: absolute;
@@ -2682,7 +3026,11 @@ body {
   letter-spacing: 0.15rem;
   text-transform: uppercase;
   box-shadow: 0 0 0.6rem rgba(199, 54, 95, 0.3);
-  animation: pulse 2s infinite;
+  /* Acá había un `animation: pulse 2s infinite` con un @keyframes que
+     nunca se escribió, así que el badge jamás pulsó. Se saca en vez de
+     inventarle el keyframe: el aspecto actual es el que se revisó y se
+     aprobó, y agregarle movimiento ahora sería un cambio de diseño
+     disfrazado de arreglo. */
 }
 .rule-text {
   font-family: var(--display);
@@ -2780,7 +3128,7 @@ body {
   opacity: 0.7;
 }
 .rules-overlay.open .rules-chips-deco .chip {
-  animation: chip-in 0.5s ease-out backwards;
+  animation: chip-in var(--dur-ambiente-ficha-entra-reglas) var(--ease-ambiente-ficha-entra-reglas) backwards;
 }
 .rules-chips-deco .chip:nth-child(1) { animation-delay: 0.15s; }
 .rules-chips-deco .chip:nth-child(2) { animation-delay: 0.22s; }
@@ -2857,9 +3205,17 @@ body {
   .select-screen { padding: 7.5rem 1rem 2rem; }
   .char-grid { gap: 0.8rem; }
 
-  /* At this width the goal label and the die start fighting for the same
-     strip of felt — the label goes, the die stays. */
-  .pool-goal { display: none; }
+  /* Acá el rótulo de la meta y el dado se pelean por la misma franja de
+     fieltro. Antes ganaba el dado y el rótulo se ocultaba, pero eso dejaba
+     al que juega desde el teléfono sin saber a cuántos puntos se juega —y
+     es la regla más importante de la partida, la que decide cuándo conviene
+     plantarse. Se achica y sigue estando: a este tamaño entra al lado del
+     dado sin empujarlo. */
+  .pool-goal {
+    font-size: 1.3rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.4rem;
+  }
   .snake-eyes-warning { font-size: 2rem; }
 
   .gameover-screen { padding: 2rem 1.5rem; }
@@ -2923,7 +3279,7 @@ body {
   background-size: cover; /* box is already 9:16, so cover == contain */
   background-image: url("menu/menu-0.webp");
 
-  animation: boil 0.75s step-end infinite;
+  animation: boil var(--dur-pantalla-titulo-boil) var(--ease-pantalla-titulo-boil) infinite;
 
   /* Feather all four edges into the black so the letterbox bars
      dissolve into the artwork instead of cutting it off. */
@@ -2975,7 +3331,7 @@ body {
   background-size: cover;
   background-image: url("main-menu/main-0.webp");
 
-  animation: menu-boil 0.25s step-end infinite;
+  animation: menu-boil var(--dur-pantalla-menu-boil) var(--ease-pantalla-menu-boil) infinite;
 
   -webkit-mask-image:
     linear-gradient(to right, transparent 0, #000 var(--feather), #000 calc(100% - var(--feather)), transparent 100%),
@@ -3100,7 +3456,7 @@ body {
 }
 
 .menu-screen.leaving {
-  animation: title-out 0.45s ease forwards;
+  animation: title-out var(--dur-pantalla-salida) ease forwards;
 }
 
 /* ============================================
@@ -3212,7 +3568,7 @@ body {
   border-radius: 1.2rem;
   box-shadow: 0 0.6rem 1.8rem rgba(0, 0, 0, 0.55);
 
-  animation: toast-in 0.28s ease forwards;
+  animation: toast-in var(--dur-toast-entra) ease forwards;
 }
 
 /* El rojo de la paleta sobre texto negro no llega a contraste legible,
@@ -3226,7 +3582,7 @@ body {
 }
 
 .toast.leaving {
-  animation: toast-out 0.25s ease forwards;
+  animation: toast-out var(--dur-toast-sale) ease forwards;
 }
 
 @keyframes toast-in {
@@ -3245,7 +3601,7 @@ body {
 }
 
 .title-screen.leaving {
-  animation: title-out 0.45s ease forwards;
+  animation: title-out var(--dur-pantalla-salida) ease forwards;
 }
 @keyframes title-out {
   to { opacity: 0; transform: scale(1.04); }
