@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useGame, newPlayer } from "./hooks/useGame";
 import { useRouter } from "./hooks/useRouter";
@@ -18,6 +18,16 @@ import RoomChoiceScreen from "./screens/RoomChoiceScreen";
 import SelectScreen from "./screens/SelectScreen";
 import VersusScreen from "./screens/VersusScreen";
 import GameOverScreen from "./screens/GameOverScreen";
+import { SQUARE } from "../convex/rules";
+import { ms } from "./theme";
+
+/* Cuánto queda teñido el peleador golpeado. Un pelo más que la animación
+   del destello, para limpiar la clase con el movimiento ya terminado y no
+   cortarlo en el último cuadro. */
+const IMPACTO_MS = ms("peleador.golpeMarco") + 50;
+
+/* El respiro entre los puntos del dado y lo que dice la casilla. */
+const ESPERA_CASILLA = ms("tablero.esperaCasilla");
 
 /* Traduce los hechos que emite el motor a los avisos que ve el jugador.
    El hook dice qué pasó; acá se decide cómo se cuenta. Esa separación es
@@ -47,6 +57,24 @@ export default function App() {
   const sala = useOnlineRoom();
   const { toasts, notify, dismiss } = useToasts();
 
+  /* Los setters de useState y los refs son estables por contrato de React;
+     el objeto que los envuelve no lo es, porque useGame lo arma de nuevo en
+     cada pintado. Sacándolos una vez se los puede listar en las
+     dependencias de los efectos sin arrastrar el objeto entero.
+
+     Con `juego` completo en las dependencias, todo efecto que lo listara se
+     volvía a disparar en CADA pintado, y el que sincroniza la sala escribe
+     jugadores: pintado → efecto → setPlayers → pintado → objeto nuevo →
+     efecto. React lo cortaba con "Maximum update depth exceeded". Nada de
+     eso se veía mientras la ficha se movía con una transición de CSS, pero
+     encadenar temporizadores en ese bucle es imposible: cada vuelta los
+     cancelaba antes de que llegara a correr el primero. */
+  const {
+    setPlayers, setActive, setBoard, setGoal, setMiLado,
+    setPlaying, setFinished, setRolling, consumeEvents, hayPartida,
+    sumarPuntos, resolverCasilla, endTurn,
+  } = juego;
+
   const [modo, setModo] = useState("local");
   const [elegidos, setElegidos] = useState([null, null]);
   const [tirada, setTirada] = useState(null);
@@ -61,6 +89,30 @@ export default function App() {
      aterriza, no cuando sale. */
   const [lanzada, setLanzada] = useState(null);
   const [impacto, setImpacto] = useState(null);
+  /* Se pidió la tirada al servidor y todavía no volvió. */
+  const [pidiendoTirada, setPidiendoTirada] = useState(false);
+
+  /* La carta que el servidor ya entregó pero que todavía no se mostró:
+     espera a que la ficha frene para aparecer. */
+  const cartaEnCamino = useRef(null);
+
+  /* La casilla a la que el servidor mandó tu ficha, esperando a que el dado
+     termine de girar. Viene en la respuesta de la propia tirada, no del
+     sondeo: por el sondeo tardaba hasta dos segundos, y como el control se
+     desbloqueaba al frenar el dado se podía tirar otra vez antes de que la
+     ficha se moviera. Cuando por fin llegaba, traía las dos tiradas
+     sumadas y la ficha caminaba de golpe un número que no se correspondía
+     con ningún dado. */
+  const posDelServidor = useRef(null);
+
+  /* Tiñe a un peleador del color de lo que acaba de pasarle y lo deja
+     volver solo. El mismo destello sirve para una carta que le llegó y para
+     una casilla que lo castigó: en los dos casos perdió puntos, y mostrarlo
+     distinto inventaría una diferencia que el juego no tiene. */
+  const golpear = useCallback((lado, tipo) => {
+    setImpacto({ lado, tipo, key: Math.random() });
+    setTimeout(() => setImpacto(null), IMPACTO_MS);
+  }, []);
 
   const online = modo === "online";
 
@@ -89,21 +141,32 @@ export default function App() {
 
   /* Los hechos del motor se vacían apenas se muestran, o se repetirían en
      cada pintado. */
+  const eventos = juego.events;
   useEffect(() => {
-    if (!juego.events.length) return;
-    juego.events.forEach((e) => {
+    if (!eventos.length) return;
+    eventos.forEach((e) => {
       const armar = MENSAJES[e.tipo];
       const aviso = armar?.(e);
       if (aviso) notify(...aviso);
       if (e.tipo === "cartaRevelada") {
         setRevelada({ carta: e.carta, bloqueada: e.bloqueada });
-        setLanzada({ carta: e.carta, bloqueada: e.bloqueada, key: Math.random() });
+        setLanzada({
+          carta: e.carta,
+          bloqueada: e.bloqueada,
+          destino: e.destino,
+          key: Math.random(),
+        });
       }
       if (e.tipo === "bonus" && e.carta) setCartaGanada(e.carta);
-      if (e.tipo === "ganado") juego.setFinished(true);
+      /* El destello rojo de la penitencia NO se dispara acá aunque el hecho
+         pase por este efecto: en online el motor local no resuelve casillas
+         —lo hace el servidor— así que este evento nunca llegaría y el golpe
+         sólo se vería en local. Lo avisa el tablero, que sabe dónde frenó la
+         ficha en los dos modos. */
+      if (e.tipo === "ganado") setFinished(true);
     });
-    juego.consumeEvents();
-  }, [juego, notify]);
+    consumeEvents();
+  }, [eventos, consumeEvents, setFinished, notify]);
 
   // La carta revelada se muestra un rato y se va sola.
   useEffect(() => {
@@ -123,12 +186,12 @@ export default function App() {
     const r = sala.room;
     if (!online || !r) return;
 
-    if (Array.isArray(r.board) && r.board.length) juego.setBoard(r.board);
-    if (typeof r.goal === "number") juego.setGoal(r.goal);
-    juego.setMiLado(sala.miLado);
+    if (Array.isArray(r.board) && r.board.length) setBoard(r.board);
+    if (typeof r.goal === "number") setGoal(r.goal);
+    setMiLado(sala.miLado);
 
     const lados = [r.player1, r.player2];
-    juego.setPlayers((prev) =>
+    setPlayers((prev) =>
       lados.map((lado, i) => {
         if (!lado) return prev[i];
         const base = prev[i] ?? newPlayer(charFromCatId(lado.catId) ?? ROSTER[i]);
@@ -149,13 +212,18 @@ export default function App() {
       })
     );
 
-    juego.setActive(r.turn === "player1" ? 0 : 1);
+    setActive(r.turn === "player1" ? 0 : 1);
 
     if (r.status === "finished" && !juego.finished) {
       if (r.endedByAbandon) notify("Tu rival se levantó de la mesa");
-      juego.setFinished(true);
+      setFinished(true);
     }
-  }, [sala.room, sala.miLado, online, juego, notify]);
+    /* `juego.finished` se lee adentro pero NO va acá: sólo protege de
+       declarar el final dos veces, y listarlo volvería a atar el efecto a
+       un valor que él mismo escribe. La sala es lo único que debe
+       dispararlo. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sala.room, sala.miLado, online, setBoard, setGoal, setMiLado, setPlayers, setActive, setFinished, notify]);
 
   /* Lo que hizo el rival. El sondeo trae el hecho; acá se decide cómo se
      ve: la tirada se anima, la carta se da vuelta. */
@@ -175,7 +243,14 @@ export default function App() {
         const carta = { type: r.type, value: r.value };
         setTimeout(() => {
           setRevelada({ carta, bloqueada: r.blocked });
-          setLanzada({ carta, bloqueada: r.blocked, key: Math.random() });
+          /* Esta novedad es del rival plantándose, así que la carta viene
+             para vos: el golpe va en tu lado, no en el suyo. */
+          setLanzada({
+            carta,
+            bloqueada: r.blocked,
+            destino: sala.miLado,
+            key: Math.random(),
+          });
         }, i * 1500);
       });
     }
@@ -223,11 +298,11 @@ export default function App() {
        la bandera que el guardia del router consulta hay que marcarla acá.
        Sin esto el guardia la veía en false y devolvía al título justo al
        entrar a la mesa. */
-    juego.hayPartida.current = true;
-    juego.setPlaying(true);
-    juego.setFinished(false);
+    hayPartida.current = true;
+    setPlaying(true);
+    setFinished(false);
     go("game");
-  }, [online, esperandoRival, sala.room, juego, go]);
+  }, [online, esperandoRival, sala.room, hayPartida, setPlaying, setFinished, go]);
 
   const crearSala = async () => {
     try {
@@ -266,36 +341,142 @@ export default function App() {
       if (t) setTirada(t);
       return;
     }
+    /* Distinto de `rolling`: eso queda encendido toda la resolución del
+       turno, y el dado sólo tiene que girar en falso mientras se espera la
+       respuesta del servidor. */
+    setPidiendoTirada(true);
     juego.setRolling(true);
     try {
       const r = await sala.rollDice(sala.roomId);
+      setPidiendoTirada(false);
       setTirada({ dice: r.dice, isBust: r.isBust, gained: r.gained ?? 0 });
+      /* El servidor ya resolvió a qué casilla va la ficha y lo manda acá.
+         Se guarda y se aplica cuando el dado frena, para que la ficha
+         arranque justo cuando se ve la cara. */
+      if (typeof r.pos === "number") posDelServidor.current = r.pos;
       /* Llega por la respuesta de la propia tirada y no por el sondeo: así
          la entrega la ve sólo quien la ganó. Por el sondeo pasa también por
-         la pantalla del rival. */
-      if (r.gainedCard) {
-        setTimeout(() => setCartaGanada(r.gainedCard), 700);
-      }
+         la pantalla del rival.
+
+         Queda esperando a que la ficha frene en vez de salir a los 700ms.
+         Ese número era una apuesta a cuánto iba a tardar el recorrido, y
+         ahora el recorrido dura lo que diga el dado: con una tirada larga
+         la carta aparecía con la ficha todavía a mitad de camino. */
+      if (r.gainedCard) cartaEnCamino.current = r.gainedCard;
     } catch (e) {
+      /* Si la tirada falló, el dado tiene que dejar de girar: si no, queda
+         dando vueltas para siempre sobre un turno que nunca ocurrió. */
+      setPidiendoTirada(false);
       juego.setRolling(false);
       notify(errorText(e), "error");
     }
   };
 
-  /* El estado cambia recién cuando el dado frenó: si se aplicara al pedir
-     la tirada, el marcador se movería antes de que se vea la cara. */
+  /* El turno se cuenta como una secuencia y no como un montón de cosas a la
+     vez: primero frena el dado, después la ficha recorre las casillas, y
+     recién cuando llega se cargan los puntos y aparece lo que dio o costó
+     la casilla. Cada paso espera al anterior porque cada uno EXPLICA al
+     siguiente; encimados, no se entiende qué causó qué.
+
+     El dado frenó: acá sólo se mueve la ficha. Lo demás queda esperando en
+     `pendiente` hasta que el tablero avise que llegó. */
+  const pendiente = useRef(null);
+
   const alFrenar = (t) => {
     setTirada(null);
-    /* En online el estado ya lo aplicó el servidor y llega por el sondeo:
-       tocarlo acá además sería contar la jugada dos veces. */
+    /* En online el estado lo aplicó el servidor. Lo único que se adelanta
+       acá es la posición, que vino en la respuesta de la tirada: mueve la
+       ficha ya, sin esperar el sondeo. El resto —puntos, mano, casilla—
+       sigue llegando por el sondeo, que es la autoridad.
+
+       Y NO se desbloquea el control acá: eso ahora ocurre cuando la ficha
+       frena, igual que en local. Desbloqueando al frenar el dado se podía
+       tirar de nuevo con la ficha todavía sin moverse, y las dos tiradas
+       terminaban caminando juntas. */
     if (online) {
-      juego.setRolling(false);
+      const pos = posDelServidor.current;
+      posDelServidor.current = null;
+      if (pos == null) {
+        /* Sin posición no hay recorrido que esperar, así que se devuelve el
+           control en el acto: quedarse esperando un aviso que no va a
+           llegar dejaría al jugador sin poder tirar. */
+        juego.setRolling(false);
+        return;
+      }
+      setPlayers((prev) => {
+        const p = prev[juego.miLado];
+        if (!p || p.pos === pos) return prev;
+        const siguiente = [...prev];
+        siguiente[juego.miLado] = { ...p, pos };
+        return siguiente;
+      });
       return;
     }
+    pendiente.current = t;
     juego.settleRoll(t);
-    if (t.isBust) setTimeout(juego.endTurn, 900);
-    else juego.setRolling(false);
   };
+
+  /* La ficha frenó: recién ahora se cobra o se cobra el precio de la
+     casilla. En online el servidor ya resolvió todo, así que lo único que
+     espera acá es la entrega de la carta ganada. */
+  const alLlegar = useCallback(
+    (lado, tipo) => {
+      /* El golpe rojo sale de acá y no del hecho que emite el motor: el
+         tablero ve dónde frenó la ficha en los dos modos, y en online las
+         casillas las resuelve el servidor, así que aquel hecho nunca
+         llegaría a esta pantalla. */
+      const castiga = tipo === SQUARE.PENALTY;
+
+      if (online) {
+        /* El servidor ya resolvió puntos y casilla; lo único que falta es
+           mostrarlo, y espera lo mismo que en local para que el turno se vea
+           igual de los dos lados de la red. */
+        const carta = cartaEnCamino.current;
+        cartaEnCamino.current = null;
+        if (castiga || carta) {
+          setTimeout(() => {
+            if (castiga) golpear(lado, "robo");
+            if (carta) setCartaGanada(carta);
+          }, ESPERA_CASILLA);
+        }
+        /* El control vuelve cuando la ficha llegó, no cuando frenó el dado:
+           es lo que impide tirar otra vez con la ficha todavía en camino.
+           Sólo por tu propia ficha —la del rival también avisa que llegó, y
+           su recorrido no tiene por qué devolverte el turno. */
+        if (lado === juego.miLado) setRolling(false);
+        return;
+      }
+
+      const t = pendiente.current;
+      if (!t || lado !== juego.active) return;
+      pendiente.current = null;
+
+      // 2. Los puntos que valió la tirada, ya con la ficha quieta.
+      sumarPuntos(t);
+
+      const cerrar = () => {
+        resolverCasilla();
+        /* Junto con el descuento, no antes: el destello es la explicación
+           de por qué el número baja, y adelantado explicaría algo que
+           todavía no pasó. */
+        if (castiga) golpear(lado, "robo");
+        if (t.isBust) setTimeout(endTurn, 900);
+        else setRolling(false);
+      };
+
+      /* 3. Lo que la casilla dio o cobró.
+         El respiro sólo se paga cuando hay algo que mostrar. Cuatro de cada
+         cinco casillas están vacías, y ahí esa pausa era medio segundo
+         mirando una pantalla quieta antes de poder volver a tirar —el
+         "delay" no era una animación lenta sino una espera sin contenido. */
+      if (tipo && tipo !== SQUARE.PLAIN) setTimeout(cerrar, ESPERA_CASILLA);
+      else cerrar();
+    },
+    [
+      online, juego.active, juego.miLado,
+      sumarPuntos, resolverCasilla, endTurn, setRolling, golpear,
+    ]
+  );
 
   const plantarse = async () => {
     if (!online) {
@@ -309,7 +490,13 @@ export default function App() {
         const carta = { type: x.type, value: x.value };
         setTimeout(() => {
           setRevelada({ carta, bloqueada: x.blocked });
-          setLanzada({ carta, bloqueada: x.blocked, key: Math.random() });
+          /* Acá te plantaste vos, así que la carta va contra el rival. */
+          setLanzada({
+            carta,
+            bloqueada: x.blocked,
+            destino: sala.miLado === 0 ? 1 : 0,
+            key: Math.random(),
+          });
         }, i * 1500);
       });
     } catch (e) {
@@ -342,24 +529,36 @@ export default function App() {
     go("menu");
   };
 
-  /* A quién le llega: en online siempre al otro lado del que mira; en
-     local, al que no está jugando el turno. */
-  const ladoRival = online ? (juego.miLado === 0 ? 1 : 0) : juego.active === 0 ? 1 : 0;
+  /* Acá vivía `ladoRival`, que respondía "quién es el otro AHORA". Esa
+     pregunta no sirve para una carta que tarda casi un segundo y medio en
+     llegar: lo que hay que saber es a quién iba dirigida cuando salió, y
+     eso ahora viaja dentro de la propia carta (`lanzada.destino`). */
 
-  /* En online el rival siempre está arriba: vos te ves siempre abajo, y
-     para eso están las posiciones que se dan vuelta.
-     En local no hay flip, así que cada uno está donde manda su lado: el
-     primero arriba, el segundo abajo. */
-  const rivalArriba = online ? true : ladoRival === 0;
+  /* Hacia dónde vuela la carta: siempre hacia quien la recibe.
+     En online vos te ves siempre abajo y el rival arriba, así que sube
+     salvo que la carta venga para vos. En local no hay vuelta de
+     posiciones y cada uno está donde manda su lado: el primero arriba, el
+     segundo abajo.
+     Sale del destinatario de la carta y no del turno por lo mismo que el
+     destello: cuando la carta aterriza, el turno ya puede haber cambiado. */
+  const vuelaHaciaArriba = lanzada
+    ? online
+      ? lanzada.destino !== juego.miLado
+      : lanzada.destino === 0
+    : true;
 
   const alAterrizar = useCallback(() => {
     const tipo = lanzada && !lanzada.bloqueada ? COLOR_IMPACTO[lanzada.carta.type] : null;
+    /* El destinatario se lee de la carta y no del turno: la carta tarda casi
+       un segundo y medio en llegar, y en local para entonces el turno ya
+       cambió. Calculándolo acá, el destello rojo le caía al que la tiró. */
+    const destino = lanzada?.destino;
     setLanzada(null);
-    if (!tipo) return;
+    if (!tipo || destino == null) return;
     /* El golpe arranca cuando la carta llega, no cuando sale. */
-    setImpacto({ lado: ladoRival, tipo, key: Math.random() });
-    setTimeout(() => setImpacto(null), 950);
-  }, [lanzada, ladoRival]);
+    golpear(destino, tipo);
+  }, [lanzada, golpear]);
+
 
   const yo = online ? juego.players[juego.miLado] : juego.players[juego.active];
   /* En online el ganador lo declara el backend: deducirlo por puntaje se
@@ -425,6 +624,8 @@ export default function App() {
             rolling={juego.rolling}
             goal={juego.goal}
             tirada={tirada}
+            esperandoTirada={pidiendoTirada}
+            entregandoBonus={Boolean(cartaGanada)}
             dobles={Boolean(yo?.doubleNext)}
             revelada={revelada}
             online={online}
@@ -434,6 +635,8 @@ export default function App() {
             onHold={plantarse}
             onPlayCard={jugarCarta}
             onSettleRoll={alFrenar}
+            onLlegada={alLlegar}
+            retrasoCasilla={ESPERA_CASILLA}
           />
         )}
 
@@ -467,7 +670,7 @@ export default function App() {
         key={lanzada?.key}
         carta={lanzada?.carta}
         bloqueada={lanzada?.bloqueada}
-        haciaArriba={rivalArriba}
+        haciaArriba={vuelaHaciaArriba}
         onDone={alAterrizar}
       />
       <CardGained carta={cartaGanada} onDone={() => setCartaGanada(null)} />

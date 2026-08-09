@@ -89,17 +89,22 @@ export function useGame() {
     setEvents([]);
   }, []);
 
-  /* Aplica lo que pasa al frenar la ficha. Devuelve el jugador modificado
-     en vez de mutarlo: React necesita objetos nuevos para volver a pintar. */
-  const aplicarCasilla = useCallback((p, pasos, tablero) => {
-    const pos = advance(p.pos ?? 0, pasos);
-    const casilla = squareAt(tablero, pos);
+  /* Qué hace la casilla en la que la ficha YA está parada. No la mueve: el
+     movimiento es la fase anterior y ocurre bastante antes en el tiempo.
+     Devuelve el jugador modificado en vez de mutarlo: React necesita
+     objetos nuevos para volver a pintar. */
+  const efectoCasilla = useCallback((p, lado, tablero) => {
+    const casilla = squareAt(tablero, p.pos ?? 0);
     const hechos = [];
     let { score, hand } = p;
 
     if (casilla === SQUARE.PENALTY) {
       score = applyPenalty(score);
-      hechos.push(evento("penitencia", { nombre: p.char.name, puntos: PENALTY_POINTS }));
+      /* El lado viaja con el hecho: la pantalla necesita saber a quién
+         teñir de rojo, y el nombre no alcanza para ubicarlo. */
+      hechos.push(
+        evento("penitencia", { nombre: p.char.name, puntos: PENALTY_POINTS, lado })
+      );
     } else if (casilla === SQUARE.BONUS) {
       const ocupadas = (hand?.length ?? 0) + (p.pendingCards?.length ?? 0);
       if (ocupadas < HAND_LIMIT) {
@@ -114,7 +119,7 @@ export function useGame() {
       }
     }
 
-    return { jugador: { ...p, pos, score, hand }, hechos };
+    return { jugador: { ...p, score, hand }, hechos };
   }, []);
 
   /* Tira y devuelve todo lo que hay que mostrar. No toca los dados ni el
@@ -138,40 +143,83 @@ export function useGame() {
         const p = prev[active];
         if (!p) return prev;
 
-        const pasos = tirada.isBust ? tirada.dice.length : tirada.gained;
-        const { jugador, hechos } = aplicarCasilla(
-          { ...p, doubleNext: false },
-          pasos,
-          board
-        );
+        /* La ficha avanza la SUMA DE LOS DADOS, no los puntos ganados.
+           Son dos cosas distintas y usar una por la otra era el error:
+           `gained` descarta los dados que salieron 1, así que con la carta
+           de dos dados un [1,5] mostraba 6 en pantalla y movía 5. El
+           puntaje sigue su regla —el 1 no suma— pero el tablero es
+           posición física y tiene que coincidir con lo que se ve. */
+        const pasos = tirada.dice.reduce((a, b) => a + b, 0);
+        const destino = advance(p.pos ?? 0, pasos);
+
+        const siguiente = [...prev];
+        siguiente[active] = { ...p, pos: destino, doubleNext: false };
+        return siguiente;
+      });
+    },
+    [active]
+  );
+
+  /* Fase dos: lo que valió la tirada.
+   *
+   * Va separada de settleRoll y la dispara el tablero cuando la ficha
+   * FRENÓ, no cuando salió. Aplicadas juntas, el marcador se movía mientras
+   * la ficha todavía estaba recorriendo casillas, y el turno se leía como
+   * varias cosas sueltas pasando a la vez en vez de una consecuencia de la
+   * otra.
+   */
+  const sumarPuntos = useCallback(
+    (tirada) => {
+      setPlayers((prev) => {
+        const p = prev[active];
+        if (!p) return prev;
+
+        const siguiente = [...prev];
 
         if (tirada.isBust) {
           /* Las cartas puestas vuelven a la mano sin revelarse: quemarse ya
              cuesta el turno entero. */
-          const devueltas = jugador.pendingCards ?? [];
+          const devueltas = p.pendingCards ?? [];
+          const hechos = [];
           if (devueltas.length) {
             hechos.push(evento("cartasDevueltas", { cantidad: devueltas.length }));
           }
           emit(...hechos, evento("quemado"));
-          const siguiente = [...prev];
           siguiente[active] = {
-            ...jugador,
+            ...p,
             current: 0,
-            hand: [...(jugador.hand ?? []), ...devueltas],
+            hand: [...(p.hand ?? []), ...devueltas],
             pendingCards: [],
-            curseTurns: Math.max(0, (jugador.curseTurns ?? 0) - 1),
+            curseTurns: Math.max(0, (p.curseTurns ?? 0) - 1),
           };
           return siguiente;
         }
 
-        emit(...hechos);
-        const siguiente = [...prev];
-        siguiente[active] = { ...jugador, current: p.current + tirada.gained };
+        siguiente[active] = { ...p, current: p.current + tirada.gained };
         return siguiente;
       });
     },
-    [active, board, aplicarCasilla, emit]
+    [active, emit]
   );
+
+  /* Fase tres: lo que dio o costó la casilla.
+   *
+   * Separada de los puntos porque son dos noticias distintas —cuánto sumó
+   * el dado y qué pasó por caer ahí— y encimadas se leen como una sola
+   * cifra que cambió por razones que no se ven. */
+  const resolverCasilla = useCallback(() => {
+    setPlayers((prev) => {
+      const p = prev[active];
+      if (!p) return prev;
+
+      const { jugador, hechos } = efectoCasilla(p, active, board);
+      if (hechos.length) emit(...hechos);
+
+      const siguiente = [...prev];
+      siguiente[active] = jugador;
+      return siguiente;
+    });
+  }, [active, board, efectoCasilla, emit]);
 
   const endTurn = useCallback(() => {
     setActive((a) => (a === 0 ? 1 : 0));
@@ -242,7 +290,10 @@ export function useGame() {
         rivalCurse = CURSE_TURNS;
       }
       revelaciones.push({ carta, bloqueada });
-      hechos.push(evento("cartaRevelada", { carta, bloqueada }));
+      /* Quién la recibe viaja con el hecho. Deducirlo después por el turno
+         no sirve: para cuando la carta termina de volar, el turno ya pasó
+         al otro y el golpe le caía justo al que la tiró. */
+      hechos.push(evento("cartaRevelada", { carta, bloqueada, destino: otro }));
     });
 
     /* El objetivo se mide después de las cartas: robar puede ser justo lo
@@ -283,7 +334,7 @@ export function useGame() {
   return {
     board, players, active, playing, finished, rolling, goal, events, miLado, hayPartida,
     setPlayers, setActive, setBoard, setPlaying, setFinished, setRolling, setGoal, setMiLado,
-    start, roll, settleRoll, endTurn, playCard, hold, winner,
+    start, roll, settleRoll, sumarPuntos, resolverCasilla, endTurn, playCard, hold, winner,
     emit, consumeEvents,
   };
 }

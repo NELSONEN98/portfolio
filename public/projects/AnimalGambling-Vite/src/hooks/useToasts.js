@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ms } from "../theme";
 
-const VIDA_MS = 3200;
+const VIDA_MS = ms("toast.vida");
 
 /* Avisos que entran, se van solos y no frenan nada.
  *

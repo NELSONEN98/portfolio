@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as api from "../convex";
 import { getSessionId, getRoomId, setRoomId, clearRoomId } from "../storage";
+import { ms } from "../theme";
 
-const SONDEO_MS = 2000;
-const REINTENTO_MS = 5000;
+const SONDEO_MS = ms("red.sondeo");
+const REINTENTO_MS = ms("red.reintento");
 
 /* La sala online: la sondea, dice de qué lado estás y avisa lo que hizo el
    rival.

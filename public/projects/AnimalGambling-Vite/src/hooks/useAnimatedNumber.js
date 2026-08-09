@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ms } from "../theme";
 
 /* Cuenta desde el valor anterior hasta el nuevo.
  *
@@ -9,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
  * requestAnimationFrame existe en las dos plataformas, así que esto no es
  * un puente que haya que rehacer.
  */
-export function useAnimatedNumber(target, { duracionMax = 620 } = {}) {
+export function useAnimatedNumber(target, { duracionMax = ms("numero.conteoMax") } = {}) {
   const [shown, setShown] = useState(target);
   const [bajando, setBajando] = useState(false);
   /* Cuánto se perdió, guardado aparte: la referencia con el valor de
@@ -33,7 +34,10 @@ export function useAnimatedNumber(target, { duracionMax = 620 } = {}) {
 
     /* La duración sale de la distancia: sumar 3 no puede tardar lo mismo
        que sumar 40, o los saltos chicos se sienten pesados. */
-    const dur = Math.min(140 + Math.abs(target - from) * 28, duracionMax);
+    const dur = Math.min(
+      ms("numero.conteoBase") + Math.abs(target - from) * ms("numero.conteoPorPunto"),
+      duracionMax
+    );
     const t0 = performance.now();
 
     const paso = (ahora) => {

@@ -1,4 +1,5 @@
 import Board from "../components/Board";
+import BonusDeck from "../components/BonusDeck";
 import Dice from "../components/Dice";
 import Fighter from "../components/Fighter";
 import Hand from "../components/Hand";
@@ -20,6 +21,8 @@ export default function VersusScreen({
   rolling,
   goal,
   tirada,
+  esperandoTirada,
+  entregandoBonus,
   dobles,
   revelada,
   online,
@@ -29,7 +32,8 @@ export default function VersusScreen({
   onHold,
   onPlayCard,
   onSettleRoll,
-  onOpenRules,
+  onLlegada,
+  retrasoCasilla,
 }) {
   const flip = online && miLado === 0;
 
@@ -39,6 +43,19 @@ export default function VersusScreen({
   const puedeActuar = playing && !rolling && miTurno;
 
   const pendientes = players.flatMap((p) => p?.pendingCards ?? []);
+
+  /* La meta se anuncia sólo antes del primer dado: es la regla que hay que
+     saber para empezar, y una vez que la partida arrancó los marcadores ya
+     dicen a cuánto está cada uno.
+     Se deduce del estado en vez de guardar una bandera aparte, porque una
+     bandera habría que reiniciarla en cada partida, sincronizarla en online
+     y acordarse de apagarla al reconectar; esto ya es cierto o falso solo,
+     y vale igual en los dos modos. Cualquier tirada mueve la ficha, así que
+     `pos` sola alcanzaría; los puntos van además por si alguien entra a una
+     partida ya empezada. */
+  const arrancando = players.every(
+    (p) => !p || ((p.pos ?? 0) === 0 && (p.score ?? 0) === 0 && (p.current ?? 0) === 0)
+  );
 
   return (
     <section className={`screen versus-screen active${flip ? " flip" : ""}`}>
@@ -56,14 +73,20 @@ export default function VersusScreen({
 
       <div className="pool-table">
         <div className="pool-felt">
-          <Board board={board} players={players} />
+          <Board
+            board={board}
+            players={players}
+            onLlegada={onLlegada}
+            retrasoCasilla={retrasoCasilla}
+          />
 
           <div className="dice-arena">
-            <div className="pool-goal">
+            <div className={`pool-goal${arrancando ? "" : " oculto"}`}>
               primero a <span className="num">{goal}</span>
             </div>
             <Dice
               tirada={tirada}
+              esperando={esperandoTirada}
               dobles={dobles}
               onSettle={onSettleRoll}
               onRoll={onRoll}
@@ -73,6 +96,11 @@ export default function VersusScreen({
           </div>
 
           <PlayedCard pendientes={pendientes} revelada={revelada} />
+
+          {/* Abajo a la izquierda del fieltro, en espejo de las cartas
+              jugadas: es de donde sale la carta al caer en bonus, y verlo
+              ahí explica la animación sin necesidad de un cartel. */}
+          <BonusDeck entregando={entregandoBonus} />
         </div>
       </div>
 
