@@ -64,6 +64,12 @@ export function useGame() {
   const [miLado, setMiLado] = useState(0);
   const [events, setEvents] = useState([]);
 
+  /* Si hay partida armada, en una referencia además del estado.
+     setPlayers se aplica diferido, así que el guardia del router —que
+     corre en la misma vuelta que start()— todavía veía la mano vacía y
+     rebotaba a quien acababa de apretar Jugar. Una ref cambia en el acto. */
+  const hayPartida = useRef(false);
+
   /* Los hechos se acumulan para que la interfaz los consuma; sin esto, dos
      efectos en el mismo turno pisarían el primero. */
   const emit = useCallback((...nuevos) => {
@@ -73,6 +79,7 @@ export function useGame() {
   const consumeEvents = useCallback(() => setEvents([]), []);
 
   const start = useCallback((p1, p2) => {
+    hayPartida.current = Boolean(p1 && p2);
     setBoard(makeBoard(rand));
     setPlayers([p1, p2]);
     setActive(0);
@@ -270,7 +277,7 @@ export function useGame() {
   }, [finished, players]);
 
   return {
-    board, players, active, playing, finished, rolling, goal, events, miLado,
+    board, players, active, playing, finished, rolling, goal, events, miLado, hayPartida,
     setPlayers, setActive, setBoard, setPlaying, setFinished, setRolling, setGoal, setMiLado,
     start, roll, settleRoll, endTurn, playCard, hold, winner,
     emit, consumeEvents,

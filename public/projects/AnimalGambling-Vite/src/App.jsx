@@ -56,10 +56,16 @@ export default function App() {
      tiene que devolver al principio en vez de romper. */
   const puedeEntrar = useCallback(
     (destino) => {
-      if ((destino === "game" || destino === "gameover") && !juego.players[0]) return "title";
+      /* Se consulta la referencia y no el estado: start() y go() corren en
+         la misma vuelta, y para entonces setPlayers todavía no se aplicó.
+         Leyendo el estado, el guardia rebotaba a quien acababa de apretar
+         Jugar. */
+      if ((destino === "game" || destino === "gameover") && !juego.hayPartida.current) {
+        return "title";
+      }
       return destino;
     },
-    [juego.players]
+    [juego.hayPartida]
   );
 
   const { screen, go } = useRouter({ puedeEntrar });
@@ -296,6 +302,9 @@ export default function App() {
   const volverAlMenu = () => {
     juego.setPlaying(false);
     juego.setFinished(false);
+    /* Se suelta la partida: sin esto, escribir #/game en la barra volvería
+       a entrar a una mesa que ya no existe. */
+    juego.hayPartida.current = false;
     setElegidos([null, null]);
     setEsperandoRival(false);
     // Soltar la sala: sin esto queda viva hasta que vence.
