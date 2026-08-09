@@ -201,6 +201,11 @@ export default function App() {
     const r = sala.room;
     if (!r?.player1?.catId || !r?.player2?.catId) return;
     setEsperandoRival(false);
+    /* En online los jugadores no los arma start() sino el sondeo, así que
+       la bandera que el guardia del router consulta hay que marcarla acá.
+       Sin esto el guardia la veía en false y devolvía al título justo al
+       entrar a la mesa. */
+    juego.hayPartida.current = true;
     juego.setPlaying(true);
     juego.setFinished(false);
     go("game");
