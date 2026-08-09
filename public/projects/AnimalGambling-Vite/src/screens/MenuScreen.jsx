@@ -1,0 +1,50 @@
+import { useState } from "react";
+
+/* Los modos que existen y los que todavía no.
+ *
+ * `listo: false` dibuja la entrada pero la deja muerta: un botón que
+ * parece vivo y no hace nada es peor que uno que dice que no está. Sumar
+ * un modo es dar vuelta la bandera y agregarle su ruta.
+ */
+export const MENU_ITEMS = [
+  { id: "online", label: "Duelo Online", listo: true, ruta: "room-choice", modo: "online" },
+  { id: "cpu", label: "Vs. IA", listo: false, nota: "práctica" },
+  { id: "local", label: "Duelo Local", listo: true, ruta: "select", modo: "local" },
+  { id: "skins", label: "Personalización", listo: false },
+  { id: "shop", label: "Tienda", listo: false },
+];
+
+export default function MenuScreen({ onPick, onBack }) {
+  const [saliendo, setSaliendo] = useState(false);
+
+  const elegir = (item) => {
+    if (!item.listo || saliendo) return;
+    setSaliendo(true);
+    setTimeout(() => onPick(item), 420);
+  };
+
+  return (
+    <section className={`screen menu-screen active${saliendo ? " leaving" : ""}`}>
+      <div className="menu-art" />
+
+      <nav className="menu-options" aria-label="Menú principal">
+        {MENU_ITEMS.map((it) => (
+          <button
+            key={it.id}
+            className={`menu-option${it.listo ? "" : " locked"}`}
+            disabled={!it.listo}
+            aria-disabled={!it.listo}
+            onClick={() => elegir(it)}
+          >
+            <span className="opt-label">{it.label}</span>
+            {it.listo
+              ? it.nota && <span className="opt-note">{it.nota}</span>
+              : <span className="opt-note locked-note">pronto</span>}
+          </button>
+        ))}
+      </nav>
+
+      <button className="btn-nav" onClick={onBack}>‹ Volver</button>
+    </section>
+  );
+}

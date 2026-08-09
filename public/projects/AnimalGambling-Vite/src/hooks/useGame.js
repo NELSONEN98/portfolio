@@ -59,6 +59,9 @@ export function useGame() {
   const [finished, setFinished] = useState(false);
   const [rolling, setRolling] = useState(false);
   const [goal, setGoal] = useState(GOAL);
+  /* De qué lado está esta pantalla. En local siempre 0 —los dos miran la
+     misma—; en online lo fija el sondeo comparando el sessionId. */
+  const [miLado, setMiLado] = useState(0);
   const [events, setEvents] = useState([]);
 
   /* Los hechos se acumulan para que la interfaz los consuma; sin esto, dos
@@ -191,52 +194,64 @@ export function useGame() {
     [active, emit]
   );
 
-  /* Plantarse: guarda lo del turno, revela las cartas y decide si ganó. */
+  /* Plantarse: guarda lo del turno, revela las cartas y decide si ganó.
+   *
+   * El cálculo va sobre el estado actual y no adentro del setter: React
+   * aplica los setters de forma diferida, así que leer el resultado desde
+   * ahí devolvía el valor de la ronda anterior. Acá se resuelve primero,
+   * se devuelve el resultado, y recién después se guarda.
+   */
   const hold = useCallback(() => {
-    let gano = false;
+    const yo = players[active];
+    const otro = active === 0 ? 1 : 0;
+    const rival = players[otro];
+    if (!yo) return { gano: false, revelaciones: [] };
+
+    let miScore = yo.score + yo.current;
+    let rivalScore = rival?.score ?? 0;
+    let rivalHand = rival?.hand ?? [];
+    let rivalCurse = rival?.curseTurns ?? 0;
+    const revelaciones = [];
+    const hechos = [];
+
+    /* Cada defensa tapa una sola carta: contra tres robos, una defensa
+       frena el primero y los otros dos entran. Esa es la razón de poder
+       acumular. */
+    (yo.pendingCards ?? []).forEach((carta) => {
+      const bloqueada = hasDefense(rivalHand);
+      if (bloqueada) {
+        rivalHand = dropFirstOfType(rivalHand, CARD.DEFENSE);
+      } else if (carta.type === CARD.STEAL) {
+        /* El tope se recalcula carta por carta: dos robos seguidos no
+           pueden sacar más de lo que el rival tenía. */
+        const robado = Math.min(carta.value ?? 0, rivalScore);
+        rivalScore -= robado;
+        miScore += robado;
+      } else if (carta.type === CARD.CURSE) {
+        rivalCurse = CURSE_TURNS;
+      }
+      revelaciones.push({ carta, bloqueada });
+      hechos.push(evento("cartaRevelada", { carta, bloqueada }));
+    });
+
+    /* El objetivo se mide después de las cartas: robar puede ser justo lo
+       que cierra la partida. */
+    const gano = miScore >= goal;
+    hechos.push(evento(gano ? "ganado" : "plantado", { nombre: yo.char.name }));
+    emit(...hechos);
 
     setPlayers((prev) => {
-      const yo = prev[active];
-      const rival = prev[active === 0 ? 1 : 0];
-      if (!yo) return prev;
-
-      let miScore = yo.score + yo.current;
-      let rivalScore = rival?.score ?? 0;
-      let rivalHand = rival?.hand ?? [];
-      let rivalCurse = rival?.curseTurns ?? 0;
-      const hechos = [];
-
-      /* Cada defensa tapa una sola carta: contra tres robos, una defensa
-         frena el primero y los otros dos entran. */
-      (yo.pendingCards ?? []).forEach((carta) => {
-        const bloqueada = hasDefense(rivalHand);
-        if (bloqueada) {
-          rivalHand = dropFirstOfType(rivalHand, CARD.DEFENSE);
-        } else if (carta.type === CARD.STEAL) {
-          const robado = Math.min(carta.value ?? 0, rivalScore);
-          rivalScore -= robado;
-          miScore += robado;
-        } else if (carta.type === CARD.CURSE) {
-          rivalCurse = CURSE_TURNS;
-        }
-        hechos.push(evento("cartaRevelada", { carta, bloqueada }));
-      });
-
-      gano = miScore >= goal;
-      hechos.push(evento(gano ? "ganado" : "plantado", { nombre: yo.char.name }));
-      emit(...hechos);
-
       const siguiente = [...prev];
       siguiente[active] = {
-        ...yo,
+        ...prev[active],
         score: cappedScore(miScore),
         current: 0,
         pendingCards: [],
-        curseTurns: Math.max(0, (yo.curseTurns ?? 0) - 1),
+        curseTurns: Math.max(0, (prev[active].curseTurns ?? 0) - 1),
       };
-      if (rival) {
-        siguiente[active === 0 ? 1 : 0] = {
-          ...rival,
+      if (prev[otro]) {
+        siguiente[otro] = {
+          ...prev[otro],
           score: rivalScore,
           hand: rivalHand,
           curseTurns: rivalCurse,
@@ -245,10 +260,9 @@ export function useGame() {
       return siguiente;
     });
 
-    /* Se lee después del setPlayers porque el cálculo vive adentro; el
-       componente necesita saberlo para cortar el turno o abrir el final. */
-    return () => gano;
-  }, [active, goal, emit]);
+    if (gano) setFinished(true);
+    return { gano, revelaciones };
+  }, [players, active, goal, emit]);
 
   const winner = useMemo(() => {
     if (!finished) return null;
@@ -256,8 +270,8 @@ export function useGame() {
   }, [finished, players]);
 
   return {
-    board, players, active, playing, finished, rolling, goal, events,
-    setPlayers, setActive, setBoard, setPlaying, setFinished, setRolling, setGoal,
+    board, players, active, playing, finished, rolling, goal, events, miLado,
+    setPlayers, setActive, setBoard, setPlaying, setFinished, setRolling, setGoal, setMiLado,
     start, roll, settleRoll, endTurn, playCard, hold, winner,
     emit, consumeEvents,
   };
