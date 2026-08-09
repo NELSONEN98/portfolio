@@ -564,23 +564,24 @@ body {
   box-sizing: border-box;
 }
 
-/* Versus fighter colors — same as selection */
-.f1 .fighter-art[data-cat="cat1"],
-.f2 .fighter-art[data-cat="cat1"] {
-  background-color: var(--c-gold);
-}
-.f1 .fighter-art[data-cat="cat2"],
-.f2 .fighter-art[data-cat="cat2"] {
-  background-color: var(--c-blue);
-}
-.f1 .fighter-art[data-cat="cat3"],
-.f2 .fighter-art[data-cat="cat3"] {
-  background-color: var(--c-green);
-}
-.f1 .fighter-art[data-cat="cat4"],
-.f2 .fighter-art[data-cat="cat4"] {
-  background-color: var(--c-bronze);
-}
+/* El color de cada gato, en las dos pantallas donde se lo elige y se lo
+   juega. Antes sólo lo tenía el versus y la selección quedaba en blanco:
+   el color es parte de reconocer al personaje, así que tiene que ser el
+   mismo desde que lo elegís.
+
+   El retrato del final queda afuera a propósito: ahí la tarjeta blanca es
+   el papel del dibujo, y teñirla apagaría al perdedor dos veces. */
+.char-art[data-cat="cat1"],
+.fighter-art[data-cat="cat1"] { background-color: var(--c-gold); }
+
+.char-art[data-cat="cat2"],
+.fighter-art[data-cat="cat2"] { background-color: var(--c-blue); }
+
+.char-art[data-cat="cat3"],
+.fighter-art[data-cat="cat3"] { background-color: var(--c-green); }
+
+.char-art[data-cat="cat4"],
+.fighter-art[data-cat="cat4"] { background-color: var(--c-bronze); }
 
 /* ---- the boil ----
    Shared by the selection cards and the versus fighters: one definition,

@@ -315,7 +315,10 @@ export default function App() {
     <>
       <Preloader />
 
-      <div className="table">
+      {/* El fieltro verde y el marco de madera son de la mesa, y la mesa
+          sólo existe en el versus. En el resto —incluidos los instantes de
+          transición, que es donde asomaba el verde— el fondo es negro. */}
+      <div className={`table ${screen === "game" ? "on-versus" : "on-title"}`}>
         <div className="smoke">
           <div className="smoke-wisp" />
           <div className="smoke-wisp" />
