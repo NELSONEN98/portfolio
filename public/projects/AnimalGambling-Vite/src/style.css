@@ -1102,16 +1102,106 @@ body {
 /* ============================================
    CARTAS
    ============================================ */
-.hand-row {
-  grid-area: hand;
-  justify-self: center;
+/* La mano, en abanico sobre el costado izquierdo.
+ *
+ * Fixed y no dentro de la grilla del versus: ahí ocupaba una fila propia y
+ * empujaba la mesa hacia arriba. Al costado no le saca alto a nada.
+ *
+ * Se apilan de abajo hacia arriba —column-reverse— para que la última
+ * quede encima, que es como se sostiene un abanico en la mano. */
+.hand-fan {
+  position: fixed;
+  left: clamp(0.4rem, 1.6vw, 1.4rem);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 60;
+
   display: flex;
-  /* Más aire entre cartas: se sueltan con el dedo y son irreversibles, así
-     que conviene que no se toquen. */
-  gap: clamp(0.9rem, 3vw, 2rem);
-  margin-top: clamp(0.8rem, 2vh, 1.6rem);
-  min-height: 1px;
-  transform: translateY(var(--ui-shift));
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+/* Los hijos sí reciben el toque; el contenedor no, para no tapar la mesa
+   con su caja vacía. */
+.hand-fan .card {
+  pointer-events: auto;
+}
+
+/* El giro sale del componente, que lo reparte alrededor del centro. El
+   origen va en el borde inferior izquierdo: es el punto por donde se
+   sujeta un abanico, y rotando desde el centro las cartas se separarían
+   en vez de abrirse. */
+.hand-fan .card {
+  transform-origin: 0% 100%;
+  transform: rotate(var(--giro, 0deg));
+  /* Solape: en un abanico las cartas se tapan. Sin esto sería una lista
+     inclinada. */
+  margin-top: calc(var(--card-w) * 1.4 * var(--solape, 0.42) * -1);
+  transition: transform 0.18s, box-shadow 0.18s, margin 0.18s;
+}
+
+/* La de arriba se despega al pasarle por encima, para poder leerla sin
+   sacarla del abanico. */
+.hand-fan .card:hover:not(.no-jugable) {
+  transform: rotate(var(--giro, 0deg)) translateX(0.6rem) scale(1.06);
+  box-shadow: 0 0 0 3px #fff, 0 0.8rem 1.4rem rgba(0, 0, 0, 0.65);
+}
+
+/* Fuera de turno siguen a la vista —saber qué tenés es parte del juego—
+   pero no se pueden soltar. */
+.hand-fan .card.no-jugable {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Mantener apretado la muestra grande y centrada. Sin fondo oscuro: es una
+   mirada rápida, no una pantalla aparte, y tapar la mesa haría perder de
+   vista el turno. */
+.card-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  animation: preview-in 0.16s ease-out;
+}
+
+.card-preview .card {
+  --card-w: clamp(11rem, 34vmin, 18rem);
+  cursor: default;
+  box-shadow: 0 0 0 3px #fff, 0 2rem 4rem rgba(0, 0, 0, 0.75);
+}
+
+@keyframes preview-in {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-preview { animation: none; }
+  .hand-fan .card { transition: none; }
+}
+
+/* En pantallas angostas el abanico se acuesta abajo: al costado le comería
+   la mitad del ancho a la mesa. */
+@media (max-width: 620px) {
+  .hand-fan {
+    position: static;
+    transform: translateY(var(--ui-shift));
+    grid-area: hand;
+    justify-self: center;
+    flex-direction: row;
+    align-items: flex-end;
+    margin-top: clamp(0.6rem, 1.6vh, 1.2rem);
+  }
+  .hand-fan .card {
+    transform-origin: 50% 100%;
+    margin-top: 0;
+    margin-left: calc(var(--card-w) * var(--solape, 0.42) * -1);
+  }
+  .hand-fan .card:first-child { margin-left: 0; }
 }
 
 .card {
@@ -1197,7 +1287,7 @@ body {
 }
 @media (max-height: 620px) {
   .card { --card-w: clamp(2.8rem, 6.5vh, 4.2rem); }
-  .hand-row { gap: clamp(0.5rem, 2vw, 1rem); }
+  .hand-fan .card { --card-w: clamp(3rem, 7vh, 4.4rem); }
 }
 
 /* La carta jugada descansa sobre el fieltro, boca abajo, hasta que el que
@@ -1472,7 +1562,7 @@ body {
     gap: clamp(1.6rem, 3vw, 3.2rem);
   }
   /* El gap grande de este layout ya separa la mano de la mesa. */
-  .hand-row { margin-top: 0; }
+  /* El abanico va fijo al costado: el gap de este layout no lo afecta. */
   /* room to breathe: the numbers go back under the drawing */
   .fighter,
   .fighter.f2 {
