@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   GOAL,
   CARD,
@@ -62,12 +62,18 @@ function Carta({ tipo, value }) {
 }
 
 export default function RulesModal({ abierta, onClose }) {
+  /* Igual que en la entrega de cartas: onClose llega como función nueva en
+     cada pintado del padre. Acá sólo costaba re-registrar el listener en
+     vano, pero es el mismo patrón y conviene que no se repita. */
+  const cerrar = useRef(onClose);
+  cerrar.current = onClose;
+
   useEffect(() => {
     if (!abierta) return;
-    const alTeclear = (e) => e.key === "Escape" && onClose();
+    const alTeclear = (e) => e.key === "Escape" && cerrar.current();
     window.addEventListener("keydown", alTeclear);
     return () => window.removeEventListener("keydown", alTeclear);
-  }, [abierta, onClose]);
+  }, [abierta]);
 
   const robos = STEAL_VALUES.map((v) => `−${v}`).join(", ");
   const mayor = STEAL_VALUES[STEAL_VALUES.length - 1];

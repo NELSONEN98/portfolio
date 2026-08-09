@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CardFace } from "./Hand";
 
 /* La carta que entrega una casilla de bonus: aparece grande en el medio,
@@ -18,18 +18,29 @@ const VIAJE_MS = 520;
 export default function CardGained({ carta, onDone }) {
   const [fase, setFase] = useState("entra");
 
+  /* onDone queda en una referencia y fuera de las dependencias.
+     Llega como función nueva en cada pintado del padre, y el padre se
+     vuelve a pintar cada dos segundos por el sondeo de la sala: teniéndola
+     como dependencia, el efecto se reiniciaba solo, cancelaba sus propios
+     temporizadores y la carta se quedaba clavada en el primer paso sin
+     llegar nunca a viajar. */
+  const terminar = useRef(onDone);
+  terminar.current = onDone;
+
   useEffect(() => {
     if (!carta) return;
     setFase("entra");
 
     const a = setTimeout(() => setFase("viaja"), LECTURA_MS);
-    const b = setTimeout(() => onDone?.(), LECTURA_MS + VIAJE_MS);
+    const b = setTimeout(() => terminar.current?.(), LECTURA_MS + VIAJE_MS);
 
     return () => {
       clearTimeout(a);
       clearTimeout(b);
     };
-  }, [carta, onDone]);
+    /* Sólo la carta reinicia la secuencia: es lo único que significa "hay
+       una entrega nueva que mostrar". */
+  }, [carta]);
 
   if (!carta) return null;
 
