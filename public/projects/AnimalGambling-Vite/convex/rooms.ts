@@ -275,8 +275,14 @@ export const rollDice = mutation({
     const outcome = resolveRoll(rand, cursed, mine.doubleNext);
 
     /* La ficha avanza aunque el turno se queme: el 1 te saca lo acumulado,
-       no te devuelve al casillero anterior. */
-    const steps = outcome.isBust ? outcome.dice.length : outcome.gained;
+       no te devuelve al casillero anterior.
+
+       Avanza la SUMA DE LOS DADOS y no los puntos ganados: `gained`
+       descarta los que salieron 1, así que con la carta de dos dados un
+       [1,5] mostraba 6 en pantalla y movía 5. El puntaje sigue su regla;
+       el tablero es posición física y tiene que coincidir con lo que se ve.
+       Tiene que ser idéntico al cliente o las dos fichas se separan. */
+    const steps = outcome.dice.reduce((a, b) => a + b, 0);
     const pos = advance(mine.pos, steps);
     const square = squareAt(room.board as any, pos);
 

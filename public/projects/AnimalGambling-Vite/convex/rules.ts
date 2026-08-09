@@ -72,11 +72,36 @@ export function randomStealValue(rand: () => number): number {
 }
 
 export const CARD_LABEL: Record<CardType, string> = {
-  steal: "ROBO",
+  steal: "ROBAR",
   defense: "DEFENSA",
   curse: "MALDICIÓN",
   double: "DOS DADOS",
 };
+
+/* Qué hace la carta, en una línea.
+ *
+ * Vive acá y no en el componente que la muestra porque los números que
+ * cita —cuánto roba, cuántos turnos dura la maldición, hasta dónde limita
+ * el dado— son las constantes de arriba. Escrito en la pantalla, el día
+ * que se toque el balance el texto seguiría diciendo lo viejo, y una
+ * explicación que miente es peor que no tener ninguna.
+ *
+ * En una línea a propósito: se lee mientras se mantiene la carta apretada,
+ * con el pulgar encima y en medio del turno. Lo largo va en las reglas. */
+export function cardHint(card: Card): string {
+  switch (card.type) {
+    case CARD.STEAL:
+      return `Le saca ${card.value} puntos al rival y te los suma`;
+    case CARD.DEFENSE:
+      return "Se gasta sola cuando te atacan y anula el golpe";
+    case CARD.CURSE:
+      return `${CURSE_TURNS} turnos: el dado del rival no pasa de ${CURSED_MAX_ROLL}`;
+    case CARD.DOUBLE:
+      return "Tirás con dos dados y se suman los dos";
+    default:
+      return "";
+  }
+}
 
 /* ============================================
    TABLERO
