@@ -47,6 +47,8 @@ export default function VersusScreen({
           jugador={p}
           lado={i}
           activo={playing && i === active}
+          /* Sólo la del rival: la propia ya está en el abanico de abajo. */
+          mostrarMano={online && i !== miLado}
         />
       ))}
 

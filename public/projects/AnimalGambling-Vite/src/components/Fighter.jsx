@@ -1,4 +1,5 @@
 import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
+import RivalHand from "./RivalHand";
 
 /* Un peleador: el dibujo, el nombre y sus dos números.
  *
@@ -7,7 +8,7 @@ import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
  * el que espera, morado el maldito. Con el color atado a la posición, en
  * online te cambiaba según hubieras creado la sala o entrado.
  */
-export default function Fighter({ jugador, lado, activo, ganador, perdedor }) {
+export default function Fighter({ jugador, lado, activo, ganador, perdedor, mostrarMano }) {
   const score = useAnimatedNumber(jugador?.score ?? 0);
   const current = useAnimatedNumber(jugador?.current ?? 0);
 
@@ -32,6 +33,13 @@ export default function Fighter({ jugador, lado, activo, ganador, perdedor }) {
         <div className="fighter-art boil" data-cat={jugador.char.id} />
         <div className="f-name">{jugador.char.name}</div>
       </div>
+
+      {/* Fuera del marco: ese recorta lo que se sale (overflow hidden) para
+          que el dibujo no desborde el papel, y adentro la mano del rival
+          quedaba cortada por completo. */}
+      {mostrarMano && (
+        <RivalHand cantidad={jugador.hand?.length ?? 0} lado={lado} />
+      )}
 
       <div className="fighter-readout">
         <div className="score-row">

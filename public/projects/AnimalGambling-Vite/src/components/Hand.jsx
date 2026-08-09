@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CARD, CARD_LABEL } from "../../convex/rules";
 import { CARD_ICON } from "./icons";
 
@@ -47,10 +47,48 @@ const SOLAPE = 0.42;
    levantaría la vista previa y jugar se volvería incómodo. */
 const MANTENER_MS = 260;
 
+/* Los tres tiempos de recibir una carta: entra desde abajo, el abanico se
+   abre para hacerle lugar, y vuelve a cerrarse. Separados porque cada uno
+   dura distinto y el del medio tiene que alcanzar a verse. */
+const ENTRADA_MS = 420;
+const ABIERTO_MS = 520;
+
 export default function Hand({ cartas = [], habilitada, onPlay }) {
   const [preview, setPreview] = useState(null);
   const timer = useRef(null);
   const fuePreview = useRef(false);
+
+  /* Qué está pasando con la mano: "entrando" mientras la carta nueva sube,
+     "abierto" mientras el abanico le hace lugar. */
+  const [fase, setFase] = useState(null);
+  const [nuevaUid, setNuevaUid] = useState(null);
+  const [saliendo, setSaliendo] = useState(null);
+  const anterior = useRef(cartas.map((c) => c.uid));
+
+  useEffect(() => {
+    const ahora = cartas.map((c) => c.uid);
+    const antes = anterior.current;
+    anterior.current = ahora;
+
+    const sumadas = ahora.filter((u) => !antes.includes(u));
+    if (!sumadas.length) return;
+
+    /* La última que llegó es la que se anima; si entraran dos juntas, la
+       secuencia se vería igual y no vale complicarla. */
+    setNuevaUid(sumadas[sumadas.length - 1]);
+    setFase("entrando");
+
+    const a = setTimeout(() => setFase("abierto"), ENTRADA_MS);
+    const b = setTimeout(() => {
+      setFase(null);
+      setNuevaUid(null);
+    }, ENTRADA_MS + ABIERTO_MS);
+
+    return () => {
+      clearTimeout(a);
+      clearTimeout(b);
+    };
+  }, [cartas]);
 
   const soltar = useCallback(() => {
     clearTimeout(timer.current);
@@ -72,7 +110,14 @@ export default function Hand({ cartas = [], habilitada, onPlay }) {
       setPreview(null);
       // Sólo el toque corto juega; el largo era para mirarla.
       if (!fuePreview.current && habilitada && carta.type !== CARD.DEFENSE) {
-        onPlay(carta.uid);
+        /* Se marca como saliendo antes de avisar: la carta se va hacia
+           arriba y recién después desaparece de la mano. Jugándola de una,
+           el movimiento no se vería nunca. */
+        setSaliendo(carta.uid);
+        setTimeout(() => {
+          setSaliendo(null);
+          onPlay(carta.uid);
+        }, 260);
       }
       fuePreview.current = false;
     },
@@ -81,7 +126,7 @@ export default function Hand({ cartas = [], habilitada, onPlay }) {
 
   return (
     <>
-      <div className="hand-fan" aria-label="Tus cartas">
+      <div className={`hand-fan${fase ? ` ${fase}` : ""}`} aria-label="Tus cartas">
         {cartas.map((c, i) => {
           /* La defensa se muestra pero no se puede soltar: se gasta sola
              cuando te atacan, y jugarla sería tirarla. */
@@ -89,7 +134,15 @@ export default function Hand({ cartas = [], habilitada, onPlay }) {
           return (
             <button
               key={c.uid}
-              className={`card ${c.type}${jugable ? "" : " no-jugable"}`}
+              className={[
+                "card",
+                c.type,
+                jugable ? "" : "no-jugable",
+                c.uid === nuevaUid ? "recien-llegada" : "",
+                c.uid === saliendo ? "lanzada" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               style={{
                 "--giro": `${anguloDe(i, cartas.length)}deg`,
                 "--solape": SOLAPE,
