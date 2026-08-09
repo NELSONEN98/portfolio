@@ -1,4 +1,5 @@
-import { BOARD_COLS as COLS, BOARD_ROWS as ROWS, BOARD_SIZE } from "../../convex/rules";
+import { useEffect, useRef, useState } from "react";
+import { BOARD_COLS as COLS, BOARD_ROWS as ROWS, BOARD_SIZE, SQUARE } from "../../convex/rules";
 import { SQUARE_ICON } from "./icons";
 
 /* El camino es el borde de una grilla de COLS×ROWS, y ese tamaño no es
@@ -31,11 +32,60 @@ function cellCenter(i) {
   };
 }
 
-function Token({ side, pos }) {
-  return <span className={`token p${side + 1}`} style={cellCenter(pos)} />;
-}
+/* Cuánto dura el aterrizaje. Arranca cuando la ficha llegó, no cuando
+   salió: la transición de posición dura 0.45s en el CSS. */
+const VIAJE_MS = 450;
+const IMPACTO_MS = 900;
 
 export default function Board({ board, players }) {
+  /* Dónde y de qué tipo fue el último impacto. Sólo las casillas que hacen
+     algo se anuncian: encender también las vacías volvería el aviso ruido
+     de fondo y dejaría de significar nada. */
+  const [impacto, setImpacto] = useState(null);
+  const [aterrizando, setAterrizando] = useState([false, false]);
+  const posPrevia = useRef(players.map((p) => p?.pos ?? 0));
+
+  useEffect(() => {
+    const previas = posPrevia.current;
+    posPrevia.current = players.map((p) => p?.pos ?? 0);
+
+    players.forEach((p, i) => {
+      if (!p || p.pos === previas[i]) return;
+
+      // La ficha rebota al frenar, haya caído donde haya caído.
+      setTimeout(() => {
+        setAterrizando((prev) => {
+          const s = [...prev];
+          s[i] = true;
+          return s;
+        });
+        setTimeout(
+          () =>
+            setAterrizando((prev) => {
+              const s = [...prev];
+              s[i] = false;
+              return s;
+            }),
+          420
+        );
+      }, VIAJE_MS);
+
+      const tipo = board[p.pos];
+      if (tipo && tipo !== SQUARE.PLAIN) {
+        /* La marca lleva una clave propia: dos caídas seguidas en la misma
+           casilla tienen que reiniciar la animación, y sin algo que cambie
+           React reusaría el nodo y no se vería la segunda. */
+        setTimeout(() => setImpacto({ pos: p.pos, tipo, key: Date.now() }), VIAJE_MS);
+      }
+    });
+  }, [players, board]);
+
+  useEffect(() => {
+    if (!impacto) return;
+    const t = setTimeout(() => setImpacto(null), IMPACTO_MS);
+    return () => clearTimeout(t);
+  }, [impacto]);
+
   return (
     <div
       className="board-track"
@@ -48,10 +98,11 @@ export default function Board({ board, players }) {
       {board.map((tipo, i) => {
         const { col, row } = squareCell(i);
         const Icono = SQUARE_ICON[tipo];
+        const golpeada = impacto?.pos === i;
         return (
           <span
-            key={i}
-            className={`square ${tipo}`}
+            key={golpeada ? `${i}-${impacto.key}` : i}
+            className={`square ${tipo}${golpeada ? " impacto" : ""}`}
             style={{ gridColumn: col, gridRow: row }}
           >
             {Icono ? <Icono /> : null}
@@ -59,8 +110,24 @@ export default function Board({ board, players }) {
         );
       })}
 
+      {/* El destello sale de la casilla hacia afuera: es lo que conecta el
+          lugar donde cayó la ficha con el número que se mueve. */}
+      {impacto && (
+        <span
+          key={impacto.key}
+          className={`impacto-onda ${impacto.tipo}`}
+          style={cellCenter(impacto.pos)}
+        />
+      )}
+
       {players.map((p, i) =>
-        p ? <Token key={i} side={i} pos={p.pos ?? 0} /> : null
+        p ? (
+          <span
+            key={i}
+            className={`token p${i + 1}${aterrizando[i] ? " aterriza" : ""}`}
+            style={cellCenter(p.pos ?? 0)}
+          />
+        ) : null
       )}
     </div>
   );
