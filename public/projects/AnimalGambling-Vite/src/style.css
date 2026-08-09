@@ -924,11 +924,11 @@ body {
   margin-block: var(--table-gap);
   /* Más alta que el 2:1 original: el camino necesita franja propia arriba
      y abajo sin encimarse con el dado del centro.
-     El 5:4 acompaña a la grilla de 9×8 que forma el camino — con la mesa
-     más chata las casillas de los costados quedaban aplastadas. El techo
-     en dvh baja otra vez para compensar el alto que gana. */
-  width: min(100%, 79.2rem, 40dvh);
-  aspect-ratio: 5 / 4;
+     El 11:8 sale de la grilla del camino: con esa proporción las casillas
+     quedan cuadradas en vez de estiradas. Al ensancharse gana menos alto
+     que antes, así que el techo en dvh puede subir de nuevo. */
+  width: min(100%, 79.2rem, 46dvh);
+  aspect-ratio: 11 / 8;
   padding: clamp(0.7rem, 1.8vmin, 1.6rem);
   border-radius: clamp(1rem, 2.4vmin, 1.8rem);
   background: linear-gradient(145deg, #5a2e18, #2a120a 42%, #4a2414 72%, #1c0c06);
@@ -1026,7 +1026,7 @@ body {
    un grid: el recorrido es circular y un grid de 24 celdas obligaría a
    inventar celdas vacías en el medio. */
 /* El recorrido va sobre el fieltro, corrido hacia adentro para no pegarse
-   al filo. Es el borde de una grilla de 9×8: 2·9 + 2·8 − 4 = 30 celdas,
+   al filo. Es el borde de una grilla de 11×8: 2·11 + 2·8 − 4 = 34 celdas,
    justo las casillas del camino. Las del medio quedan vacías y ahí cae el
    dado. El tamaño lo fijan BOARD_COLS y BOARD_ROWS en convex/rules.ts —
    estos dos números tienen que seguirlos. */
@@ -1037,7 +1037,7 @@ body {
   z-index: 3;
 
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
+  grid-template-columns: repeat(11, 1fr);
   grid-template-rows: repeat(8, 1fr);
   gap: 2px;
 }
@@ -1426,10 +1426,10 @@ body {
    Sin esta condición, cualquier laptop de menos de 800px de alto anulaba
    el tamaño del abanico y las cartas se veían chicas. */
 @media (max-height: 800px) and (max-width: 560px) {
-  .card { --card-w: clamp(3.4rem, 8vh, 5.4rem); }
+  .card { --card-w: clamp(4.4rem, 10.4vh, 7rem); }
 }
 @media (max-height: 620px) and (max-width: 560px) {
-  .card { --card-w: clamp(2.8rem, 6.5vh, 4.2rem); }
+  .card { --card-w: clamp(3.6rem, 8.5vh, 5.5rem); }
 }
 
 /* La carta puesta sobre el fieltro sí depende del alto de la mesa. */
@@ -1829,6 +1829,28 @@ body {
   transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
   image-rendering: auto;
   flex: none;
+}
+
+/* Cuando se puede tirar, el dado invita: cambia el cursor y se levanta un
+   poco al pasarle por encima. Sin esa señal nadie descubre que se puede
+   tocar, y el botón de abajo seguiría siendo la única vía. */
+.dice-pair.tirable {
+  cursor: pointer;
+}
+/* El realce va en el contenedor y no en el cubo: el cubo lleva su propio
+   transform para dejar la cara correcta al frente, y tocarlo desde el
+   hover le cambiaría el número a la vista. */
+.dice-pair {
+  transition: transform 0.18s, filter 0.18s;
+}
+.dice-pair.tirable:hover {
+  transform: scale(1.07);
+  filter: drop-shadow(0 0 1.2rem rgba(228, 167, 0, 0.55));
+}
+.dice-pair.tirable:focus-visible {
+  outline: 2px solid var(--c-gold);
+  outline-offset: 0.8rem;
+  border-radius: 0.6rem;
 }
 
 /* Con dos en pantalla se achican para que el par entre en el mismo ancho

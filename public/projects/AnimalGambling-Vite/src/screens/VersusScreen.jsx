@@ -60,7 +60,13 @@ export default function VersusScreen({
             <div className="pool-goal">
               primero a <span className="num">{goal}</span>
             </div>
-            <Dice tirada={tirada} dobles={dobles} onSettle={onSettleRoll} />
+            <Dice
+              tirada={tirada}
+              dobles={dobles}
+              onSettle={onSettleRoll}
+              onRoll={onRoll}
+              puedeTirar={puedeActuar}
+            />
             <div className="snake-eyes-warning">× TE QUEMASTE ×</div>
           </div>
 

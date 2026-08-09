@@ -44,7 +44,7 @@ function Cubo({ valor, girando, muerto }) {
 /* `tirada` es null cuando no hay nada en el aire. `dobles` decide si se ve
    el segundo dado: se muestra al jugar la carta, no al tirar, porque ver
    aparecer el segundo es la única confirmación de que la carta hizo algo. */
-export default function Dice({ tirada, dobles, onSettle }) {
+export default function Dice({ tirada, dobles, onSettle, onRoll, puedeTirar }) {
   const [girando, setGirando] = useState(false);
   const [caras, setCaras] = useState([6]);
   const settle = useRef(onSettle);
@@ -65,8 +65,26 @@ export default function Dice({ tirada, dobles, onSettle }) {
 
   const cuantos = dobles || (tirada?.dice.length ?? caras.length) > 1 ? 2 : 1;
 
+  /* Tocar el dado también tira: es el gesto que la mesa sugiere, y en el
+     teléfono queda más a mano que el botón de abajo. Mientras gira no
+     acepta toques, o una segunda tirada pisaría a la que está en el aire. */
+  const tirable = puedeTirar && !girando;
+
   return (
-    <div className={`dice-pair${cuantos > 1 ? " double" : ""}`}>
+    <div
+      className={`dice-pair${cuantos > 1 ? " double" : ""}${tirable ? " tirable" : ""}`}
+      onClick={tirable ? onRoll : undefined}
+      role={tirable ? "button" : undefined}
+      tabIndex={tirable ? 0 : undefined}
+      aria-label={tirable ? "Tirar el dado" : undefined}
+      onKeyDown={(e) => {
+        if (!tirable) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onRoll();
+        }
+      }}
+    >
       {Array.from({ length: cuantos }, (_, i) => (
         <Cubo
           key={i}
