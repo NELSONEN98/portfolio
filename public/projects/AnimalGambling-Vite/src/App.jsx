@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useGame, newPlayer } from "./hooks/useGame";
 import { useRouter } from "./hooks/useRouter";
-import { useToasts } from "./hooks/useToasts";
-import { ROSTER, warmRosterFrames } from "./roster";
+import { useToasts, errorText } from "./hooks/useToasts";
+import { useOnlineRoom } from "./hooks/useOnlineRoom";
+import { ROSTER, charFromCatId, warmRosterFrames } from "./roster";
 
 import Preloader from "./components/Preloader";
 import Toasts from "./components/Toasts";
@@ -39,6 +40,7 @@ const MENSAJES = {
 
 export default function App() {
   const juego = useGame();
+  const sala = useOnlineRoom();
   const { toasts, notify, dismiss } = useToasts();
 
   const [modo, setModo] = useState("local");
@@ -46,6 +48,7 @@ export default function App() {
   const [tirada, setTirada] = useState(null);
   const [revelada, setRevelada] = useState(null);
   const [reglasAbiertas, setReglasAbiertas] = useState(false);
+  const [esperandoRival, setEsperandoRival] = useState(false);
 
   const online = modo === "online";
 
@@ -90,6 +93,70 @@ export default function App() {
     if (juego.finished) go("gameover");
   }, [juego.finished, go]);
 
+  /* En online el servidor es la autoridad: el estado local se sobreescribe
+     con lo que trae la sala. Predecirlo de este lado sería adivinar el
+     azar, y las dos pantallas terminarían mostrando cosas distintas. */
+  useEffect(() => {
+    const r = sala.room;
+    if (!online || !r) return;
+
+    if (Array.isArray(r.board) && r.board.length) juego.setBoard(r.board);
+    if (typeof r.goal === "number") juego.setGoal(r.goal);
+    juego.setMiLado(sala.miLado);
+
+    const lados = [r.player1, r.player2];
+    juego.setPlayers((prev) =>
+      lados.map((lado, i) => {
+        if (!lado) return prev[i];
+        const base = prev[i] ?? newPlayer(charFromCatId(lado.catId) ?? ROSTER[i]);
+        const personaje = charFromCatId(lado.catId);
+        return {
+          ...base,
+          char: personaje ?? base.char,
+          score: lado.score,
+          current: lado.current,
+          pos: lado.pos ?? 0,
+          hand: lado.hand ?? [],
+          /* Se acepta el campo viejo de una sola carta por las salas que
+             quedaron abiertas de la versión anterior. */
+          pendingCards: lado.pendingCards ?? (lado.pendingCard ? [lado.pendingCard] : []),
+          curseTurns: lado.curseTurns ?? 0,
+          doubleNext: Boolean(lado.doubleNext),
+        };
+      })
+    );
+
+    juego.setActive(r.turn === "player1" ? 0 : 1);
+
+    if (r.status === "finished" && !juego.finished) {
+      if (r.endedByAbandon) notify("Tu rival se levantó de la mesa");
+      juego.setFinished(true);
+    }
+  }, [sala.room, sala.miLado, online, juego, notify]);
+
+  /* Lo que hizo el rival. El sondeo trae el hecho; acá se decide cómo se
+     ve: la tirada se anima, la carta se da vuelta. */
+  useEffect(() => {
+    const ev = sala.novedad;
+    if (!ev) return;
+    sala.consumirNovedad();
+
+    if (ev.action === "roll") {
+      const dados = Array.isArray(ev.payload?.dice) ? ev.payload.dice : [ev.payload?.roll];
+      setTirada({ dice: dados, isBust: Boolean(ev.payload?.isBust), gained: 0 });
+      return;
+    }
+    if (ev.action === "hold" || ev.action === "hold_and_win") {
+      (ev.payload?.resolved ?? []).forEach((r, i) => {
+        // De a una y con pausa: juntas no se sabría cuál hizo qué.
+        setTimeout(
+          () => setRevelada({ carta: { type: r.type, value: r.value }, bloqueada: r.blocked }),
+          i * 900
+        );
+      });
+    }
+  }, [sala]);
+
   const elegir = (i) => {
     setElegidos(([p1, p2]) => {
       if (online) return [i, null];
@@ -99,40 +166,150 @@ export default function App() {
     });
   };
 
-  const jugar = () => {
+  const jugar = async () => {
     const [p1, p2] = elegidos;
-    juego.start(newPlayer(ROSTER[p1]), newPlayer(ROSTER[p2 ?? (p1 + 1) % ROSTER.length]));
-    go("game");
+
+    if (!online) {
+      juego.start(newPlayer(ROSTER[p1]), newPlayer(ROSTER[p2 ?? (p1 + 1) % ROSTER.length]));
+      go("game");
+      return;
+    }
+
+    /* La mesa no se abre hasta que los dos eligieron: si no, el primero
+       entraba a jugar contra un placeholder mientras el otro seguía
+       eligiendo. */
+    setEsperandoRival(true);
+    try {
+      const pick = ROSTER[p1];
+      await sala.setCharacter(sala.roomId, pick.name, pick.id);
+    } catch (e) {
+      setEsperandoRival(false);
+      notify(errorText(e), "error");
+    }
   };
 
-  const tirar = () => {
-    const t = juego.roll();
-    if (t) setTirada(t);
+  /* Los dos ya eligieron: recién ahí arranca la partida. Se mira la sala en
+     vez de esperar un aviso porque el sondeo ya la trae. */
+  useEffect(() => {
+    if (!online || !esperandoRival) return;
+    const r = sala.room;
+    if (!r?.player1?.catId || !r?.player2?.catId) return;
+    setEsperandoRival(false);
+    juego.setPlaying(true);
+    juego.setFinished(false);
+    go("game");
+  }, [online, esperandoRival, sala.room, juego, go]);
+
+  const crearSala = async () => {
+    try {
+      await sala.crear();
+      notify("Sala creada — pasale el código a tu rival");
+    } catch (e) {
+      notify(errorText(e), "error");
+    }
+  };
+
+  const unirseASala = async (codigo) => {
+    if (!codigo) {
+      notify("Pegá el código de la sala", "error");
+      return;
+    }
+    try {
+      await sala.unirse(codigo);
+      go("select");
+    } catch (e) {
+      notify(errorText(e), "error");
+    }
+  };
+
+  /* El que creó ve la pantalla de espera hasta que alguien entra. */
+  useEffect(() => {
+    if (!online || screen !== "room-choice") return;
+    if (sala.room?.status === "playing") {
+      notify("Tu rival entró — elegí tu gato");
+      go("select");
+    }
+  }, [online, screen, sala.room, go, notify]);
+
+  const tirar = async () => {
+    if (!online) {
+      const t = juego.roll();
+      if (t) setTirada(t);
+      return;
+    }
+    juego.setRolling(true);
+    try {
+      const r = await sala.rollDice(sala.roomId);
+      setTirada({ dice: r.dice, isBust: r.isBust, gained: r.gained ?? 0 });
+    } catch (e) {
+      juego.setRolling(false);
+      notify(errorText(e), "error");
+    }
   };
 
   /* El estado cambia recién cuando el dado frenó: si se aplicara al pedir
      la tirada, el marcador se movería antes de que se vea la cara. */
   const alFrenar = (t) => {
-    juego.settleRoll(t);
     setTirada(null);
+    /* En online el estado ya lo aplicó el servidor y llega por el sondeo:
+       tocarlo acá además sería contar la jugada dos veces. */
+    if (online) {
+      juego.setRolling(false);
+      return;
+    }
+    juego.settleRoll(t);
     if (t.isBust) setTimeout(juego.endTurn, 900);
     else juego.setRolling(false);
   };
 
-  const plantarse = () => {
-    const { gano } = juego.hold();
-    if (!gano) juego.endTurn();
+  const plantarse = async () => {
+    if (!online) {
+      const { gano } = juego.hold();
+      if (!gano) juego.endTurn();
+      return;
+    }
+    try {
+      const r = await sala.holdScore(sala.roomId);
+      (r.resolved ?? []).forEach((x, i) => {
+        setTimeout(
+          () => setRevelada({ carta: { type: x.type, value: x.value }, bloqueada: x.blocked }),
+          i * 900
+        );
+      });
+    } catch (e) {
+      notify(errorText(e), "error");
+    }
+  };
+
+  const jugarCarta = async (uid) => {
+    if (!online) {
+      juego.playCard(uid);
+      return;
+    }
+    try {
+      await sala.playCard(sala.roomId, uid);
+    } catch (e) {
+      notify(errorText(e), "error");
+    }
   };
 
   const volverAlMenu = () => {
     juego.setPlaying(false);
     juego.setFinished(false);
     setElegidos([null, null]);
+    setEsperandoRival(false);
+    // Soltar la sala: sin esto queda viva hasta que vence.
+    if (online) sala.salir();
     go("menu");
   };
 
   const yo = online ? juego.players[juego.miLado] : juego.players[juego.active];
-  const ganadorIdx = juego.players[0]?.score >= (juego.players[1]?.score ?? 0) ? 0 : 1;
+  /* En online el ganador lo declara el backend: deducirlo por puntaje se
+     equivoca justo en el abandono, donde el que se queda suele ir
+     perdiendo. */
+  const ganadorIdx = online
+    ? sala.room?.winner === "player2" ? 1 : 0
+    : juego.players[0]?.score >= (juego.players[1]?.score ?? 0) ? 0 : 1;
 
   return (
     <>
@@ -159,11 +336,11 @@ export default function App() {
 
         {screen === "room-choice" && (
           <RoomChoiceScreen
-            codigo={null}
-            onCreate={() => notify("El online se conecta en el paso siguiente")}
-            onJoin={() => notify("El online se conecta en el paso siguiente")}
-            onCancel={() => go("menu")}
-            onBack={() => go("menu")}
+            codigo={sala.roomId}
+            onCreate={crearSala}
+            onJoin={unirseASala}
+            onCancel={volverAlMenu}
+            onBack={volverAlMenu}
           />
         )}
 
@@ -171,10 +348,10 @@ export default function App() {
           <SelectScreen
             online={online}
             elegidos={elegidos}
-            esperando={false}
+            esperando={esperandoRival}
             onPick={elegir}
             onPlay={jugar}
-            onBack={() => go("menu")}
+            onBack={volverAlMenu}
           />
         )}
 
@@ -193,7 +370,7 @@ export default function App() {
             miLado={juego.miLado}
             onRoll={tirar}
             onHold={plantarse}
-            onPlayCard={juego.playCard}
+            onPlayCard={jugarCarta}
             onSettleRoll={alFrenar}
           />
         )}
@@ -202,7 +379,7 @@ export default function App() {
           <GameOverScreen
             ganador={juego.players[ganadorIdx]}
             perdedor={juego.players[ganadorIdx === 0 ? 1 : 0]}
-            porAbandono={false}
+            porAbandono={Boolean(sala.room?.endedByAbandon)}
             online={online}
             onRematch={jugar}
             onExit={volverAlMenu}
