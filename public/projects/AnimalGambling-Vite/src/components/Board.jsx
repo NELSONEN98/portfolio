@@ -49,6 +49,7 @@ const PASO_MS = ms("tablero.pasoFicha");
 const VIAJE_MAX_MS = ms("tablero.viajeMaximo");
 const REBOTE_MS = ms("tablero.aterriza");
 const IMPACTO_MS = ms("tablero.casillaGolpe");
+const PISADA_MS = ms("tablero.pisada");
 
 /* Cuánto dura cada paso de un recorrido de N casillas. Las tiradas cortas
    van al ritmo natural; las largas aceleran para no pasarse del techo. */
@@ -62,6 +63,10 @@ export default function Board({ board, players, onLlegada, retrasoCasilla = 0 })
      de fondo y dejaría de significar nada. */
   const [impacto, setImpacto] = useState(null);
   const [aterrizando, setAterrizando] = useState([false, false]);
+  /* Las casillas que la ficha viene pisando, con una clave por pisada. Es
+     la estela del recorrido: sin ella, con el paso lento la ficha parecía
+     deslizarse por encima del dibujo en vez de ir tocando casillas. */
+  const [pisadas, setPisadas] = useState({});
 
   /* Dónde se DIBUJA cada ficha, que mientras camina no es dónde está en la
      partida: el estado del juego salta a la casilla final de una, y esto
@@ -145,6 +150,21 @@ export default function Board({ board, players, onLlegada, retrasoCasilla = 0 })
               s[i] = casilla;
               return s;
             });
+
+            /* La casilla acusa el paso de la ficha. La clave es un número
+               que sube: dos vueltas seguidas pisan las mismas casillas, y
+               sin algo que cambie React reusaría el nodo y la segunda no se
+               vería animar. */
+            setPisadas((prev) => ({ ...prev, [casilla]: (prev[casilla] ?? 0) + 1 }));
+            timers.current[i].push(
+              setTimeout(() => {
+                setPisadas((prev) => {
+                  const s = { ...prev };
+                  delete s[casilla];
+                  return s;
+                });
+              }, PISADA_MS)
+            );
           }, n * paso)
         );
       }
@@ -227,7 +247,18 @@ export default function Board({ board, players, onLlegada, retrasoCasilla = 0 })
         gridTemplateRows: `repeat(${ROWS}, 1fr)`,
       }}
     >
-      {board.map((tipo, i) => {
+      {/* El camino se dibuja SIEMPRE entero, a partir de la geometría, y no
+          una casilla por cada elemento del tablero recibido.
+
+          Los dos números coinciden mientras el tablero venga de estas mismas
+          constantes, pero no siempre vienen de acá: en online lo genera el
+          servidor, y una sala creada antes de un cambio de tamaño lo guarda
+          con el anterior. Recorriendo el dato, el camino quedaba cortado —al
+          pasar de 8 a 10 filas faltaba media columna izquierda, que son
+          justo los últimos índices—. Recorriendo la geometría, lo que falta
+          es información de una casilla, no la casilla. */}
+      {Array.from({ length: BOARD_SIZE }, (_, i) => {
+        const tipo = board[i] ?? SQUARE.PLAIN;
         const { col, row } = squareCell(i);
         const Icono = SQUARE_ICON[tipo];
         const golpeada = impacto?.pos === i;
@@ -235,10 +266,13 @@ export default function Board({ board, players, onLlegada, retrasoCasilla = 0 })
            pasar cada vuelta: se marca como meta para que el recorrido tenga
            un principio visible. */
         const esMeta = i === 0;
+        const pisada = pisadas[i];
         return (
           <span
-            key={golpeada ? `${i}-${impacto.key}` : i}
-            className={`square ${tipo}${golpeada ? " impacto" : ""}${esMeta ? " meta" : ""}`}
+            key={golpeada ? `${i}-${impacto.key}` : pisada ? `${i}-p${pisada}` : i}
+            className={`square ${tipo}${golpeada ? " impacto" : ""}${esMeta ? " meta" : ""}${
+              pisada ? " pisada" : ""
+            }`}
             style={{ gridColumn: col, gridRow: row }}
           >
             {Icono ? <Icono /> : null}

@@ -123,7 +123,7 @@ export type SquareType = (typeof SQUARE)[keyof typeof SQUARE];
    El camino es circular, así que no hay meta: se gana por puntos y las
    casillas son lo que le pasa a tu ficha en el camino. */
 export const BOARD_COLS = 11;
-export const BOARD_ROWS = 8;
+export const BOARD_ROWS = 10;
 export const BOARD_SIZE = 2 * BOARD_COLS + 2 * BOARD_ROWS - 4;
 
 /* Sobre 30 casillas. Con seis penitencias se pisaba alguna casi una vez por
