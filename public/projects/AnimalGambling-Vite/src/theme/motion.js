@@ -53,12 +53,15 @@ export const EASE = {
 export const MOTION = {
   // ─── DADO ────────────────────────────────────────────────────────────
   dado: {
+    /* El dado dejó de ser una animación y pasó a ser una simulación: los
+       cubos ruedan con física (src/dice3d/escena.js) y no hay keyframes que
+       ajustar. Estos tiempos siguen mandando igual, pero ahora los consume
+       el bucle de render en vez del CSS. */
     tirada: {
       ms: 700,
       ease: EASE.material,
-      keyframes: "dice-roll",
-      el: ".dice-3d.rolling",
-      nota: "El cubo gira en 3D. El JS espera un poco menos (ver esperaTirada) para que el número ya esté puesto cuando el giro frena.",
+      el: "dice3d/escena.js · rodando",
+      nota: "Referencia de cuánto dura un tiro típico. La física decide el momento exacto: se corrige en cuanto los cubos frenan, con tope en 2600ms por si alguno queda apoyado en una arista.",
     },
     /* No es una animación: es cuánto espera el JS antes de dar la tirada
        por terminada. Va 50ms por debajo del giro a propósito — si
@@ -71,12 +74,16 @@ export const MOTION = {
        la cara aparecería de golpe y se leería como un salto en vez de como
        un dado frenando. */
     giroMinimo: { ms: 220, el: "Dice.jsx" },
+    /* Cuánto tarda el cubo en acomodarse hasta la cara que ya decidió el
+       motor, una vez que la física lo dejó quieto. Es el giro MÍNIMO desde
+       donde haya caído, así que se lee como que termina de asentarse y no
+       como una corrección. */
+    correccion: { ms: 320, ease: EASE.salida, el: "dice3d/escena.js · corrigiendo" },
     dobles: {
       ms: 350,
       ease: EASE.salida,
-      keyframes: "double-on",
-      el: ".dice-pair.double",
-      nota: "Los dos dados se separan cuando entra la carta de doble.",
+      el: "dice3d/escena.js · setCantidad",
+      nota: "Con la carta de doble aparece un segundo cubo en la mesa antes de tirar: verlo esperando es lo que anuncia que la carta está activa.",
     },
     quemado: {
       ms: 1400,
@@ -143,13 +150,26 @@ export const MOTION = {
       el: ".card-cast.vuela .card",
       nota: "Del centro al rival. Acelera: es un golpe.",
     },
-    frenada: {
-      ms: 520,
+    /* La defensa no la frena: la parte. La carta se quiebra por el medio y
+       las dos mitades se van para lados opuestos.
+       Dura más que el vuelo a propósito: un ataque que no llega es la mejor
+       noticia del turno para uno de los dos, y merece que se vea. */
+    rotura: {
+      ms: 560,
       ease: EASE.salida,
-      keyframes: "carta-frenada",
-      el: ".card-cast.bloqueada .card",
-      nota: "Cuando la defensa la para. Dura lo mismo que el vuelo a propósito: el tiempo es igual, lo que cambia es que no llega.",
+      keyframes: "rotura-izq / rotura-der",
+      el: ".card-cast.bloqueada .mitad",
     },
+    /* El sello aparece rebotando mientras la carta se rompe detrás, y se
+       queda un momento antes de irse: es la palabra que explica por qué el
+       ataque no hizo nada. */
+    sello: {
+      ms: 320,
+      ease: EASE.rebote,
+      keyframes: "sello-rebote",
+      el: ".bloqueado-sello",
+    },
+    selloVida: { ms: 1150, el: "CardCast.jsx", nota: "Cuánto queda el sello en pantalla, rebote incluido." },
   },
 
   // ─── CARTAS: BONUS RECIBIDO (CardGained) ─────────────────────────────
@@ -194,14 +214,22 @@ export const MOTION = {
        Curva lineal a propósito: con aceleración, cada casilla frenaría por
        su cuenta y el recorrido se vería a los tirones en vez de continuo.
        El viaje total lo calcula Board.jsx como pasos × esto. */
-    pasoFicha: { ms: 90, ease: EASE.lineal, el: ".token (transition: left/top)" },
+    pasoFicha: { ms: 125, ease: EASE.lineal, el: ".token (transition: left/top)" },
     /* Techo del recorrido completo. Sin él, una tirada de dos dados podía
        caminar doce casillas a 90ms cada una: más de un segundo mirando una
        ficha avanzar, por turno, varias veces por mano. Pasado el techo los
        pasos se acortan y la ficha va más rápido, que es exactamente lo que
        hace la mano de alguien moviendo una ficha lejos en un tablero real.
        Las tiradas cortas no lo alcanzan y conservan su ritmo. */
-    viajeMaximo: { ms: 640, el: "Board.jsx" },
+    viajeMaximo: { ms: 1100, el: "Board.jsx" },
+    /* El destello de cada casilla que la ficha PISA al pasar, no sólo la
+       del final. Deja una estela corta detrás del recorrido: sin ella, con
+       el paso más lento la ficha parecía deslizarse por encima de un dibujo
+       en vez de ir tocando casillas.
+       Dura más que un paso a propósito —así hay siempre dos o tres
+       encendidas— pero poco: si quedaran prendidas todo el trayecto, la
+       estela taparía cuál es la casilla donde terminó. */
+    pisada: { ms: 290, ease: EASE.salida, keyframes: "casilla-pisada", el: ".square.pisada" },
     aterriza: {
       ms: 420,
       ease: EASE.rebote,
@@ -323,6 +351,22 @@ export const MOTION = {
        más rápido que en la decoración de las reglas. */
     fichaEntra: { ms: 400, ease: EASE.salida, keyframes: "chip-in", el: ".chip" },
     fichaEntraReglas: { ms: 500, ease: EASE.salida, keyframes: "chip-in", el: ".rules-overlay.open .rules-chips-deco .chip" },
+  },
+
+  // ─── BOTONES ─────────────────────────────────────────────────────────
+  boton: {
+    /* El resplandor mientras el botón está apretado. Va en bucle y no de
+       una sola pasada: sirve para el toque corto y también para el dedo
+       que se queda apoyado, que es lo que pasa cuando alguien duda antes
+       de plantarse. */
+    destello: {
+      ms: 700,
+      ease: EASE.suave,
+      keyframes: "destello-tirar / destello-plantarse",
+      el: ".btn-accion:active",
+      loop: true,
+      nota: "Cada botón destella de su propio color: dorado el del dado, blanco el de plantarse.",
+    },
   },
 
   // ─── AVISOS ──────────────────────────────────────────────────────────

@@ -231,6 +231,10 @@ export const ESPACIO = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 };
 export const CAPA = {
   ficha: 4,
   cartaMesa: 10,
+  /* La línea del jugador —sus cartas y él— va por encima de la mesa: al
+     arrastrar una carta hacia el tablero tiene que pasar por delante, como
+     si la estuvieras apoyando sobre el fieltro. */
+  lineaJugador: 40,
   particulas: 100,
   cartaAmpliada: 300,
   cartaVolando: 320, // .card-cast y .card-gained: tapan hasta la ampliación

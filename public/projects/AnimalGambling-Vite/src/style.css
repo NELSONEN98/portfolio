@@ -448,12 +448,14 @@ body {
      quedaba con todo el espacio sobrante y, aunque centrada, empujaba a
      los peleadores contra los bordes de la pantalla: el hueco no estaba
      en el padding sino adentro de esa fila. */
-  grid-template-rows: auto auto auto auto auto;
+  grid-template-rows: auto auto auto auto;
+  /* Sin fila para la mano: las cartas viven en la línea de su dueño, así
+     que ese alto —que antes quedaba reservado aunque el abanico estuviera
+     flotando en otro lado— se lo queda la mesa. */
   grid-template-areas:
     "f1"
     "table"
     "f2"
-    "hand"
     "ctrl";
   gap: clamp(0.3rem, 1vh, 0.9rem);
   /* Ahora sobra alto en lugar de repartirse: el bloque entero se centra. */
@@ -489,32 +491,99 @@ body {
   align-items: center;
   gap: clamp(1rem, 3vw, 2.4rem);
   min-width: 0;
-  /* El desplazamiento va acá y no en .fighter-frame: ese ya usa transform
-     para levantarse en su turno y se pisarían. */
-  transform: translateY(var(--ui-shift));
 }
-.fighter.f1 { grid-area: f1; justify-self: start; }
-/* mirrored, so the two readouts sit on opposite sides of the table */
-.fighter.f2 { grid-area: f2; justify-self: end; flex-direction: row-reverse; }
+/* La línea de cada jugador: sus cartas y él, en el mismo renglón.
+   El orden es CARTAS · PUNTAJE · PERSONAJE, y es el MISMO para los dos —no
+   en espejo—. Espejado, el de abajo se leía al revés que el de arriba y
+   había que reinterpretar la fila cada vez que se pasaba de uno al otro;
+   con los dos iguales, la posición de cada dato es siempre la misma. */
+.fighter-linea {
+  /* El desplazamiento va acá y no en .fighter-frame: ese ya usa transform
+     para levantarse en su turno y se pisarían. Y va en la línea y no en el
+     peleador para que las cartas lo acompañen: moviendo uno solo, el
+     abanico se despegaba de su dueño. */
+  transform: translateY(var(--ui-shift));
+
+  /* Por encima de la mesa. Hace falta declararlo acá y no en el abanico
+     porque ese `transform` de arriba crea un contexto de apilamiento: el
+     z-index de las cartas sólo compite DENTRO de esta línea, y contra el
+     fieltro la línea entera se ordena por su posición en el documento —que
+     es antes que la mesa—. Sin esto, la carta que arrastrás desaparecía
+     detrás del tablero justo al llevarla hacia él. */
+  position: relative;
+  z-index: 40;
+
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 4vw, 3rem);
+  min-width: 0;
+  /* Ocupa la celda entera para poder repartir dentro de ella. Ajustada al
+     contenido, los tres quedaban amontonados en el medio y no había forma
+     de separar las cartas del resto. */
+  width: 100%;
+}
+
+/* Las cartas contra el borde y el jugador empujado al otro lado. El hueco
+   que queda en el medio es lo que separa lo que tocás —las cartas— de lo
+   que sólo mirás —el marcador y el dibujo—; pegados, la mano se leía como
+   parte del personaje.
+
+   El margen izquierdo despega el abanico del canto de la pantalla: apoyado
+   contra el borde parecía cortado, y en el teléfono además caía dentro de
+   la zona donde el pulgar roza sin querer al sostenerlo. */
+.hand-fan {
+  margin-right: auto;
+  margin-left: clamp(0.8rem, 3vw, 2.4rem);
+
+  /* Cuánto se mete cada carta sobre la anterior. En un abanico real las
+     cartas se tapan; sin superposición esto sería una lista inclinada.
+     Por encima de ~0.45 el número de la de atrás empieza a quedar oculto,
+     así que este valor es el techo mientras las cartas se lean de a una. */
+  --solape: 0.42;
+
+  /* Cuánto se abre el abanico: los grados que separan una carta de la
+     siguiente.
+
+     El sentido es el mismo para los dos jugadores. Se invertía de cuando
+     las dos líneas estaban en espejo y cada abanico miraba a su borde;
+     ahora las cartas siempre van a la izquierda, así que abrir siempre
+     hacia la derecha es lo correcto. Invertido, el de un lado se curvaba
+     hacia afuera de la pantalla. */
+  --paso-giro: 4.3deg;
+  --sentido: -1;
+}
+
+/* El giro de cada carta sale de su posición en el abanico, que es lo único
+   que sabe el componente. Los grados los pone el CSS para poder cerrarlo en
+   pantallas chicas sin tocar la lógica. */
+.hand-fan .card {
+  --giro: calc(var(--pos, 0) * var(--paso-giro) * var(--sentido));
+}
+.fighter-linea { flex-direction: row; }
+.fighter-linea.f1 { grid-area: f1; justify-self: start; }
+.fighter-linea.f2 { grid-area: f2; justify-self: end; }
+
+/* Con el flip los dos intercambian celda para que vos quedes siempre abajo.
+   Cambia la posición, no la identidad: cada uno conserva su color y su
+   personaje. */
+.versus-screen.flip .fighter-linea.f1 { grid-area: f2; justify-self: end; }
+.versus-screen.flip .fighter-linea.f2 { grid-area: f1; justify-self: start; }
+
+/* Sólo el que TIENE cartas invierte su orden, para que el puntaje quede
+   entre el abanico y el dibujo. El rival no tiene abanico, así que se queda
+   como siempre estuvo —dibujo y después números— y no hay motivo para darlo
+   vuelta: invertirlo sin cartas delante lo dejaba en espejo respecto de
+   cómo se lo venía viendo toda la partida. */
+.fighter-linea.con-cartas .fighter { flex-direction: row-reverse; }
 
 /* En online el jugador tiene que verse siempre abajo, mire quien mire la
    pantalla. Al que le tocó ser player1 se le intercambian las dos
    posiciones — no los elementos: cada fighter conserva su id, su color y
    su personaje, sólo cambia el lugar donde se dibuja. */
-.versus-screen.flip .fighter.f1 {
-  grid-area: f2;
-  justify-self: end;
-  flex-direction: row-reverse;
-}
-.versus-screen.flip .fighter.f2 {
-  grid-area: f1;
-  justify-self: start;
-  flex-direction: row;
-}
-.versus-screen.flip .fighter.f1 .fighter-readout { text-align: right; }
-.versus-screen.flip .fighter.f2 .fighter-readout { text-align: left; }
-.versus-screen.flip .fighter.f1 .f-numbers { flex-direction: row-reverse; }
-.versus-screen.flip .fighter.f2 .f-numbers { flex-direction: row; }
+/* El marcador mira hacia el dibujo, que es lo que tiene al lado. Ya no
+   depende del lado: los dos jugadores están dispuestos igual. */
+.fighter .fighter-readout { text-align: right; }
+.fighter .f-numbers { flex-direction: row-reverse; }
 
 /* The drawings are black line on white paper, so the frame IS the paper —
    a white rounded card the artwork sits inside. A tinted or transparent
@@ -792,9 +861,44 @@ body {
   min-width: 0;
   text-align: left;
 }
-.fighter.f2 .fighter-readout {
-  text-align: right;
+/* La alineación del marcador y el orden de los números viven arriba, con
+   el resto de las reglas de lado: estaban repetidas acá y se pisaban entre
+   sí según cuál quedara última. */
+/* Las defensas, debajo del acumulado. Chicas y en fila: no se juegan, así
+   que no hace falta poder leerlas —sólo contarlas de un vistazo—. El tope
+   de la mano son cinco, y a esta medida las cinco entran sin envolverse ni
+   empujar el marcador. */
+.f-defensas {
+  display: flex;
+  /* Bastante aire entre una y otra: son cartas sueltas guardadas, no un
+     mazo. Pegadas se leían como un bloque y había que contarlas mirando;
+     separadas, la cantidad se ve sin contar. */
+  gap: clamp(0.4rem, 1.5vmin, 0.95rem);
+  margin-top: clamp(0.3rem, 1.1vmin, 0.7rem);
+  /* Siguen al marcador, que se alinea distinto según el lado. */
+  justify-content: inherit;
 }
+
+.f-defensa {
+  width: clamp(2.6rem, 6.8vmin, 4.6rem);
+  aspect-ratio: 5 / 7;
+  flex: none;
+  border-radius: 0.34rem;
+  background: var(--c-green);
+  box-shadow: 0 0 0 2px #fff, 0 0.2rem 0.4rem rgba(0, 0, 0, 0.55);
+
+  display: grid;
+  place-items: center;
+  color: #fff;
+}
+.f-defensa svg {
+  /* Casi toda la cara: es el único dibujo de la carta y no compite con
+     ningún texto, así que puede ocupar lo que quiera. */
+  width: 78%;
+  height: 78%;
+  fill: currentColor;
+}
+
 .f-name {
   font-family: var(--display);
   font-size: clamp(1.1rem, 2vmin, 1.8rem);
@@ -806,9 +910,6 @@ body {
   display: flex;
   align-items: baseline;
   gap: 0.6rem;
-}
-.fighter.f2 .f-numbers {
-  flex-direction: row-reverse;
 }
 .f-score {
   font-family: var(--display);
@@ -880,21 +981,10 @@ body {
   100% { opacity: 0; transform: translateY(-2rem) scale(0.95); }
 }
 
-/* En el lado de abajo el marcador está alineado al otro borde, así que el
-   golpe se pasa al lado opuesto para no salirse de la pantalla. */
-.fighter.f2 .f-hit,
-.versus-screen.flip .fighter.f1 .f-hit {
-  right: auto;
-  left: 100%;
-  margin-right: 0;
-  margin-left: 0.4rem;
-}
-.versus-screen.flip .fighter.f2 .f-hit {
-  right: 100%;
-  left: auto;
-  margin-right: 0.4rem;
-  margin-left: 0;
-}
+/* El −N sale a la izquierda del marcador, que es su lado libre: a la
+   derecha tiene el dibujo pegado y se le metería encima.
+   Ya no hay excepciones por lado —eso venía de cuando los dos jugadores
+   estaban en espejo— porque ahora los dos están dispuestos igual. */
 
 @media (prefers-reduced-motion: reduce) {
   .f-hit.show { animation: hit-float var(--dur-numero-perdido) steps(1, end); }
@@ -942,13 +1032,15 @@ body {
   /* Empuja arriba y abajo por igual: la mesa se aparta de los dos
      peleadores sin moverse del centro. */
   margin-block: var(--table-gap);
-  /* Más alta que el 2:1 original: el camino necesita franja propia arriba
-     y abajo sin encimarse con el dado del centro.
-     El 11:8 sale de la grilla del camino: con esa proporción las casillas
-     quedan cuadradas en vez de estiradas. Al ensancharse gana menos alto
-     que antes, así que el techo en dvh puede subir de nuevo. */
-  width: min(100%, 79.2rem, 46dvh);
-  aspect-ratio: 11 / 8;
+  /* La proporción sale de la grilla del camino —11 columnas por 10 filas—
+     y no de un número elegido: con cualquier otra, las casillas dejan de
+     ser cuadradas y se ven estiradas.
+     Si se tocan BOARD_COLS o BOARD_ROWS hay que tocar esto, y es lo único
+     del tablero que no se recalcula solo.
+     El techo en dvh baja al subir a diez filas: con la mesa más alta, el
+     mismo ancho pedía más alto del que hay en una laptop. */
+  width: min(100%, 79.2rem, 38dvh);
+  aspect-ratio: 11 / 10;
   padding: clamp(0.7rem, 1.8vmin, 1.6rem);
   border-radius: clamp(1rem, 2.4vmin, 1.8rem);
   background: linear-gradient(145deg, #5a2e18, #2a120a 42%, #4a2414 72%, #1c0c06);
@@ -1116,6 +1208,25 @@ body {
 
    El color lo pone el tipo de casilla, así que el mismo movimiento se lee
    como castigo o como premio sin cambiar la animación. */
+/* La casilla acusa el paso de la ficha por encima. Es una estela: se
+   encienden dos o tres a la vez detrás del recorrido y se apagan solas.
+
+   Mucho más suave que el golpe de abajo, y a propósito: éste dice "pasé por
+   acá" y aquél dice "acá pasó algo". Si pisar se viera tan fuerte como
+   caer, la casilla donde la ficha termina dejaría de destacarse. */
+.square.pisada {
+  animation: casilla-pisada var(--dur-tablero-pisada) var(--ease-tablero-pisada);
+  z-index: 3;
+}
+@keyframes casilla-pisada {
+  0%   { transform: scale(1); filter: brightness(1); }
+  30%  { transform: scale(1.18); filter: brightness(1.5); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .square.pisada { animation: none; }
+}
+
 .square.impacto {
   animation: casilla-golpe var(--dur-tablero-casilla-golpe) var(--ease-tablero-casilla-golpe);
   z-index: 5;
@@ -1213,17 +1324,65 @@ body {
  *
  * Se apilan de abajo hacia arriba —column-reverse— para que la última
  * quede encima, que es como se sostiene un abanico en la mano. */
+/* El abanico va del lado de quien tiene esas cartas, a la misma altura que
+   su peleador y su marcador. Antes vivía siempre pegado al borde izquierdo
+   y centrado en la pantalla: quedaba encima del peleador de la izquierda
+   —fuera cuyo fuera el turno— y dejaba una franja muerta abajo que no era
+   de nadie. Puestas a la altura del dueño, la pantalla se reparte entre los
+   dos lados y esa franja se libera para la mesa. */
+/* El abanico vive DENTRO de la línea de su dueño, no flotando sobre la
+   pantalla. Estando fijo reservaba una franja de alto que no era de nadie y
+   quedaba encima del peleador de la izquierda fuera de quién fuera el
+   turno; en la línea no le saca alto a la mesa y se ve de quién son las
+   cartas sin tener que deducirlo. */
 .hand-fan {
-  position: fixed;
-  left: clamp(0.4rem, 1.6vw, 1.4rem);
-  top: 50%;
-  transform: translateY(-50%);
+  position: relative;
   z-index: 60;
-
   display: flex;
   flex-direction: column-reverse;
-  align-items: flex-start;
   pointer-events: none;
+  flex: none;
+}
+
+/* Los dos jugadores tienen sus cartas a la izquierda de la línea, así que
+   el abanico se sujeta siempre por la misma esquina y se abre siempre hacia
+   el mismo lado. Las reglas por lado que había acá quedaron de cuando las
+   líneas estaban en espejo. */
+.hand-fan { align-items: flex-start; }
+
+/* El abanico se aprieta a medida que se llena: cuantas más cartas, más se
+   tapan entre sí. El tope de la mano son cinco. */
+.hand-fan[data-n="3"] { --solape: 0.52; }
+.hand-fan[data-n="4"] { --solape: 0.6; }
+.hand-fan[data-n="5"] { --solape: 0.66; }
+
+/* Y además reserva desde el principio el alto que ocuparía llena, con las
+   cartas apoyadas abajo.
+ *
+ * Apretarlas no alcanzaba: el montón seguía creciendo un poco con cada
+ * carta, y ese poco empujaba la línea entera y con ella la mesa. Recibir
+ * una carta terminaba moviendo el tablero, que no tiene nada que ver con
+ * la mano. Con el alto reservado, la mano crece hacia adentro de un hueco
+ * que ya estaba ahí y no mueve nada. */
+.hand-fan {
+  min-height: calc(var(--card-w) * 1.4 * 2.36);
+  justify-content: flex-start;
+
+  /* Baja el montón entero para despegarlo de la mesa. Va en `transform` y
+     no en margen a propósito: el transform no ocupa espacio, así que el
+     abanico puede invadir la banda de los botones sin empujar nada. Los
+     botones están centrados y las cartas contra el borde, de modo que se
+     superponen sin llegar a tocarse. */
+  transform: translateY(clamp(1.5rem, 6vh, 4.5rem));
+}
+
+/* En la vista apilada la línea de abajo se despega de la mesa: el abanico
+   crece hacia arriba, y con la mano llena la última carta se metía detrás
+   del fieltro. El hueco es el alto que necesita el montón para desplegarse
+   sin invadir la mesa. */
+.fighter-linea.f2,
+.versus-screen.flip .fighter-linea.f1 {
+  margin-top: clamp(1.2rem, 4vh, 3rem);
 }
 
 /* Los hijos sí reciben el toque; el contenedor no, para no tapar la mesa
@@ -1258,6 +1417,10 @@ body {
   transition: none;
   cursor: grabbing;
   box-shadow: 0 0 0 2px #fff, 0 1rem 2rem rgba(0, 0, 0, 0.7);
+  /* Le avisa al navegador que esto se va a mover, para que la promueva a su
+     propia capa antes de empezar. Sin el aviso, la promoción ocurre con el
+     gesto ya en marcha y el primer tramo del arrastre va a los tirones. */
+  will-change: transform;
 }
 
 /* Ya se alejó lo suficiente: soltando acá, se juega. Avisarlo antes de que
@@ -1414,8 +1577,73 @@ body {
 .card-cast.vuela .card {
   animation: carta-vuela var(--dur-carta-lanzada-vuela) var(--ease-carta-lanzada-vuela) forwards;
 }
-.card-cast.bloqueada .card {
-  animation: carta-frenada var(--dur-carta-lanzada-frenada) var(--ease-carta-lanzada-frenada) forwards;
+/* ---- la carta bloqueada se parte ----
+   Las dos mitades son la MISMA cara recortada por lados opuestos, con el
+   mismo quiebre en el borde: así el corte calza exacto y se lee como una
+   carta que se rompe, no como dos pedazos que aparecieron. El quiebre es
+   irregular a propósito —una línea recta parece un corte de tijera, no una
+   rotura—. */
+.card-cast .mitad {
+  position: absolute;
+  animation-duration: var(--dur-carta-lanzada-rotura);
+  animation-timing-function: var(--ease-carta-lanzada-rotura);
+  animation-fill-mode: forwards;
+}
+.card-cast .mitad.izq {
+  clip-path: polygon(0 0, 53% 0, 45% 22%, 56% 44%, 44% 68%, 52% 100%, 0 100%);
+  animation-name: rotura-izq;
+}
+.card-cast .mitad.der {
+  clip-path: polygon(53% 0, 100% 0, 100% 100%, 52% 100%, 44% 68%, 56% 44%, 45% 22%);
+  animation-name: rotura-der;
+}
+
+@keyframes rotura-izq {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  22%  { transform: translate(-3%, 0) rotate(-2deg); opacity: 1; }
+  100% { transform: translate(-46%, 26%) rotate(-20deg); opacity: 0; }
+}
+@keyframes rotura-der {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  22%  { transform: translate(3%, 0) rotate(2deg); opacity: 1; }
+  100% { transform: translate(46%, 26%) rotate(20deg); opacity: 0; }
+}
+
+/* El sello. Aparece rebotando mientras la carta se rompe detrás: es la
+   palabra que explica por qué el ataque no hizo nada. */
+.bloqueado-sello {
+  position: absolute;
+  font-family: var(--display);
+  font-size: clamp(2rem, 7vmin, 4.6rem);
+  letter-spacing: 0.06em;
+  color: #fff;
+  white-space: nowrap;
+  pointer-events: none;
+  /* Contorno oscuro: cae sobre la mesa y sobre los pedazos de la carta, que
+     pueden ser de cualquier color. */
+  text-shadow:
+    0 0 1.4rem rgba(0, 0, 0, 0.9),
+    0 0.3rem 0 rgba(0, 0, 0, 0.55);
+  animation: sello-rebote var(--dur-carta-lanzada-sello) var(--ease-carta-lanzada-sello) backwards,
+    sello-sale 0.32s ease forwards;
+  /* La salida arranca cuando el sello ya se leyó. */
+  animation-delay: 0s, calc(var(--dur-carta-lanzada-sello-vida) - 0.32s);
+}
+
+@keyframes sello-rebote {
+  0%   { opacity: 0; transform: scale(0.3) rotate(-8deg); }
+  55%  { opacity: 1; transform: scale(1.18) rotate(2deg); }
+  75%  { transform: scale(0.94) rotate(-1deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes sello-sale {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(1.3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-cast .mitad { animation: none; opacity: 0; }
+  .bloqueado-sello { animation: none; }
 }
 
 .card-cast-label {
@@ -1442,12 +1670,9 @@ body {
   from { opacity: 1; transform: translateY(0) scale(1); }
   to   { opacity: 0; transform: translateY(var(--vuelo-y, -36vh)) scale(0.3); }
 }
-/* Frenada en seco y desvanecida: no avanza ni un pixel hacia el rival. */
-@keyframes carta-frenada {
-  0%   { opacity: 1; transform: scale(1) rotate(0deg); }
-  25%  { transform: scale(1.06) rotate(-3deg); }
-  100% { opacity: 0; transform: scale(0.86) rotate(4deg); }
-}
+/* Acá vivía `carta-frenada`, que desvanecía la carta bloqueada en el aire.
+   La reemplazó la rotura de más arriba: frenarse y desaparecer se parecía
+   demasiado a que la carta simplemente no hubiera salido. */
 
 /* ---- lo que costó caer en rojo ----
    El −N sale de la casilla misma y sube. El marcador ya muestra su propio
@@ -1565,8 +1790,8 @@ body {
    borde interior del tablero con el mismo margen que aquéllas. */
 .bonus-deck {
   position: absolute;
-  left: calc(100% / 9 + clamp(0.9rem, 2.6vmin, 1.8rem));
-  bottom: calc(100% / 8 + clamp(0.9rem, 2.6vmin, 1.8rem));
+  left: calc(100% / var(--board-cols) + clamp(0.9rem, 2.6vmin, 1.8rem));
+  bottom: calc(100% / var(--board-rows) + clamp(0.9rem, 2.6vmin, 1.8rem));
   width: var(--carta-mesa-w);
   aspect-ratio: 5 / 7;
   pointer-events: none;
@@ -1708,9 +1933,17 @@ body {
 
 /* Termina abajo a la izquierda, donde está el abanico. En vw y vh para que
    apunte al mismo lugar en cualquier pantalla. */
+/* Termina donde está el abanico. Las coordenadas las escribe CardGained
+   midiéndolo, igual que el origen: desde que la mano se dibuja del lado de
+   su dueño, un destino fijo mandaba la carta al rincón equivocado cada vez
+   que el abanico estaba del otro lado. Los valores de respaldo apuntan al
+   costado izquierdo, que es donde estaba antes. */
 @keyframes carta-ganada-viaja {
   from { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
-  to   { opacity: 0; transform: translate(-42vw, 18vh) scale(0.22) rotate(-14deg); }
+  to {
+    opacity: 0;
+    transform: translate(var(--mano-x, -42vw), var(--mano-y, 18vh)) scale(0.22) rotate(-14deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1722,9 +1955,15 @@ body {
 /* En pantallas angostas la mano está abajo al centro, así que la carta cae
    ahí en vez de al costado. */
 @media (max-width: 560px) {
+  /* Acá el abanico está abajo y centrado, así que el respaldo apunta ahí.
+     Si la medición encontró la mano, mandan sus coordenadas igual que en
+     las pantallas grandes. */
   @keyframes carta-ganada-viaja {
     from { opacity: 1; transform: translate(0, 0) scale(1); }
-    to   { opacity: 0; transform: translate(0, 34vh) scale(0.22); }
+    to {
+      opacity: 0;
+      transform: translate(var(--mano-x, 0), var(--mano-y, 34vh)) scale(0.22);
+    }
   }
 }
 
@@ -1786,28 +2025,35 @@ body {
 /* Recién cuando el costado le comería ancho a la mesa el abanico se
    acuesta abajo. Medido: hasta 560px de ancho todavía entra al lado. */
 @media (max-width: 560px) {
+  /* El renglón se mantiene también acá: CARTAS · PUNTAJE · PERSONAJE es el
+     orden en todos los tamaños. Los selectores repiten la clase de lado
+     porque las reglas generales son más específicas y, sin eso, ganarían
+     también en esta vista. */
+  .fighter-linea {
+    gap: clamp(0.6rem, 3vw, 1.4rem);
+  }
+
+  /* El abanico queda tal como estaba en esta vista: acostado, con las
+     cartas una al lado de la otra. Lo único que cambió es dónde vive —en la
+     línea de su dueño en vez de en una fila propia debajo de la mesa—. */
+  /* El abanico se comporta igual que en pantalla grande —en pila, no
+     acostado— pero más cerrado: se abre menos y las cartas se tapan más.
+     Acostado, cada carta sumaba ancho al renglón, y el ancho es justo lo
+     que falta acá; en pila crece sólo hacia arriba, que es a donde sobra. */
   .hand-fan {
-    position: static;
-    transform: translateY(var(--ui-shift));
-    grid-area: hand;
-    justify-self: center;
-    flex-direction: row;
-    align-items: flex-end;
-    margin-top: clamp(0.6rem, 1.6vh, 1.2rem);
+    --paso-giro: 2.3deg;
+    --solape: 0.58;
   }
-  .hand-fan .card {
-    transform-origin: 50% 100%;
-    margin-top: 0;
-    margin-left: calc(var(--card-w) * var(--solape, 0.42) * -1);
-  }
-  .hand-fan .card:first-child { margin-left: 0; }
 }
 
 .card {
   /* En vmin y no en vh: a 5:7 la carta es más alta que ancha, y en una
      pantalla apaisada un vh generoso le come el alto a la mesa y a los
      peleadores. */
-  --card-w: clamp(6.1rem, 14.3vmin, 9.5rem);
+  /* Un 20% más grandes desde que las defensas salieron del abanico: hay una
+     carta menos que acomodar y el hueco que dejaron se reparte entre las
+     que sí se juegan. */
+  --card-w: clamp(7.3rem, 17.2vmin, 11.4rem);
   width: var(--card-w);
   aspect-ratio: 5 / 7;
   border: none;
@@ -1931,8 +2177,8 @@ body {
    de empujar el borde. */
 .played-cards {
   position: absolute;
-  top: calc(100% / 8 + clamp(0.9rem, 2.6vmin, 1.8rem));
-  right: calc(100% / 9 + clamp(0.9rem, 2.6vmin, 1.8rem));
+  top: calc(100% / var(--board-rows) + clamp(0.9rem, 2.6vmin, 1.8rem));
+  right: calc(100% / var(--board-cols) + clamp(0.9rem, 2.6vmin, 1.8rem));
   bottom: auto;
   z-index: 5;
 
@@ -2151,6 +2397,14 @@ body {
   position: relative;
   width: 100%;
   height: 100%;
+  /* La grilla del camino, para que lo que se apoya sobre el fieltro pueda
+     ubicarse respecto de las casillas sin repetir los números a mano. Tienen
+     que coincidir con BOARD_COLS y BOARD_ROWS de convex/rules.ts: al subir
+     de 8 a 10 filas, los `100% / 8` que había escritos acá quedaron
+     apuntando a una fila que ya no existe. */
+  --board-cols: 11;
+  --board-rows: 10;
+
   /* Medida única de las cartas que descansan sobre el fieltro: las jugadas
      boca abajo y el mazo de bonus. Declarada acá, en el padre común, para
      que no puedan separarse — son cartas del mismo juego sobre la misma
@@ -2220,15 +2474,193 @@ body {
   margin-top: 5rem;
   transform: translateY(var(--ui-shift));
 }
-/* Blancos grandes: son los dos únicos botones de la partida y se aprietan
-   con el pulgar, muchas veces seguidas y mirando el dado, no el botón. */
-.versus-controls .btn,
-.versus-controls .btn-nav {
-  flex: 1;
-  text-align: center;
-  font-size: clamp(1.4rem, 2.6vmin, 2rem);
-  padding-block: clamp(1.6rem, 3.4vh, 2.8rem);
-  border-radius: 1.6rem;
+/* Los dos botones de la partida. Sin texto: se aprietan decenas de veces
+   por mano y mirando el dado, no el botón, así que lo que se reconoce es la
+   silueta. Por eso se diferencian en forma Y en tamaño —cuadrado grande
+   contra círculo chico— y no sólo en color: dos rectángulos iguales se
+   confunden con el pulgar, dos siluetas distintas no.
+
+   `--lado` manda sobre los dos, así que la proporción entre ellos se
+   conserva sola en cualquier pantalla. */
+.versus-controls {
+  /* En PÍXELES y no en rem, y esto importa: el responsive de este proyecto
+     baja el tamaño de fuente raíz hasta el 34%, así que un mínimo en rem se
+     encoge junto con la pantalla — justo donde más falta hace que no lo
+     haga. Con `4.6rem` el círculo terminaba midiendo 21px en un teléfono.
+
+     El piso sale de la regla de toque: 44px es lo mínimo que un dedo acierta
+     con confianza, y como el círculo es el 60% del lado, el lado no puede
+     bajar de 74. El área de toque es una medida física, del dedo, y no
+     tipográfica: por eso no sigue a la tipografía. */
+  --lado: clamp(111px, 16.5vmin, 162px);
+  /* El canto que se ve por debajo. Es lo que da el grosor de tecla, y baja
+     a cero al apretar: el botón se hunde hasta apoyarse. */
+  --canto: clamp(0.5rem, 1.1vmin, 0.8rem);
+  align-items: center;
+  justify-content: center;
+  /* Más juntos que antes. La separación existía para que un pulgar apurado
+     no diera uno por el otro, pero eso ahora lo resuelven la forma y el
+     tamaño —cuadrado grande contra círculo chico— mejor que la distancia. */
+  gap: clamp(0.8rem, 2.2vw, 1.8rem);
+}
+
+/* Se ven como teclas físicas: luz arriba, sombra adentro abajo, y un canto
+   sólido debajo que hace de grosor. Ese canto es el truco — sin él un botón
+   plano con sombra parece flotar, y con él parece apoyado sobre la mesa. */
+.btn-accion {
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  /* Blanco y más grueso: sobre el fieltro verde oscuro el canto negro se
+     fundía con el fondo y el botón perdía su silueta justo en el borde. */
+  border: 4px solid #fff;
+  transition: transform 0.09s ease, box-shadow 0.09s ease, filter 0.14s ease;
+}
+.btn-accion svg {
+  width: 56%;
+  height: 56%;
+  fill: currentColor;
+}
+
+/* El dado, blanco y bien grande: es el único dibujo del botón y no compite
+   con nada, así que puede ocupar casi toda la cara.
+
+   El halo oscuro no es decoración: el blanco sobre el oro da 2,1 de
+   contraste, y sobre la parte clara del degradado baja a 1,5 — sin algo que
+   lo despegue, el dibujo se desvanece justo en la mitad de arriba del
+   botón. La sombra le devuelve el borde sin cambiarle el color. */
+.btn-accion.tirar svg {
+  width: 84%;
+  height: 84%;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5)) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
+}
+
+/* La mano de alto, dentro de su círculo. Es más alta que ancha, así que se
+   la mide por el alto: llevándola al mismo porcentaje que el dado, los
+   dedos tocarían el borde de arriba mientras a los costados sobra sitio. */
+.btn-accion.plantarse svg {
+  width: 78%;
+  height: 78%;
+}
+
+/* El que tira: cuadrado con las esquinas bien redondeadas, como un dado
+   visto de frente. Es el que más se aprieta, así que es el más grande. */
+.btn-accion.tirar {
+  width: var(--lado);
+  height: var(--lado);
+  border-radius: 28%;
+  color: #fff;
+  background: linear-gradient(180deg, #ffc93d 0%, var(--c-gold) 46%, #b98700 100%);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.22),
+    0 var(--canto) 0 #6d5000,
+    0 calc(var(--canto) + 0.5rem) 1rem rgba(0, 0, 0, 0.55);
+}
+
+/* El que planta: círculo blanco con la mano de alto, y un 40% más chico que
+   el otro. Una mano diciendo "pará" se entiende sin haber jugado nunca;
+   la cruz que había antes podía leerse como cancelar o cerrar, que es otra
+   cosa. Frenar es además la decisión menos frecuente y la que conviene
+   pensar un segundo más, así que que sea más difícil de apretar sin querer
+   es parte de eso. */
+.btn-accion.plantarse {
+  width: calc(var(--lado) * 0.6);
+  height: calc(var(--lado) * 0.6);
+  border-radius: 50%;
+  /* Gris y no negro: sobre el blanco el negro puro corta demasiado y le da
+     al aspa un peso que la hace ver más urgente que el dado, cuando
+     plantarse es la acción secundaria. Este tono sigue dando 5,7 de
+     contraste sobre el fondo, así que se aclara sin volverse difuso. */
+  color: #6b6b6b;
+  background: linear-gradient(180deg, #ffffff 0%, #f2efe6 48%, #c9c4b4 100%);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.16),
+    0 var(--canto) 0 #8d8676,
+    0 calc(var(--canto) + 0.4rem) 0.9rem rgba(0, 0, 0, 0.55);
+}
+
+.btn-accion:not(:disabled):hover {
+  filter: brightness(1.06);
+}
+
+/* Al apretar baja justo el alto del canto y el canto desaparece: la tecla
+   toca fondo. Moviendo sólo la sombra, o sólo el botón, el gesto se ve
+   como un salto en vez de como algo que se hunde. */
+.btn-accion:not(:disabled):active {
+  transform: translateY(var(--canto));
+}
+/* Mientras está apretado late un resplandor de su propio color. Va en
+   bucle y no de una sola pasada porque el dedo se queda apoyado: alguien
+   que duda antes de plantarse tiene que ver que el botón sigue respondiendo,
+   no un destello que ya pasó. El hundido va dentro del keyframe porque una
+   animación de box-shadow pisa entera la propiedad. */
+.btn-accion.tirar:not(:disabled):active {
+  animation: destello-tirar var(--dur-boton-destello) var(--ease-boton-destello) infinite;
+}
+@keyframes destello-tirar {
+  0%, 100% {
+    box-shadow:
+      inset 0 3px 0 rgba(255, 255, 255, 0.45),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+      0 2px 4px rgba(0, 0, 0, 0.5),
+      0 0 0.9rem 0 rgba(228, 167, 0, 0.55);
+  }
+  50% {
+    box-shadow:
+      inset 0 3px 0 rgba(255, 255, 255, 0.7),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+      0 2px 4px rgba(0, 0, 0, 0.5),
+      0 0 2.2rem 0.35rem rgba(255, 201, 61, 0.95);
+  }
+}
+
+.btn-accion.plantarse:not(:disabled):active {
+  animation: destello-plantarse var(--dur-boton-destello) var(--ease-boton-destello) infinite;
+}
+@keyframes destello-plantarse {
+  0%, 100% {
+    box-shadow:
+      inset 0 3px 0 rgba(255, 255, 255, 0.7),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.22),
+      0 2px 4px rgba(0, 0, 0, 0.5),
+      0 0 0.9rem 0 rgba(255, 255, 255, 0.5);
+  }
+  50% {
+    box-shadow:
+      inset 0 3px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.22),
+      0 2px 4px rgba(0, 0, 0, 0.5),
+      0 0 2.2rem 0.35rem rgba(255, 255, 255, 0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Sin latido, pero el resplandor queda: es la señal de que el botón
+     recibió el toque, y eso no es decoración. */
+  .btn-accion:not(:disabled):active { animation: none; }
+  .btn-accion.tirar:not(:disabled):active {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 1.6rem 0.2rem rgba(228, 167, 0, 0.8);
+  }
+  .btn-accion.plantarse:not(:disabled):active {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 1.6rem 0.2rem rgba(255, 255, 255, 0.8);
+  }
+}
+
+.btn-accion:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.btn-accion:focus-visible {
+  outline: 3px solid var(--c-gold);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-accion { transition: none; }
 }
 .key-hint {
   opacity: 0.5;
@@ -2249,26 +2681,33 @@ body {
 @media (min-width: 860px) and (min-height: 560px) and (orientation: landscape) {
   .versus-screen {
     grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto auto;
-    /* La mano cruza las tres columnas, justo encima de los controles: es
-       del jugador, no de ninguno de los dos costados. */
+    grid-template-rows: minmax(0, 1fr) auto;
+    /* Dos filas: los jugadores con sus cartas, y los controles. La mano ya
+       no cruza el ancho porque dejó de ser de nadie en particular: cada
+       abanico está en la línea de su dueño. */
     grid-template-areas:
       "f1    table  f2"
-      "hand  hand   hand"
       "ctrl  ctrl   ctrl";
     gap: clamp(1.6rem, 3vw, 3.2rem);
   }
-  /* El gap grande de este layout ya separa la mano de la mesa. */
-  /* El abanico va fijo al costado: el gap de este layout no lo afecta. */
-  /* room to breathe: the numbers go back under the drawing */
+  /* Con lugar de sobra los números vuelven abajo del dibujo. */
   .fighter,
   .fighter.f2 {
     flex-direction: column;
     align-items: center;
     gap: 0.8rem;
   }
-  .fighter.f1 { align-self: start; justify-self: start; }
-  .fighter.f2 { align-self: end; justify-self: end; }
+  /* La celda la ocupa la línea, así que es ella la que se alinea. */
+  /* Acá los dos van a los costados de la mesa, no debajo, así que el hueco
+     que despegaba la línea de abajo no tiene sentido. */
+  .fighter-linea.f2,
+  .versus-screen.flip .fighter-linea.f1 { margin-top: 0; }
+  /* Ni bajar: acá el abanico va al costado de la mesa y no tiene nada
+     debajo que esquivar. */
+  .hand-fan { transform: none; }
+
+  .fighter-linea.f1 { align-self: start; justify-self: start; }
+  .fighter-linea.f2 { align-self: end; justify-self: end; }
   .fighter-readout,
   .fighter.f2 .fighter-readout { text-align: center; }
   .fighter.f2 .f-numbers { flex-direction: row; }
@@ -2284,8 +2723,8 @@ body {
     flex-direction: column;
     align-items: center;
   }
-  .versus-screen.flip .fighter.f1 { align-self: end; justify-self: end; }
-  .versus-screen.flip .fighter.f2 { align-self: start; justify-self: start; }
+  .versus-screen.flip .fighter-linea.f1 { align-self: end; justify-self: end; }
+  .versus-screen.flip .fighter-linea.f2 { align-self: start; justify-self: start; }
   .versus-screen.flip .fighter.f1 .fighter-readout,
   .versus-screen.flip .fighter.f2 .fighter-readout { text-align: center; }
   .versus-screen.flip .fighter.f1 .f-numbers,
@@ -2350,156 +2789,66 @@ body {
   gap: 1rem;
   position: relative;
 }
-.dice-arena::before {
-  content: "";
-  position: absolute;
-  width: calc(var(--die) * 1.3);
-  height: 1.5rem;
-  bottom: calc(var(--die) * 0.25);
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.6), transparent 70%);
-  filter: blur(4px);
-  z-index: 0;
-}
+/* Acá había una sombra elíptica pintada a mano debajo del dado. Servía
+   cuando el cubo era de CSS y no se movía del centro: ahora los dados
+   ruedan por toda la mesa y esa mancha quedaba fija en el medio, delatando
+   que no tenía nada que ver con dónde estaban. */
 
-/* Los dos dados viven siempre en el DOM; el segundo se destapa sólo cuando
-   se juega la carta. Crearlo al vuelo obligaría a repetir las seis caras
-   en JavaScript. */
-.dice-pair {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: calc(var(--die) * 0.32);
-}
+/* ---- el dado ----
+   Ya no es un cubo de CSS con seis caras pegadas, sino una escena de WebGL
+   con cuerpos que ruedan y chocan (ver src/dice3d/escena.js). Acá queda
+   sólo el lugar donde vive: el lienzo se estira al hueco y todo lo que se
+   dibuja adentro lo maneja Three.
 
-.dice-3d {
-  width: var(--die);
-  height: var(--die);
-  position: relative;
-  transform-style: preserve-3d;
-  transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-  image-rendering: auto;
-  flex: none;
-}
-
-/* Cuando se puede tirar, el dado invita: cambia el cursor y se levanta un
-   poco al pasarle por encima. Sin esa señal nadie descubre que se puede
-   tocar, y el botón de abajo seguiría siendo la única vía. */
-.dice-pair.tirable {
-  cursor: pointer;
-}
-/* El realce va en el contenedor y no en el cubo: el cubo lleva su propio
-   transform para dejar la cara correcta al frente, y tocarlo desde el
-   hover le cambiaría el número a la vista. */
-.dice-pair {
-  transition: transform 0.18s, filter 0.18s;
-}
-.dice-pair.tirable:hover {
-  transform: scale(1.07);
-  filter: drop-shadow(0 0 1.2rem rgba(228, 167, 0, 0.55));
-}
-.dice-pair.tirable:focus-visible {
-  outline: 2px solid var(--c-gold);
-  outline-offset: 0.8rem;
-  border-radius: 0.6rem;
-}
-
-/* Con dos en pantalla se achican para que el par entre en el mismo ancho
-   que ocupaba uno solo. */
-.dice-pair.double .dice-3d {
-  width: calc(var(--die) * 0.72);
-  height: calc(var(--die) * 0.72);
-}
-
-/* Un aro dorado alrededor del par mientras la carta está activa: el
-   segundo dado puede pasar desapercibido en el medio de la mesa, y esto
-   dice que el turno viene distinto. */
-.dice-pair.double {
-  padding: calc(var(--die) * 0.12);
-  border-radius: calc(var(--die) * 0.22);
-  box-shadow: 0 0 0 2px var(--c-gold), 0 0 1.6rem rgba(228, 167, 0, 0.45);
-  animation: double-on var(--dur-dado-dobles) var(--ease-dado-dobles);
-}
-
-@keyframes double-on {
-  from { transform: scale(0.88); opacity: 0.4; }
-  to   { transform: scale(1); opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dice-pair.double { animation: none; }
-}
-
-/* El que queda en 1 se apaga: con dos dados ese no suma, y verlo igual que
-   el otro hace pensar que la cuenta está mal. */
-.dice-3d.dead {
-  opacity: 0.4;
-  filter: grayscale(0.7);
-}
-.dice-3d.rolling {
-  animation: dice-roll var(--dur-dado-tirada) var(--ease-dado-tirada);
-}
-/* Hop height rides on --die too — a fixed 6rem arc that looked right on
-   desktop threw the die clean off a phone-sized felt. */
-/* El giro horizontal va en negativo: el dado rueda de derecha a izquierda.
-   El eje X mantiene el signo — es el que da el volteo del salto, no el
-   sentido. */
-@keyframes dice-roll {
-  0% { transform: rotateX(0) rotateY(0) translateY(0); }
-  25% { transform: rotateX(720deg) rotateY(-540deg) translateY(calc(var(--die) * -0.45)); }
-  50% { transform: rotateX(1440deg) rotateY(-900deg) translateY(calc(var(--die) * -0.67)); }
-  75% { transform: rotateX(2160deg) rotateY(-1260deg) translateY(calc(var(--die) * -0.22)); }
-  100% { transform: rotateX(0) rotateY(0) translateY(0); }
-}
-
-.dice-face {
-  position: absolute;
-  width: var(--die);
-  height: var(--die);
-  background: linear-gradient(135deg, #f5f0dc, #c8c0a3);
-  border: 2px solid var(--ink);
-  display: grid;
-  padding: calc(var(--die) * 0.11);
-  box-shadow:
-    inset 0 0 1rem rgba(0, 0, 0, 0.2),
-    inset 0 -0.4rem 0 rgba(0, 0, 0, 0.1);
-}
-.dice-face::before {
-  content: "";
+   El tamaño sigue saliendo de --die para que el dado ocupe en la mesa
+   exactamente lo que ocupaba antes y el resto del fieltro no se recorra. */
+/* El lienzo cubre el fieltro entero: los cubos ruedan por toda la mesa y
+   rebotan contra sus bordes, así que el área de juego ES la mesa. Encerrado
+   en un recuadro del centro, el tiro se sentía en una caja. */
+.dice-arena-3d {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), transparent 60%);
+  /* Por encima del tablero y de las cartas puestas: el dado es lo que hay
+     que poder leer cuando frena, y si cae debajo de una carta el resultado
+     queda tapado. */
+  z-index: 12;
+  /* Ignora los toques salvo cuando podés tirar. Así el lienzo puede cubrir
+     toda la mesa sin robarle los eventos a nada de lo que hay debajo. */
   pointer-events: none;
 }
 
-.pip {
-  width: calc(var(--die) * 0.135);
-  height: calc(var(--die) * 0.135);
-  background: radial-gradient(circle at 30% 30%, #5a1020, #2a0510);
-  border-radius: 50%;
-  align-self: center;
-  justify-self: center;
-  box-shadow: inset 0 0.2rem 0.3rem rgba(0, 0, 0, 0.5);
+.dice-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* Sin fondo propio: el lienzo va en alfa y deja ver el fieltro. Pintarlo
+     dejaría un rectángulo recortado sobre la mesa. */
+  background: transparent;
 }
 
-/* half an edge — keep this tied to --die or the cube comes apart */
-.dice-face { --push: calc(var(--die) / 2); }
+/* En tu turno el dado se puede agarrar y arrojar con la mano. El cursor lo
+   anuncia, y la escena decide si el punto cayó de verdad sobre un cubo. */
+.dice-arena-3d.tirable {
+  pointer-events: auto;
+  cursor: grab;
+  /* Sin esto, en el teléfono el gesto de tirar pelea contra el scroll de la
+     página y el dado se traba a mitad de camino. */
+  touch-action: none;
+}
+.dice-arena-3d.tirable:active {
+  cursor: grabbing;
+}
+.dice-arena-3d.tirable:focus-visible {
+  outline: 2px solid var(--c-gold);
+  outline-offset: -4px;
+  border-radius: 0.5rem;
+}
 
-.face-1 { transform: rotateY(0) translateZ(var(--push)); grid-template: 1fr / 1fr; place-items: center; }
-.face-2 { transform: rotateY(90deg) translateZ(var(--push)); grid-template: repeat(2, 1fr) / repeat(2, 1fr); }
-.face-2 .pip:nth-child(1) { grid-column: 1; grid-row: 1; }
-.face-2 .pip:nth-child(2) { grid-column: 2; grid-row: 2; }
-.face-3 { transform: rotateY(180deg) translateZ(var(--push)); grid-template: repeat(3, 1fr) / repeat(3, 1fr); }
-.face-3 .pip:nth-child(1) { grid-column: 1; grid-row: 1; }
-.face-3 .pip:nth-child(2) { grid-column: 2; grid-row: 2; }
-.face-3 .pip:nth-child(3) { grid-column: 3; grid-row: 3; }
-.face-4 { transform: rotateY(-90deg) translateZ(var(--push)); grid-template: repeat(2, 1fr) / repeat(2, 1fr); }
-.face-5 { transform: rotateX(90deg) translateZ(var(--push)); grid-template: repeat(3, 1fr) / repeat(3, 1fr); }
-.face-5 .pip:nth-child(1) { grid-column: 1; grid-row: 1; }
-.face-5 .pip:nth-child(2) { grid-column: 3; grid-row: 1; }
-.face-5 .pip:nth-child(3) { grid-column: 2; grid-row: 2; }
-.face-5 .pip:nth-child(4) { grid-column: 1; grid-row: 3; }
-.face-5 .pip:nth-child(5) { grid-column: 3; grid-row: 3; }
-.face-6 { transform: rotateX(-90deg) translateZ(var(--push)); grid-template: repeat(3, 1fr) / repeat(2, 1fr); }
+@media (prefers-reduced-motion: reduce) {
+  /* La física no se puede "suavizar": lo que se hace es no llamar la
+     atención sobre ella. El lienzo sigue mostrando el resultado. */
+  .dice-arena-3d { opacity: 0.96; }
+}
 
 /* dice snake-eyes warning */
 .snake-eyes-warning {
