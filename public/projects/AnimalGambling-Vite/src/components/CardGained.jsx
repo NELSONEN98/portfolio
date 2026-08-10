@@ -28,10 +28,10 @@ const VIAJE_MS = ms("cartaGanada.viaja");
  * Devuelve null si no encuentra el mazo, y en ese caso la animación cae en
  * los valores de respaldo del CSS: que la carta salga de un lugar
  * aproximado es mucho mejor que no mostrarla. */
-function medirMazo() {
-  const mazo = document.querySelector(".bonus-deck");
-  if (!mazo) return null;
-  const r = mazo.getBoundingClientRect();
+function medir(selector) {
+  const el = document.querySelector(selector);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
   if (!r.width) return null;
   return {
     x: Math.round(r.left + r.width / 2 - window.innerWidth / 2),
@@ -41,7 +41,12 @@ function medirMazo() {
 
 export default function CardGained({ carta, onDone }) {
   const [fase, setFase] = useState("entra");
+  /* De dónde sale y a dónde va, medidos los dos. El destino importa desde
+     que el abanico dejó de vivir siempre en el mismo rincón: ahora se dibuja
+     del lado de su dueño, y una animación que apunte a un punto fijo tira la
+     carta al lado equivocado la mitad de las veces. */
   const [origen, setOrigen] = useState(null);
+  const [destino, setDestino] = useState(null);
 
   /* onDone queda en una referencia y fuera de las dependencias.
      Llega como función nueva en cada pintado del padre, y el padre se
@@ -56,7 +61,8 @@ export default function CardGained({ carta, onDone }) {
     if (!carta) return;
     /* Se mide en cada entrega y no una sola vez: entre una y otra pudo
        girarse el teléfono o cambiar el tamaño de la ventana. */
-    setOrigen(medirMazo());
+    setOrigen(medir(".bonus-deck"));
+    setDestino(medir(".hand-fan"));
     setFase("entra");
 
     const a = setTimeout(() => setFase("viaja"), LECTURA_MS);
@@ -76,9 +82,10 @@ export default function CardGained({ carta, onDone }) {
     <div
       className={`card-gained ${fase}`}
       aria-live="polite"
-      style={
-        origen ? { "--mazo-x": `${origen.x}px`, "--mazo-y": `${origen.y}px` } : undefined
-      }
+      style={{
+        ...(origen ? { "--mazo-x": `${origen.x}px`, "--mazo-y": `${origen.y}px` } : null),
+        ...(destino ? { "--mano-x": `${destino.x}px`, "--mano-y": `${destino.y}px` } : null),
+      }}
     >
       <div className={`card ${carta.type}`}>
         <CardFace carta={carta} />

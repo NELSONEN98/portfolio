@@ -16,6 +16,10 @@ import { ms } from "../theme";
  */
 const LECTURA_MS = ms("cartaLanzada.lectura");
 const VUELO_MS = ms("cartaLanzada.vuela");
+/* El bloqueo dura más que el vuelo: la carta tiene que romperse y el sello
+   tiene que poder leerse. Sin esto, la mejor noticia del turno pasaba en el
+   mismo tiempo que un ataque que sí llegó. */
+const BLOQUEO_MS = ms("cartaLanzada.selloVida");
 
 export default function CardCast({ carta, bloqueada, haciaArriba, onDone }) {
   const [fase, setFase] = useState("sale");
@@ -30,7 +34,7 @@ export default function CardCast({ carta, bloqueada, haciaArriba, onDone }) {
     setFase("sale");
 
     const a = setTimeout(() => setFase(bloqueada ? "bloqueada" : "vuela"), LECTURA_MS);
-    const b = setTimeout(() => terminar.current?.(), LECTURA_MS + VUELO_MS);
+    const b = setTimeout(() => terminar.current?.(), LECTURA_MS + (bloqueada ? BLOQUEO_MS : VUELO_MS));
 
     return () => {
       clearTimeout(a);
@@ -46,13 +50,28 @@ export default function CardCast({ carta, bloqueada, haciaArriba, onDone }) {
       style={{ "--vuelo-y": haciaArriba ? "-36vh" : "36vh" }}
       aria-live="polite"
     >
-      <div className={`card ${carta.type}`}>
-        <CardFace carta={carta} />
-      </div>
-
-      <div className="card-cast-label">
-        {bloqueada ? "BLOQUEADA" : CARD_LABEL[carta.type]}
-      </div>
+      {/* Al bloquearse la carta se parte: las dos mitades son la misma cara
+          recortada por lados opuestos, así que el corte calza exacto y lo
+          que se ve es UNA carta quebrándose, no dos pedazos que aparecen.
+          Mientras se rompe llegan la carta entera —debajo— y el sello. */}
+      {fase === "bloqueada" ? (
+        <>
+          <div className={`card ${carta.type} mitad izq`}>
+            <CardFace carta={carta} />
+          </div>
+          <div className={`card ${carta.type} mitad der`}>
+            <CardFace carta={carta} />
+          </div>
+          <div className="bloqueado-sello">BLOQUEADO</div>
+        </>
+      ) : (
+        <>
+          <div className={`card ${carta.type}`}>
+            <CardFace carta={carta} />
+          </div>
+          <div className="card-cast-label">{CARD_LABEL[carta.type]}</div>
+        </>
+      )}
     </div>
   );
 }

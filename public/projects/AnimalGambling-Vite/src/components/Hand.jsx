@@ -31,24 +31,26 @@ export function CardFace({ carta }) {
   );
 }
 
-/* Abanico: 3° entre carta y carta, repartidos alrededor del centro.
+/* Abanico: cada carta va corrida unos grados respecto de la del medio.
  *
- *   3 cartas →        −3°  0°  3°
- *   5 cartas →   −6° −3°  0°  3°  6°
- *   7 cartas → −9° −6° −3°  0°  3°  6°  9°
+ *   3 cartas →       −1  0  1
+ *   5 cartas →   −2 −1  0  1  2
  *
- * Sale de una fórmula y no de una tabla porque la mano crece y se achica
- * durante la partida: con valores fijos, cuatro cartas quedarían
- * descentradas. */
-const PASO_GRADOS = 3;
-
-export function anguloDe(i, total) {
-  return (i - (total - 1) / 2) * PASO_GRADOS;
+ * Acá sólo se calcula la POSICIÓN de cada carta respecto del centro; los
+ * grados que vale cada paso los pone el CSS en `--paso-giro`, porque el
+ * abanico se cierra en pantallas chicas y escrito en línea desde acá
+ * ganaba siempre. Sale de una fórmula y no de una tabla porque la mano
+ * crece y se achica durante la partida: con valores fijos, cuatro cartas
+ * quedarían descentradas. */
+function posicionEnAbanico(i, total) {
+  return i - (total - 1) / 2;
 }
 
-/* Cuánto se mete cada carta sobre la anterior. En un abanico real las
-   cartas se tapan; sin superposición esto sería una lista inclinada. */
-const SOLAPE = 0.42;
+/* Cuánto se mete cada carta sobre la anterior vive en el CSS, en
+   `--solape`: cambia con el tamaño de pantalla —en el teléfono el abanico
+   se agrupa para dejar sitio al resto de la línea— y escrito acá como
+   estilo en línea ganaba siempre, sin dejar que ningún breakpoint lo
+   ajustara. */
 
 /* Mantener apretado muestra la carta grande; un toque la juega. El umbral
    es lo que separa las dos intenciones — sin él, cualquier toque
@@ -64,7 +66,7 @@ const { arrastreMinimo: ARRASTRE_MINIMO, lanzar: LANZAR } = GESTO;
 const ENTRADA_MS = ms("cartaMano.llega");
 const ABIERTO_MS = ms("cartaMano.abrir");
 
-export default function Hand({ cartas = [], habilitada, onPlay }) {
+export default function Hand({ cartas = [], habilitada, onPlay, lado = 1 }) {
   const [preview, setPreview] = useState(null);
   /* La carta que está siendo arrastrada y cuánto se alejó del abanico.
      `listo` dice si soltándola ahí se juega, y es lo que permite avisarlo
@@ -174,33 +176,60 @@ export default function Hand({ cartas = [], habilitada, onPlay }) {
    * arrastra. Lo que los separa es sólo cuánto se movió el dedo, así que
    * la intención se decide sola mientras el gesto ocurre.
    */
-  const mover = useCallback((carta, e) => {
-    const ini = origen.current;
-    if (!ini || ini.uid !== carta.uid) return;
+  const mover = useCallback(
+    (carta, e) => {
+      const ini = origen.current;
+      if (!ini || ini.uid !== carta.uid) return;
 
-    const dx = e.clientX - ini.x;
-    const dy = e.clientY - ini.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist < ARRASTRE_MINIMO) return;
+      const dx = e.clientX - ini.x;
+      const dy = e.clientY - ini.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < ARRASTRE_MINIMO) return;
 
-    /* Se movió: ya no es un toque con pulso ni una mirada larga. */
-    clearTimeout(timer.current);
-    if (preview) setPreview(null);
+      /* Se movió: ya no es un toque con pulso ni una mirada larga. */
+      clearTimeout(timer.current);
+      if (preview) setPreview(null);
 
-    setArrastre({ uid: carta.uid, dx, dy, listo: dist >= LANZAR });
-  }, [preview]);
+      /* La posición se escribe DIRECTO en el elemento, sin pasar por el
+         estado. Un pointermove llega hasta 120 veces por segundo, y con
+         cada uno React volvía a pintar el abanico entero —las cinco cartas,
+         sus giros, sus solapes— para mover una sola: de ahí el tirón al
+         arrastrar. Cambiando la variable a mano, el navegador sólo compone
+         de nuevo la carta que se movió. */
+      e.currentTarget.style.setProperty("--drag-x", `${dx}px`);
+      e.currentTarget.style.setProperty("--drag-y", `${dy}px`);
+
+      /* Al estado sólo llega lo que cambia de verdad: que empezó a
+         arrastrarse, y si cruzó el umbral que la vuelve jugable. Eso ocurre
+         un par de veces por gesto, no en cada cuadro. */
+      const listo = dist >= LANZAR;
+      if (!arrastre || arrastre.uid !== carta.uid || arrastre.listo !== listo) {
+        setArrastre({ uid: carta.uid, listo });
+      }
+    },
+    [preview, arrastre]
+  );
 
   const levantar = useCallback(
-    (carta) => {
+    (carta, e) => {
       clearTimeout(timer.current);
       setPreview(null);
       origen.current = null;
+
+      /* Se borra el desplazamiento que escribió el gesto. Como no pasa por
+         React, tampoco se limpia solo: sin esto la carta volvería al
+         abanico corrida de donde la soltaste. */
+      e?.currentTarget?.style.removeProperty("--drag-x");
+      e?.currentTarget?.style.removeProperty("--drag-y");
 
       const tirandola = arrastre?.uid === carta.uid;
       const llegoLejos = tirandola && arrastre.listo;
       setArrastre(null);
 
-      const jugable = habilitada && carta.type !== CARD.DEFENSE;
+      /* Al abanico ya no llegan defensas —se filtran antes de entrar— así
+         que basta con que sea tu turno: todo lo que está acá se puede
+         jugar. */
+      const jugable = habilitada;
       /* Juega el toque corto o el arrastre que llegó lejos. El largo era
          para mirarla, y el arrastre corto es un arrepentimiento: la carta
          vuelve a su lugar sin jugarse, que es lo que hace que animarse a
@@ -224,11 +253,15 @@ export default function Hand({ cartas = [], habilitada, onPlay }) {
 
   return (
     <>
-      <div className={`hand-fan${fase ? ` ${fase}` : ""}`} aria-label="Tus cartas">
+      <div
+        className={`hand-fan lado-${lado + 1}${fase ? ` ${fase}` : ""}`}
+        data-n={cartas.length}
+        aria-label="Tus cartas"
+      >
         {cartas.map((c, i) => {
           /* La defensa se muestra pero no se puede soltar: se gasta sola
              cuando te atacan, y jugarla sería tirarla. */
-          const jugable = c.type !== CARD.DEFENSE && habilitada;
+          const jugable = habilitada;
           const tirando = arrastre?.uid === c.uid;
           return (
             <button
@@ -245,14 +278,12 @@ export default function Hand({ cartas = [], habilitada, onPlay }) {
                 .filter(Boolean)
                 .join(" ")}
               style={{
-                "--giro": `${anguloDe(i, cartas.length)}deg`,
-                "--solape": SOLAPE,
-                /* Lo que se movió el dedo, para que la carta lo siga. Las
-                   escribe el gesto y las lee el CSS: así el arrastre no
-                   necesita recalcular la posición del abanico. */
-                ...(tirando
-                  ? { "--drag-x": `${arrastre.dx}px`, "--drag-y": `${arrastre.dy}px` }
-                  : null),
+                "--pos": posicionEnAbanico(i, cartas.length),
+                /* `--drag-x` y `--drag-y` NO se escriben acá: las pone el
+                   gesto directo sobre el elemento en cada movimiento. Si se
+                   declararan en este objeto, React las volvería a aplicar en
+                   cada pintado y borraría lo que acabara de escribir la
+                   mano. */
                 /* La que se arrastra va por encima de las demás, o se
                    metería por debajo de las que tiene al lado. */
                 zIndex: tirando ? cartas.length + 10 : i,
@@ -264,7 +295,7 @@ export default function Hand({ cartas = [], habilitada, onPlay }) {
               title={`${CARD_LABEL[c.type]} — ${cardHint(c)}`}
               onPointerDown={(e) => apretar(c, e)}
               onPointerMove={(e) => mover(c, e)}
-              onPointerUp={() => levantar(c)}
+              onPointerUp={(e) => levantar(c, e)}
               /* Ya no cancela al salir del botón: con el puntero capturado
                  arrastrar significa justamente irse de él, y cancelar ahí
                  mataría el gesto apenas empieza. La vista previa se sigue

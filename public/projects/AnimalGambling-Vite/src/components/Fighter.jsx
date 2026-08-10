@@ -1,5 +1,6 @@
 import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
 import RivalHand from "./RivalHand";
+import { HeartShieldIcon } from "./icons";
 
 /* Un peleador: el dibujo, el nombre y sus dos números.
  *
@@ -8,7 +9,16 @@ import RivalHand from "./RivalHand";
  * el que espera, morado el maldito. Con el color atado a la posición, en
  * online te cambiaba según hubieras creado la sala o entrado.
  */
-export default function Fighter({ jugador, lado, activo, ganador, perdedor, mostrarMano, impacto }) {
+export default function Fighter({
+  jugador,
+  lado,
+  activo,
+  ganador,
+  perdedor,
+  mostrarMano,
+  impacto,
+  defensas,
+}) {
   const score = useAnimatedNumber(jugador?.score ?? 0);
   const current = useAnimatedNumber(jugador?.current ?? 0);
 
@@ -59,6 +69,20 @@ export default function Fighter({ jugador, lado, activo, ganador, perdedor, most
         <div className="f-current">
           +<span className={current.bajando ? "down" : ""}>{current.shown}</span>
         </div>
+
+        {/* Las defensas que tenés guardadas. Van acá y no en el abanico
+            porque no se juegan: se gastan solas cuando te atacan, así que
+            son un estado —como el puntaje— y no una opción. Chiquitas y en
+            fila: lo único que hay que saber es cuántas quedan. */}
+        {defensas?.length ? (
+          <div className="f-defensas" aria-label={`Defensas: ${defensas.length}`}>
+            {defensas.map((c) => (
+              <span className="f-defensa" key={c.uid} title="Defensa — se gasta sola al recibir un ataque">
+                <HeartShieldIcon />
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   );
