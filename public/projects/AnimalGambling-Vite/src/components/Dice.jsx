@@ -1,120 +1,154 @@
-import { useEffect, useRef, useState } from "react";
-import { DADO, ms } from "../theme";
+import { useEffect, useRef } from "react";
+import { crearEscena } from "../dice3d/escena";
+import { ms } from "../theme";
 
-/* Rotaciones que dejan cada cara mirando al frente. Salen del tema porque
-   son números, no CSS: cuando el dado se rehaga en React Native van a
-   servir igual. */
-const CARAS = Object.fromEntries(
-  Object.entries(DADO.rotaciones).map(([n, [x, y]]) => [n, { x, y }])
-);
+/* El dado.
+ *
+ * Conserva la misma interfaz que tenía el cubo de CSS —`tirada`,
+ * `esperando`, `onSettle`, `puedeTirar`— justamente para que cambiar cómo
+ * se dibuja no obligue a tocar la pantalla ni el motor. Lo único que sabe
+ * el resto del juego es que se le pasa una tirada y en algún momento avisa
+ * que terminó.
+ *
+ * El número NO sale de acá. Lo decide resolveRoll() en local y el servidor
+ * en online; este componente sólo se encarga de que los cubos terminen
+ * mostrándolo.
+ *
+ * Hay dos formas de tirar y las dos terminan en el mismo lugar:
+ *   · el botón, que lanza con el tiro de siempre;
+ *   · agarrar el dado y arrojarlo, que además le pasa a la simulación la
+ *     dirección y la fuerza de tu mano.
+ */
 
-/* La cara se revela un poco antes de que el giro termine, para que el
-   corte caiga todavía dentro del movimiento. Las dos duraciones salen del
-   mismo catálogo, así que la diferencia entre ellas es una decisión y no
-   un descuido. */
-export const DICE_ROLL_MS = ms("dado.esperaTirada");
-const GIRO_MINIMO_MS = ms("dado.giroMinimo");
+/* Cuánto se espera como mucho antes de dar la tirada por vista. La escena
+   avisa cuando los cubos frenaron de verdad, pero el turno no puede quedar
+   colgado si por lo que sea ese aviso no llega. */
+const TOPE_MS = ms("dado.esperaTirada") + 2600;
 
-const PIPS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6 };
-
-function Cara({ n }) {
-  return (
-    <div className={`dice-face face-${n}`}>
-      {Array.from({ length: PIPS[n] }, (_, i) => (
-        <div className="pip" key={i} />
-      ))}
-    </div>
-  );
-}
-
-function Cubo({ valor, girando, muerto }) {
-  const rot = CARAS[valor] ?? CARAS[6];
-  return (
-    <div
-      className={`dice-3d${girando ? " rolling" : ""}${muerto ? " dead" : ""}`}
-      style={girando ? undefined : { transform: `rotateX(${rot.x}deg) rotateY(${rot.y}deg)` }}
-    >
-      {[1, 2, 3, 4, 5, 6].map((n) => (
-        <Cara n={n} key={n} />
-      ))}
-    </div>
-  );
-}
-
-/* `tirada` es null cuando no hay nada en el aire. `dobles` decide si se ve
-   el segundo dado: se muestra al jugar la carta, no al tirar, porque ver
-   aparecer el segundo es la única confirmación de que la carta hizo algo. */
 export default function Dice({ tirada, esperando, dobles, onSettle, onRoll, puedeTirar }) {
-  const [girando, setGirando] = useState(false);
-  const [caras, setCaras] = useState([6]);
+  const lienzo = useRef(null);
+  const escena = useRef(null);
   const settle = useRef(onSettle);
   settle.current = onSettle;
+  const tirar = useRef(onRoll);
+  tirar.current = onRoll;
+  const puede = useRef(puedeTirar);
+  puede.current = puedeTirar;
 
-  /* Cuándo empezó a girar. En online el dado arranca al apretar y el
-     resultado llega después, así que el giro que ya ocurrió durante la
-     espera cuenta: sin descontarlo, el jugador pagaba la latencia de la red
-     Y ADEMÁS los 650ms enteros de animación. */
-  const desde = useRef(0);
+  /* Si ya se avisó por esta tirada. Los cubos pueden frenar justo cuando
+     vence el tope, y sin esto el turno avanzaría dos veces. */
+  const avisado = useRef(false);
+  /* El impulso del último lanzamiento a mano, esperando a que llegue el
+     valor. En local llega en el mismo instante; en online, después de la
+     red. */
+  const impulso = useRef(null);
+  /* Si el puntero está arrastrando un cubo. */
+  const arrastrando = useRef(false);
 
-  /* Gira desde el toque, sin esperar al servidor. Antes el dado no se movía
-     hasta que llegaba la respuesta, y ese hueco sin nada en pantalla es lo
-     que se sentía como que el juego iba lento. */
   useEffect(() => {
-    if (!esperando) return;
-    desde.current = Date.now();
-    setGirando(true);
-  }, [esperando]);
+    if (!lienzo.current) return;
+    escena.current = crearEscena(lienzo.current);
+    escena.current.redimensionar();
+    escena.current.setCantidad(1);
+
+    const alRedimensionar = () => escena.current?.redimensionar();
+    window.addEventListener("resize", alRedimensionar);
+    return () => {
+      window.removeEventListener("resize", alRedimensionar);
+      escena.current?.destruir();
+      escena.current = null;
+    };
+  }, []);
+
+  /* Con la carta de dos dados hay dos cubos en la mesa antes de tirar: que
+     se vean esperando es lo que anuncia que la carta está activa. */
+  useEffect(() => {
+    escena.current?.setCantidad(dobles ? 2 : 1);
+  }, [dobles]);
 
   useEffect(() => {
-    if (!tirada) return;
-    setGirando(true);
-    if (!desde.current) desde.current = Date.now();
+    if (!tirada || !escena.current) return;
+    avisado.current = false;
 
-    const yaGiro = Date.now() - desde.current;
-    const resta = Math.max(GIRO_MINIMO_MS, DICE_ROLL_MS - yaGiro);
-
-    const t = setTimeout(() => {
-      setGirando(false);
-      desde.current = 0;
-      setCaras(tirada.dice);
+    const listo = () => {
+      if (avisado.current) return;
+      avisado.current = true;
       settle.current?.(tirada);
-    }, resta);
+    };
 
-    return () => clearTimeout(t);
+    /* Si la tirada viene de un lanzamiento a mano, la simulación busca un
+       tiro que salga hacia donde apuntaste. Con el botón no hay impulso y
+       el tiro es el de siempre. */
+    const gesto = impulso.current;
+    impulso.current = null;
+
+    escena.current.lanzar(tirada.dice, listo, gesto);
+    const tope = setTimeout(listo, TOPE_MS);
+    return () => clearTimeout(tope);
   }, [tirada]);
 
-  const cuantos = dobles || (tirada?.dice.length ?? caras.length) > 1 ? 2 : 1;
+  /* En online la respuesta del servidor tarda. Los cubos se tiran igual con
+     valores de mentira para que el gesto tenga respuesta inmediata; cuando
+     llega el resultado real, el efecto de arriba los vuelve a lanzar con
+     los valores buenos. */
+  useEffect(() => {
+    if (!esperando || !escena.current) return;
+    const cuantos = dobles ? 2 : 1;
+    const provisorios = Array.from({ length: cuantos }, () => 1 + Math.floor(Math.random() * 6));
+    escena.current.lanzar(provisorios, null, impulso.current);
+  }, [esperando, dobles]);
 
-  /* Tocar el dado también tira: es el gesto que la mesa sugiere, y en el
-     teléfono queda más a mano que el botón de abajo. Mientras gira no
-     acepta toques, o una segunda tirada pisaría a la que está en el aire. */
-  const tirable = puedeTirar && !girando;
+  /* ─── el gesto ──────────────────────────────────────────────────────
+     El lienzo cubre toda la mesa, así que hay que distinguir "agarré el
+     dado" de "toqué el fieltro". La escena responde si el punto cayó sobre
+     un cubo, y sólo entonces se captura el puntero: si no, el toque sigue
+     su camino hacia lo que haya debajo. */
+  const alApretar = (e) => {
+    if (!puede.current || !escena.current) return;
+    if (!escena.current.agarrar(e.clientX, e.clientY)) return;
+    arrastrando.current = true;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  const alMover = (e) => {
+    if (!arrastrando.current) return;
+    escena.current?.arrastrar(e.clientX, e.clientY);
+  };
+
+  const alSoltar = () => {
+    if (!arrastrando.current) return;
+    arrastrando.current = false;
+
+    const gesto = escena.current?.soltar();
+    /* Soltar el dado siempre lo tira, aunque el gesto haya sido lentísimo o
+       un simple toque: la escena se encarga de darle fuerza mínima. Dejarlo
+       quieto donde lo soltaste lo convertiría en una ficha que se acomoda a
+       mano, y un dado no se acomoda. */
+    if (!gesto || !puede.current) return;
+
+    impulso.current = gesto;
+    tirar.current?.();
+  };
 
   return (
     <div
-      className={`dice-pair${cuantos > 1 ? " double" : ""}${tirable ? " tirable" : ""}`}
-      onClick={tirable ? onRoll : undefined}
-      role={tirable ? "button" : undefined}
-      tabIndex={tirable ? 0 : undefined}
-      aria-label={tirable ? "Tirar el dado" : undefined}
+      className={`dice-arena-3d${puedeTirar ? " tirable" : ""}`}
+      role={puedeTirar ? "button" : undefined}
+      tabIndex={puedeTirar ? 0 : undefined}
+      aria-label={puedeTirar ? "Tirar el dado" : undefined}
+      onPointerDown={alApretar}
+      onPointerMove={alMover}
+      onPointerUp={alSoltar}
+      onPointerCancel={alSoltar}
       onKeyDown={(e) => {
-        if (!tirable) return;
+        if (!puedeTirar) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onRoll();
+          onRoll?.();
         }
       }}
     >
-      {Array.from({ length: cuantos }, (_, i) => (
-        <Cubo
-          key={i}
-          valor={caras[i] ?? 6}
-          girando={girando}
-          /* Con dos dados el que salió 1 no suma: se apaga para que la
-             cuenta se entienda mirando la mesa. */
-          muerto={!girando && cuantos > 1 && caras[i] === 1}
-        />
-      ))}
+      <canvas ref={lienzo} className="dice-canvas" />
     </div>
   );
 }
