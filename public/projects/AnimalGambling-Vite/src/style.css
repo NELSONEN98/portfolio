@@ -2273,14 +2273,11 @@ body {
    relación a todo lo demás en cualquier pantalla: si sólo creciera la de
    arriba, cruzar el umbral de los 800px de alto encogería la mano de golpe
    a la mitad y parecería otro juego. */
-/* Y otro 50% encima, igual que el resto de la vista apilada: estos dos son
-   los valores de teléfono, que es donde la carta se agarra con el dedo.
-   5.7→8.55, 13.5→20.25, 9.1→13.65 · 4.7→7.05, 11→16.5, 7.2→10.8. */
 @media (max-height: 800px) and (max-width: 560px) {
-  .card { --card-w: clamp(8.55rem, 20.25vh, 13.65rem); }
+  .card { --card-w: clamp(5.7rem, 13.5vh, 9.1rem); }
 }
 @media (max-height: 620px) and (max-width: 560px) {
-  .card { --card-w: clamp(7.05rem, 16.5vh, 10.8rem); }
+  .card { --card-w: clamp(4.7rem, 11vh, 7.2rem); }
 }
 
 
@@ -2990,25 +2987,14 @@ body {
    abanico y el tablero se pelean por el mismo espacio: al costado, como en
    la vista ancha, la mano no tiene nada que tapar. */
 @media (max-width: 859px), (max-height: 559px), (orientation: portrait) {
-  /* ►► Un 50% más grandes. ◄◄
-     Acá la carta se toca con el dedo y no con el puntero: el objetivo de
-     arrastre tiene que ser cómodo, y encima la pantalla se mira de más
-     cerca. 9.5→14.25, 22.4→33.6, 14.8→22.2.
-     Sólo las del abanico. Las de defensa viven en el marcador, salen de
-     `--fighter-h` y no se tocan: no se juegan, así que no hay nada que
-     agarrar y crecerlas sólo empujaría el puntaje. */
-  .card { --card-w: clamp(14.25rem, 33.6vmin, 22.2rem); }
+  /* Acá NO se toca el tamaño de la carta: manda el `--card-w` general, que
+     ya trae su propio aumento. Hubo un 50% extra en esta vista y quedaba
+     demasiado grande, así que se volvió atrás — y con él los solapes más
+     cerrados, que existían sólo para que esa carta gigante no se saliera de
+     la ventana. A la medida de siempre el abanico entra sin apretarse.
 
-  /* El abanico se cierra más a medida que se llena. Los valores de la vista
-     ancha no alcanzan acá: con la carta un 50% más grande, cada una que
-     entra suma medio dedo de alto, y ese alto sale del único lado del que
-     puede salir —fuera de la línea—. Cerrando más, la mano de cinco baja de
-     352px a 304, que es lo que la deja terminar ARRIBA del borde de la
-     ventana en vez de 24px por debajo. */
-  .hand-fan[data-n="2"] { --solape: 0.50; }
-  .hand-fan[data-n="3"] { --solape: 0.60; }
-  .hand-fan[data-n="4"] { --solape: 0.68; }
-  .hand-fan[data-n="5"] { --solape: 0.74; }
+     Lo único que queda de aquel intento es el anclaje de acá abajo, que
+     vale igual a cualquier tamaño. */
 
   /* ►► El abanico crece SIEMPRE hacia el lado contrario a la mesa. ◄◄
    *
