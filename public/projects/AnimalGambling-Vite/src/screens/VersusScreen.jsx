@@ -116,7 +116,6 @@ export default function VersusScreen({
             <div className={`pool-goal${arrancando ? "" : " oculto"}`}>
               primero a <span className="num">{goal}</span>
             </div>
-            <div className="snake-eyes-warning">× TE QUEMASTE ×</div>
           </div>
 
           {/* Fuera de la arena del dado y directo sobre el fieltro: los

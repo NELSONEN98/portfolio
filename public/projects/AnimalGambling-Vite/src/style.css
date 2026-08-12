@@ -2273,11 +2273,14 @@ body {
    relación a todo lo demás en cualquier pantalla: si sólo creciera la de
    arriba, cruzar el umbral de los 800px de alto encogería la mano de golpe
    a la mitad y parecería otro juego. */
+/* Y otro 50% encima, igual que el resto de la vista apilada: estos dos son
+   los valores de teléfono, que es donde la carta se agarra con el dedo.
+   5.7→8.55, 13.5→20.25, 9.1→13.65 · 4.7→7.05, 11→16.5, 7.2→10.8. */
 @media (max-height: 800px) and (max-width: 560px) {
-  .card { --card-w: clamp(5.7rem, 13.5vh, 9.1rem); }
+  .card { --card-w: clamp(8.55rem, 20.25vh, 13.65rem); }
 }
 @media (max-height: 620px) and (max-width: 560px) {
-  .card { --card-w: clamp(4.7rem, 11vh, 7.2rem); }
+  .card { --card-w: clamp(7.05rem, 16.5vh, 10.8rem); }
 }
 
 
@@ -2978,6 +2981,68 @@ body {
   .f-current { font-size: calc(var(--fighter-h) * 0.09); }
 }
 
+/* ============================================
+   ABANICO EN LA VISTA APILADA
+   ============================================ */
+/* La condición es EXACTAMENTE la contraria a la del bloque de arriba, para
+   que entre una de las dos siempre y nunca las dos. Acá los peleadores van
+   arriba y abajo de la mesa, que es la única disposición en la que el
+   abanico y el tablero se pelean por el mismo espacio: al costado, como en
+   la vista ancha, la mano no tiene nada que tapar. */
+@media (max-width: 859px), (max-height: 559px), (orientation: portrait) {
+  /* ►► Un 50% más grandes. ◄◄
+     Acá la carta se toca con el dedo y no con el puntero: el objetivo de
+     arrastre tiene que ser cómodo, y encima la pantalla se mira de más
+     cerca. 9.5→14.25, 22.4→33.6, 14.8→22.2.
+     Sólo las del abanico. Las de defensa viven en el marcador, salen de
+     `--fighter-h` y no se tocan: no se juegan, así que no hay nada que
+     agarrar y crecerlas sólo empujaría el puntaje. */
+  .card { --card-w: clamp(14.25rem, 33.6vmin, 22.2rem); }
+
+  /* El abanico se cierra más a medida que se llena. Los valores de la vista
+     ancha no alcanzan acá: con la carta un 50% más grande, cada una que
+     entra suma medio dedo de alto, y ese alto sale del único lado del que
+     puede salir —fuera de la línea—. Cerrando más, la mano de cinco baja de
+     352px a 304, que es lo que la deja terminar ARRIBA del borde de la
+     ventana en vez de 24px por debajo. */
+  .hand-fan[data-n="2"] { --solape: 0.50; }
+  .hand-fan[data-n="3"] { --solape: 0.60; }
+  .hand-fan[data-n="4"] { --solape: 0.68; }
+  .hand-fan[data-n="5"] { --solape: 0.74; }
+
+  /* ►► El abanico crece SIEMPRE hacia el lado contrario a la mesa. ◄◄
+   *
+   * El montón está centrado en la línea de su dueño, así que al sumar
+   * cartas crecía para los dos lados por igual — y uno de esos dos lados es
+   * siempre el tablero. La solución no es moverlo sino ANCLARLO: se clava
+   * el borde que da a la mesa y el crecimiento sale por el otro.
+   *
+   * Va desde la primera carta y no desde la quinta, y la razón es medible:
+   * a este tamaño la carta mide 149px de alto contra 195px de línea, así
+   * que el abanico ya desborda con DOS —41px, la mitad de ellos metiéndose
+   * en el fieltro— y con cuatro desborda 134. Anclando recién en la quinta,
+   * las otras cuatro seguirían tapando el camino y el arreglo no arreglaría
+   * nada. Anclado siempre, además, no hay salto: la mano no se reacomoda de
+   * golpe al recibir una carta. */
+  .fighter-linea.f2 .hand-fan,
+  .versus-screen.flip .fighter-linea.f1 .hand-fan {
+    /* Línea de abajo: la mesa queda arriba. Se clava el techo y crece hacia
+       abajo, contra la banda de los botones. No se tocan: los botones van
+       centrados y las cartas contra el borde izquierdo. */
+    align-self: flex-start;
+    transform: none;
+  }
+  .fighter-linea.f1 .hand-fan,
+  .versus-screen.flip .fighter-linea.f2 .hand-fan {
+    /* Línea de arriba: la mesa queda abajo. Se clava el piso y crece hacia
+       arriba, contra el borde de la ventana. Acá el desplazamiento que
+       traía de fábrica empujaba el montón HACIA el fieltro, así que se le
+       da vuelta el signo. */
+    align-self: flex-end;
+    transform: translateY(calc(clamp(1.5rem, 6vh, 4.5rem) * -1));
+  }
+}
+
 /* Chips only survive as decoration in the rules modal footer — the
    in-hand chip rows went out with the player panels. */
 .chip {
@@ -3091,20 +3156,41 @@ body {
   .dice-arena-3d { opacity: 0.96; }
 }
 
-/* dice snake-eyes warning */
+/* ►► PIERDES TURNO ◄◄
+ *
+ * `fixed` y no `absolute`: se pide el centro de la PANTALLA, y absoluto se
+ * medía contra la arena del dado —o sea, contra el centro de la mesa, que
+ * se mueve con cada tamaño de ventana—. Fixed es la única forma de decir
+ * "la mitad de lo que el jugador está mirando" sin depender de dónde cayó
+ * el tablero.
+ *
+ * Letra blanca, como se pidió, y el peso lo lleva la sombra: sobre el
+ * fieltro verde el blanco solo se lava, y encima el cartel cae justo donde
+ * ruedan los dados. La sombra negra le devuelve el borde sin teñir ni un
+ * píxel de la letra; el halo rojo detrás dice "esto es una mala noticia"
+ * sin tocar el color del texto.
+ *
+ * Grande de verdad: es el único momento del turno en que no hay nada que
+ * decidir, así que puede ocupar la pantalla sin pelearle a nada. */
 .snake-eyes-warning {
-  position: absolute;
+  position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   font-family: var(--display);
-  font-size: 3.2rem;
-  color: var(--blood);
-  text-shadow: 0 0 1.2rem var(--blood);
-  letter-spacing: 0.2rem;
+  font-size: clamp(28px, 11vmin, 96px);
+  color: #fff;
+  text-shadow:
+    0 0 0.6rem rgba(0, 0, 0, 0.95),
+    0 0.4rem 1.2rem rgba(0, 0, 0, 0.8),
+    0 0 2.6rem rgba(199, 54, 95, 0.85);
+  letter-spacing: 0.12em;
+  text-align: center;
   opacity: 0;
   pointer-events: none;
-  z-index: 10;
+  /* Por encima de la mesa, de las cartas y del lienzo del dado. Debajo del
+     preloader, que tapa todo mientras carga. */
+  z-index: 400;
   white-space: nowrap;
 }
 .snake-eyes-warning.show {
@@ -3774,7 +3860,10 @@ body {
 
   .chip { width: 2rem; height: 2rem; }
   .key-hint { display: none; }
-  .snake-eyes-warning { font-size: 2.4rem; }
+  /* El cartel de turno perdido no baja acá: su medida es `vmin` con topes
+     en píxeles, así que ya se adapta sola. Los `2.4rem` que había se
+     derretían con la raíz al 40% y dejaban el aviso más importante del
+     turno en letra chica justo en la pantalla más chica. */
 
   /* Game over */
   .gameover-screen { padding: 3rem 2rem; }
@@ -3813,7 +3902,6 @@ body {
     letter-spacing: 0.06em;
     margin-bottom: 0.4rem;
   }
-  .snake-eyes-warning { font-size: 2rem; }
 
   .gameover-screen { padding: 2rem 1.5rem; }
   .gameover-banner .big { font-size: 6rem; }

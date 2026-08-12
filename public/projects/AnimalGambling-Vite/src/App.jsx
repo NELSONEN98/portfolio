@@ -29,6 +29,12 @@ const IMPACTO_MS = ms("peleador.golpeMarco") + 50;
 /* El respiro entre los puntos del dado y lo que dice la casilla. */
 const ESPERA_CASILLA = ms("tablero.esperaCasilla");
 
+/* Cuánto queda en pantalla el cartel de turno perdido. Sale del mismo
+   catálogo que la animación que lo dibuja: con dos números escritos por
+   separado, el nodo se desmontaba antes de que el destello terminara y el
+   cartel se cortaba en seco. */
+const QUEMADO_MS = ms("dado.quemado");
+
 /* Traduce los hechos que emite el motor a los avisos que ve el jugador.
    El hook dice qué pasó; acá se decide cómo se cuenta. Esa separación es
    lo que permite que en React Native el mismo hecho dispare una vibración
@@ -91,6 +97,10 @@ export default function App() {
   const [impacto, setImpacto] = useState(null);
   /* Se pidió la tirada al servidor y todavía no volvió. */
   const [pidiendoTirada, setPidiendoTirada] = useState(false);
+  /* El cartel de turno perdido, con una clave que cambia en cada quemada:
+     dos unos seguidos tienen que reiniciar la animación, y sin algo que
+     cambie React reusaría el nodo y el segundo no se vería. */
+  const [quemado, setQuemado] = useState(null);
 
   /* La carta que el servidor ya entregó pero que todavía no se mostró:
      espera a que la ficha frene para aparecer. */
@@ -168,6 +178,15 @@ export default function App() {
     consumeEvents();
   }, [eventos, consumeEvents, setFinished, notify]);
 
+  /* El cartel de turno perdido se va solo. Se desmonta en vez de quedarse
+     invisible: mientras existe es un nodo fijo tapando la pantalla entera,
+     y aunque no reciba toques es una capa de más en cada pintado. */
+  useEffect(() => {
+    if (quemado === null) return;
+    const t = setTimeout(() => setQuemado(null), QUEMADO_MS);
+    return () => clearTimeout(t);
+  }, [quemado]);
+
   // La carta revelada se muestra un rato y se va sola.
   useEffect(() => {
     if (!revelada) return;
@@ -234,7 +253,15 @@ export default function App() {
 
     if (ev.action === "roll") {
       const dados = Array.isArray(ev.payload?.dice) ? ev.payload.dice : [ev.payload?.roll];
-      setTirada({ dice: dados, isBust: Boolean(ev.payload?.isBust), gained: 0 });
+      /* `mia: false` es lo que impide que el cartel de turno perdido salga
+         en la pantalla equivocada: esta tirada es del RIVAL, y el aviso es
+         sólo para quien se quemó.
+         No alcanza con mirar de quién es el turno cuando el dado frena: si
+         el rival saca un 1, el servidor pasa el turno en el acto y para
+         cuando los cubos terminan de rodar el turno ya figura como tuyo.
+         El dueño viaja con la tirada porque es un dato de la tirada, no del
+         momento en que se la mira. */
+      setTirada({ dice: dados, isBust: Boolean(ev.payload?.isBust), gained: 0, mia: false });
       return;
     }
     if (ev.action === "hold" || ev.action === "hold_and_win") {
@@ -338,7 +365,9 @@ export default function App() {
   const tirar = async () => {
     if (!online) {
       const t = juego.roll();
-      if (t) setTirada(t);
+      /* En local los dos miran la misma pantalla, así que toda tirada que
+         sale de este botón es la del que está jugando el turno. */
+      if (t) setTirada({ ...t, mia: true });
       return;
     }
     /* Distinto de `rolling`: eso queda encendido toda la resolución del
@@ -349,7 +378,7 @@ export default function App() {
     try {
       const r = await sala.rollDice(sala.roomId);
       setPidiendoTirada(false);
-      setTirada({ dice: r.dice, isBust: r.isBust, gained: r.gained ?? 0 });
+      setTirada({ dice: r.dice, isBust: r.isBust, gained: r.gained ?? 0, mia: true });
       /* El servidor ya resolvió a qué casilla va la ficha y lo manda acá.
          Se guarda y se aplica cuando el dado frena, para que la ficha
          arranque justo cuando se ve la cara. */
@@ -384,6 +413,14 @@ export default function App() {
 
   const alFrenar = (t) => {
     setTirada(null);
+
+    /* El cartel de turno perdido sale acá y no al pedir la tirada: cuando
+       se pide, el jugador todavía no vio ningún número, y anunciarle que
+       perdió mientras los cubos giran le cuenta el final antes que el
+       dado. Acá el 1 ya está a la vista y el cartel lo explica.
+       Sólo a quien se quemó: `mia` viene con la tirada y en online la del
+       rival llega con esa marca en falso. */
+    if (t?.isBust && t.mia !== false) setQuemado(Math.random());
     /* En online el estado lo aplicó el servidor. Lo único que se adelanta
        acá es la posición, que vino en la respuesta de la tirada: mueve la
        ficha ya, sin esperar el sondeo. El resto —puntos, mano, casilla—
@@ -727,6 +764,20 @@ export default function App() {
         haciaArriba={vuelaHaciaArriba}
         onDone={alAterrizar}
       />
+      {/* Turno perdido, en el medio de la PANTALLA y no de la mesa.
+          Vivía adentro de la arena del dado, que está centrada en el
+          fieltro: el cartel quedaba atado a dónde cae la mesa en cada
+          tamaño de ventana en vez de al centro de lo que mira el jugador.
+          Y estaba muerto —el CSS pedía una clase `.show` que nadie ponía—,
+          así que en la práctica el juego nunca avisó de una quemada.
+          Acá afuera, junto al resto de los anuncios a pantalla completa,
+          además sobrevive a que la pantalla cambie debajo. */}
+      {quemado !== null && (
+        <div key={quemado} className="snake-eyes-warning show" role="status">
+          PIERDES TURNO
+        </div>
+      )}
+
       <CardGained carta={cartaGanada} onDone={() => setCartaGanada(null)} />
       <RulesModal abierta={reglasAbiertas} onClose={() => setReglasAbiertas(false)} />
       <Toasts toasts={toasts} onDismiss={dismiss} />
