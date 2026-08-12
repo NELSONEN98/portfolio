@@ -106,19 +106,20 @@ export default function RulesModal({ abierta, onClose }) {
           </Regla>
 
           <Regla n="02" titulo={<>TIRAR <span className="rule-key">[ESPACIO]</span></>}>
-            El resultado se suma a lo que llevás acumulado <i>en este turno</i>.
-            Podés seguir tirando todas las veces que quieras.
+            El resultado se suma a lo que llevas acumulado <i>en este turno</i>.
+            Puedes seguir tirando todas las veces que quieras.
           </Regla>
 
           <Regla n="03" titulo={<>QUEMARSE <span className="rule-badge">× sacar un 1 ×</span></>}>
-            Perdés todo lo acumulado del turno y pasa el otro. Lo que ya tenías
+            Pierdes todo lo acumulado del turno y pasa el otro. Lo que ya tenías
             guardado no se toca, y las cartas que hayas puesto vuelven a tu mano
             sin revelarse.
           </Regla>
 
           <Regla n="04" titulo={<>PLANTARSE <span className="rule-key">[ENTER]</span></>}>
-            Guardás lo del turno en tu puntaje y pasás. Es también el momento en
-            que se dan vuelta tus cartas.
+            Guardas lo del turno en tu puntaje y pasas. Es también el momento en
+            que se dan vuelta tus cartas. Si tu acumulado ya llega a {GOAL}, la
+            partida se cierra sola: no hace falta que lo pulses.
           </Regla>
 
           <Regla
@@ -158,22 +159,24 @@ export default function RulesModal({ abierta, onClose }) {
                   sigue pudiendo salir.
                 </Item>
                 <Item muestra={<Carta tipo={CARD.DOUBLE} />} nombre={CARD_LABEL.double}>
-                  Se aplica al instante: tirás con dos dados y se suman los dos.
+                  Se aplica al instante: tiras con dos dados y se suman los dos.
                   Si uno sale 1, ese no cuenta y el otro sí; si salen los dos en
-                  1, te quemás igual.
+                  1, te quemas igual.
                 </Item>
               </div>
             }
           >
-            Arrancás con {manoInicial}. Sólo podés jugarlas en tu turno, y podés
-            poner <b>varias en el mismo turno</b>: quedan <b>boca abajo</b> sobre
-            la mesa y se revelan recién cuando te plantás. Cada defensa del rival
-            tapa una sola, así que acumular sirve.
+            Empiezas con {manoInicial}. Sólo puedes jugarlas en tu turno, y
+            puedes poner <b>varias en el mismo turno</b>: quedan <b>boca abajo</b>{" "}
+            sobre la mesa y se revelan recién cuando te plantas. Cada defensa del
+            rival tapa una sola, así que acumular sirve.
           </Regla>
 
           <Regla n="07" titulo="GANAR">
-            Gana el primero que llega a {GOAL}. El sobrante de la última tirada
-            no cuenta: el marcador queda clavado en {GOAL}.
+            Gana el primero que llega a {GOAL}. En cuanto tu puntaje más lo
+            acumulado del turno alcanza esa cifra, la partida termina ahí mismo.
+            El sobrante de la última tirada no cuenta: el marcador queda clavado
+            en {GOAL}.
           </Regla>
         </div>
 

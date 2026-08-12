@@ -46,8 +46,15 @@ const LADO = 2.5;
  * Al pasar el tablero a diez filas la mesa se volvió casi cuadrada y el
  * área perdió un cuarto de ancho — de ahí que con dos dados empezaran a
  * quedar uno sobre otro, y que la búsqueda de tiro tenga que descartar
- * esos casos. */
-const VISTA = 6.13;
+ * esos casos.
+ *
+ * Un 25% más de encuadre = un 20% menos de dado en pantalla (6.13 → 7.66).
+ * Se sube esto y no se baja LADO porque el lado del cubo es física: cambiarlo
+ * altera la masa, los rebotes y la altura a la que un dado queda "montado"
+ * sobre otro. El encuadre no toca nada de eso — y de yapa el área por donde
+ * ruedan los cubos crece en la misma proporción, que es justo lo que hacía
+ * falta al agrandar la mesa. */
+const VISTA = 7.66;
 
 /* Cuánto se meten las paredes respecto del borde visible, para que un cubo
    apoyado contra el muro no quede cortado por la mitad. */

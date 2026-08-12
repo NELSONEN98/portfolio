@@ -457,7 +457,7 @@ body {
     "table"
     "f2"
     "ctrl";
-  gap: clamp(0.3rem, 1vh, 0.9rem);
+  gap: var(--gap-v);
   /* Ahora sobra alto en lugar de repartirse: el bloque entero se centra. */
   align-content: center;
 
@@ -466,15 +466,74 @@ body {
      que es lo que hace que el desplazamiento se note. */
   --ui-shift: 0rem;
 
+  /* ►►►► PRESUPUESTO DE ALTO ◄◄◄◄
+   *
+   * La mesa ya no se dimensiona sola con un techo elegido a ojo
+   * (`min(100%, 66rem, 80dvh)`): ese número no sabía nada de lo que había
+   * arriba y abajo, y cuando peleadores + botones + márgenes pedían más de
+   * lo que quedaba, el sobrante salía por el borde de abajo de la ventana.
+   * En un portátil de 1440×900 la cuenta daba 937px de contenido para 900
+   * de pantalla, y lo primero que se perdía de vista era justamente el
+   * botón de tirar.
+   *
+   * Ahora se declara todo lo que NO es la mesa, y la mesa se queda con lo
+   * que sobra. Es la única forma de que la suma cierre en cualquier
+   * pantalla sin tener que probarlas de a una: si un número de acá crece,
+   * la mesa se achica, y el total sigue siendo 100dvh.
+   *
+   * Todos van en unidades de ventana o en píxeles, NUNCA con techo en rem:
+   * el bloque responsive baja la raíz hasta el 34%, así que un `1.6rem`
+   * mide 16px en un monitor y 5px en un teléfono — justo al revés de lo
+   * que hace falta. */
+  --pad-v: clamp(5px, 1.2vh, 18px);           /* aire arriba y abajo */
+  --gap-v: clamp(3px, 0.9vh, 12px);           /* entre filas de la grilla */
+  --ctrl-gap: clamp(6px, 1.5vh, 22px);        /* aire sobre los botones */
+  /* Hueco extra bajo la mesa, sólo en la vista apilada: el abanico del
+     jugador de abajo crece hacia arriba, y sin esto la carta de más arriba
+     se le metía detrás del fieltro. */
+  --f2-gap: clamp(4px, 2.4vh, 26px);
+
   /* ►► Separación entre los personajes y la mesa. ◄◄
      Subir este número los aleja, bajarlo los junta; acepta negativos
      hasta superponerlos. Va aparte del `gap` de arriba porque ese aplica
      a las cuatro filas por igual y movía también los botones. */
-  --table-gap: 4rem;
+  --table-gap: clamp(4px, 1.2vh, 18px);
+
+  /* ►► Alto de la línea de un peleador. ◄◄
+     Manda sobre el marco, el puntaje y el acumulado a la vez: los tres
+     salen de acá, así que la línea mide lo que dice esta variable y no lo
+     que resulte de tres `clamp` distintos peleando entre sí.
+     El techo en vw es lo que impide que en un teléfono angosto el dibujo
+     se salga de costado; el piso en rem, que desaparezca en una ventana
+     de poco alto. */
+  --fighter-h: max(7rem, min(19dvh, 34vw));
+
+  /* ►► Los dos botones de la partida. ◄◄
+     Suben acá desde .versus-controls porque el presupuesto necesita
+     leerlos, y las propiedades personalizadas sólo bajan. */
+  --lado: clamp(84px, 12vmin, 124px);
+  --canto: clamp(0.5rem, 1.1vmin, 0.8rem);
+
+  /* Lo que queda para la mesa, en la vista apilada: dos líneas de peleador,
+     cuatro filas con tres separaciones, el aire de la mesa y la banda de
+     los botones. */
+  --tabla-alto: calc(
+    100dvh
+    - 2 * var(--pad-v)
+    - 3 * var(--gap-v)
+    - 2 * var(--fighter-h)
+    - 2 * var(--table-gap)
+    - var(--f2-gap)
+    - var(--ctrl-gap)
+    - var(--lado)
+    - var(--canto)
+    - env(safe-area-inset-bottom)
+  );
+
   padding:
-    clamp(0.6rem, 1.5vh, 1.6rem)
+    var(--pad-v)
     clamp(1.2rem, 3vw, 4rem)
-    calc(clamp(0.6rem, 1.5vh, 1.6rem) + env(safe-area-inset-bottom));
+    calc(var(--pad-v) + env(safe-area-inset-bottom));
   height: 100%;
 }
 .versus-screen.active {
@@ -521,6 +580,20 @@ body {
      contenido, los tres quedaban amontonados en el medio y no había forma
      de separar las cartas del resto. */
   width: 100%;
+
+  /* Alto declarado, no deducido.
+   *
+   * Antes la línea medía lo que midiera su hijo más alto, y ese hijo era el
+   * abanico: cinco cartas apiladas dan más de dos veces y media el alto de
+   * una carta, así que recibir la quinta empujaba la fila y con ella toda
+   * la grilla — el tablero se movía por una carta que no tiene nada que ver
+   * con él. Con el alto fijo el abanico desborda por arriba, que es hacia
+   * donde ya lo estaba mandando su propio `transform`, y no le saca ni un
+   * píxel a la mesa.
+   *
+   * Es además la mitad del presupuesto de arriba: sin un alto declarado,
+   * `--tabla-alto` estaría restando un número que no se cumple. */
+  height: var(--fighter-h);
 }
 
 /* Las cartas contra el borde y el jugador empujado al otro lado. El hueco
@@ -603,8 +676,13 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  /* Otro 10% menos: 21dvh -> 18.9, 41.8vw -> 37.6. */
-  height: max(6.5rem, min(18.9dvh, 37.6vw));
+  /* Sale del alto declarado de la línea en vez de tener su propio clamp.
+     Con dos fórmulas distintas —una para el marco y otra para el puntaje—
+     cuál de las dos ganaba dependía del tamaño de la ventana, y la línea
+     terminaba midiendo lo que dijera la que hubiera quedado más alta.
+     Fracción y no el alto entero: el marco tiene que respirar dentro de su
+     renglón, no llenarlo hasta el filo. */
+  height: calc(var(--fighter-h) * 0.86);
   width: auto;
   aspect-ratio: 5 / 6; /* source frames are 400×480 */
   flex: none;
@@ -880,7 +958,14 @@ body {
 }
 
 .f-defensa {
-  width: clamp(2.6rem, 6.8vmin, 4.6rem);
+  /* También atada al alto de la línea, y no a `vmin`. Las defensas cuelgan
+     debajo del acumulado, así que son el último tramo del marcador: con su
+     propia medida, en una ventana ancha crecían hasta empujar el marcador
+     fuera del renglón del peleador —y el renglón ahora tiene alto declarado,
+     de modo que lo que sobraba se salía por abajo—.
+     El piso en píxeles es para que sigan siendo contables en un teléfono,
+     donde 14 centésimos de una línea corta darían una mancha. */
+  width: max(16px, calc(var(--fighter-h) * 0.14));
   aspect-ratio: 5 / 7;
   flex: none;
   border-radius: 0.34rem;
@@ -913,7 +998,11 @@ body {
 }
 .f-score {
   font-family: var(--display);
-  font-size: clamp(9rem, 21vmin, 19.2rem);
+  /* Igual que el marco: sale del alto de la línea. Con `line-height: 0.85`
+     el número ocupa 0.61 de la línea y le deja sitio al acumulado y a las
+     defensas debajo, así que el marcador entero entra en su renglón sin
+     depender de con cuántas cifras se esté jugando. */
+  font-size: calc(var(--fighter-h) * 0.72);
   line-height: 0.85;
   /* Siempre en el color del lado, esté o no en turno: es la forma de saber
      cuál de los dos números es el tuyo sin leer el nombre. */
@@ -922,7 +1011,10 @@ body {
 }
 .f-current {
   font-family: var(--display);
-  font-size: clamp(2rem, 3.4vmin, 2.8rem);
+  /* Atado al puntaje, no a la ventana: es el mismo dato dicho en chico y
+     tiene que conservar la proporción con el número grande en cualquier
+     pantalla. */
+  font-size: calc(var(--fighter-h) * 0.14);
   color: var(--bone-dim);
   letter-spacing: 0.1em;
 }
@@ -1032,15 +1124,29 @@ body {
   /* Empuja arriba y abajo por igual: la mesa se aparta de los dos
      peleadores sin moverse del centro. */
   margin-block: var(--table-gap);
-  /* La proporción sale de la grilla del camino —11 columnas por 10 filas—
+  /* La proporción sale de la grilla del camino —12 columnas por 10 filas—
      y no de un número elegido: con cualquier otra, las casillas dejan de
      ser cuadradas y se ven estiradas.
      Si se tocan BOARD_COLS o BOARD_ROWS hay que tocar esto, y es lo único
-     del tablero que no se recalcula solo.
-     El techo en dvh baja al subir a diez filas: con la mesa más alta, el
-     mismo ancho pedía más alto del que hay en una laptop. */
-  width: min(100%, 79.2rem, 38dvh);
-  aspect-ratio: 11 / 10;
+     del tablero que no se recalcula solo. */
+  aspect-ratio: 12 / 10;
+
+  /* El ancho sale del alto que le dejó el presupuesto, convertido por la
+     proporción, y se topa contra la columna que le tocó.
+     Antes había tres topes sueltos —`79.2rem` y `38dvh`— elegidos a ojo:
+     el de rem se derretía con la raíz en pantallas chicas y el de dvh no
+     sabía cuánto alto le estaban comiendo los peleadores y los botones.
+     Con este cálculo la mesa se queda con TODO lo que sobra y ni un píxel
+     más, que es a la vez lo más grande que puede ser y lo más grande que
+     entra.
+
+     El `max(120px, …)` es un piso de cordura: en una ventana tan baja que
+     el presupuesto da negativo, un ancho negativo es una declaración
+     inválida y la mesa se quedaría sin `width` —con `aspect-ratio` suelto
+     dentro de una celda de grilla, eso se descontrola—. Con el piso, en el
+     peor caso el tablero asoma chico y recortado, que sigue siendo un
+     tablero. */
+  width: min(100%, max(120px, calc(var(--tabla-alto) * 12 / 10)));
   padding: clamp(0.7rem, 1.8vmin, 1.6rem);
   border-radius: clamp(1rem, 2.4vmin, 1.8rem);
   background: linear-gradient(145deg, #5a2e18, #2a120a 42%, #4a2414 72%, #1c0c06);
@@ -1138,19 +1244,24 @@ body {
    un grid: el recorrido es circular y un grid de 24 celdas obligaría a
    inventar celdas vacías en el medio. */
 /* El recorrido va sobre el fieltro, corrido hacia adentro para no pegarse
-   al filo. Es el borde de una grilla de 11×8: 2·11 + 2·8 − 4 = 34 celdas,
+   al filo. Es el borde de una grilla de 12×10: 2·12 + 2·10 − 4 = 40 celdas,
    justo las casillas del camino. Las del medio quedan vacías y ahí cae el
    dado. El tamaño lo fijan BOARD_COLS y BOARD_ROWS en convex/rules.ts —
-   estos dos números tienen que seguirlos. */
+   estos dos números tienen que seguirlos, y de hecho Board.jsx los pisa
+   con un estilo en línea; quedan escritos por si el componente se dibuja
+   antes de recibirlos.
+
+   El margen contra el filo se achicó: es alto y ancho que no hacía nada y
+   que ahora se reparte entre las cuarenta casillas. */
 .board-track {
   position: absolute;
-  inset: clamp(0.5rem, 1.6vmin, 1.1rem);
+  inset: clamp(0.3rem, 1vmin, 0.7rem);
   pointer-events: none;
   z-index: 3;
 
   display: grid;
-  grid-template-columns: repeat(11, 1fr);
-  grid-template-rows: repeat(8, 1fr);
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(10, 1fr);
   gap: 2px;
 }
 
@@ -1356,16 +1467,17 @@ body {
 .hand-fan[data-n="4"] { --solape: 0.6; }
 .hand-fan[data-n="5"] { --solape: 0.66; }
 
-/* Y además reserva desde el principio el alto que ocuparía llena, con las
-   cartas apoyadas abajo.
+/* Acá vivía un `min-height` que reservaba el alto de la mano llena, para que
+   recibir una carta no empujara la línea y con ella el tablero.
  *
- * Apretarlas no alcanzaba: el montón seguía creciendo un poco con cada
- * carta, y ese poco empujaba la línea entera y con ella la mesa. Recibir
- * una carta terminaba moviendo el tablero, que no tiene nada que ver con
- * la mano. Con el alto reservado, la mano crece hacia adentro de un hueco
- * que ya estaba ahí y no mueve nada. */
+ * Se fue por dos motivos. El primero es que nunca funcionó: leía
+ * `var(--card-w)`, que se declara en `.card` —un HIJO— y las propiedades
+ * personalizadas sólo bajan, así que el `calc` era inválido y el navegador
+ * lo descartaba entero. Una regla muerta que parecía viva.
+ * El segundo es que el problema que quería resolver ya no existe: la línea
+ * del peleador tiene alto declarado, así que el abanico crece hacia arriba
+ * por fuera de ella y no puede mover nada aunque llegue a cinco cartas. */
 .hand-fan {
-  min-height: calc(var(--card-w) * 1.4 * 2.36);
   justify-content: flex-start;
 
   /* Baja el montón entero para despegarlo de la mesa. Va en `transform` y
@@ -1379,10 +1491,13 @@ body {
 /* En la vista apilada la línea de abajo se despega de la mesa: el abanico
    crece hacia arriba, y con la mano llena la última carta se metía detrás
    del fieltro. El hueco es el alto que necesita el montón para desplegarse
-   sin invadir la mesa. */
+   sin invadir la mesa.
+   Sale de `--f2-gap` porque es alto que le está sacando a la mesa, y todo
+   lo que le saca alto a la mesa tiene que estar declarado arriba o el
+   presupuesto miente por esa diferencia. */
 .fighter-linea.f2,
 .versus-screen.flip .fighter-linea.f1 {
-  margin-top: clamp(1.2rem, 4vh, 3rem);
+  margin-top: var(--f2-gap);
 }
 
 /* Los hijos sí reciben el toque; el contenedor no, para no tapar la mesa
@@ -1459,39 +1574,31 @@ body {
 /* ---- la mano del rival ----
    Sólo reversos, chicos, pegados a su personaje. Muy solapados: interesa
    cuántas le quedan de un vistazo, no contarlas de a una. */
+/* ►► Al lado derecho del puntaje grande, en el mismo renglón. ◄◄
+ *
+ * En el flujo del `.score-row` y no colgada de una esquina del peleador.
+ * Absoluta quedaba arriba a la derecha en un lado y abajo a la izquierda en
+ * el otro: la misma información aparecía en dos sitios distintos según a
+ * quién estuvieras mirando, y en ninguno de los dos tocaba el número que
+ * viene a completar. Cuántas cartas le quedan al rival se lee junto con su
+ * puntaje o no se lee: son las dos mitades de "cómo viene el otro".
+ *
+ * Puesta acá queda además a la misma altura y a la misma distancia del
+ * marcador que tu propio abanico del suyo, que es de donde sale la simetría
+ * entre las dos líneas.
+ *
+ * Ya no hacen falta las cuatro reglas por lado ni sus versiones con flip:
+ * el renglón la lleva sola a donde tenga que ir, se dé vuelta la pantalla o
+ * no. Eran ocho declaraciones para resolver algo que el flujo hacía gratis. */
 .rival-hand {
-  position: absolute;
   display: flex;
   align-items: center;
+  flex: none;
+  /* Despegada del número: pegada al último dígito se leía como parte de la
+     cifra. */
+  margin-left: clamp(0.8rem, 2.2vmin, 1.6rem);
   pointer-events: none;
   z-index: 6;
-}
-/* Cuelga de .fighter, que ya es contexto de posicionamiento por su
-   transform. Cada lado la lleva del borde de afuera, para no meterse entre
-   el dibujo y el marcador. */
-/* La mano va del lado del marcador, no del dibujo: el marcador es lo que
-   mirás para saber cómo viene el rival, y las cartas que le quedan son
-   parte de esa misma lectura. De qué lado cae el marcador lo decide el
-   `flex-direction` del peleador — `row` lo manda a la derecha,
-   `row-reverse` a la izquierda — así que estas cuatro reglas siguen a
-   aquellas. Antes las dos manos iban a la derecha, y en el lado 2, que va
-   invertido, quedaba en la punta opuesta al marcador. */
-.rival-hand.lado-1 { top: -0.6rem; right: 0; }
-.rival-hand.lado-2 { bottom: -0.6rem; left: 0; }
-
-/* Con el flip los dos peleadores intercambian posición y orientación, así
-   que la mano tiene que acompañar en los dos ejes. */
-.versus-screen.flip .rival-hand.lado-1 {
-  top: auto;
-  bottom: -0.6rem;
-  right: auto;
-  left: 0;
-}
-.versus-screen.flip .rival-hand.lado-2 {
-  bottom: auto;
-  top: -0.6rem;
-  left: auto;
-  right: 0;
 }
 
 .rival-card {
@@ -2052,8 +2159,12 @@ body {
      peleadores. */
   /* Un 20% más grandes desde que las defensas salieron del abanico: hay una
      carta menos que acomodar y el hueco que dejaron se reparte entre las
-     que sí se juegan. */
-  --card-w: clamp(7.3rem, 17.2vmin, 11.4rem);
+     que sí se juegan.
+     Y otro 30% encima. El abanico ya no le puede robar alto a la mesa —la
+     línea del peleador tiene alto declarado y la carta desborda por arriba
+     en vez de empujar—, así que crecer dejó de costarle nada al tablero:
+     7.3→9.5, 17.2→22.4, 11.4→14.8. */
+  --card-w: clamp(9.5rem, 22.4vmin, 14.8rem);
   width: var(--card-w);
   aspect-ratio: 5 / 7;
   border: none;
@@ -2158,11 +2269,15 @@ body {
 
    Sin esta condición, cualquier laptop de menos de 800px de alto anulaba
    el tamaño del abanico y las cartas se veían chicas. */
+/* Los dos también suben el 30%, para que la carta se vea igual de grande en
+   relación a todo lo demás en cualquier pantalla: si sólo creciera la de
+   arriba, cruzar el umbral de los 800px de alto encogería la mano de golpe
+   a la mitad y parecería otro juego. */
 @media (max-height: 800px) and (max-width: 560px) {
-  .card { --card-w: clamp(4.4rem, 10.4vh, 7rem); }
+  .card { --card-w: clamp(5.7rem, 13.5vh, 9.1rem); }
 }
 @media (max-height: 620px) and (max-width: 560px) {
-  .card { --card-w: clamp(3.6rem, 8.5vh, 5.5rem); }
+  .card { --card-w: clamp(4.7rem, 11vh, 7.2rem); }
 }
 
 
@@ -2402,7 +2517,7 @@ body {
      que coincidir con BOARD_COLS y BOARD_ROWS de convex/rules.ts: al subir
      de 8 a 10 filas, los `100% / 8` que había escritos acá quedaron
      apuntando a una fila que ya no existe. */
-  --board-cols: 11;
+  --board-cols: 12;
   --board-rows: 10;
 
   /* Medida única de las cartas que descansan sobre el fieltro: las jugadas
@@ -2470,8 +2585,11 @@ body {
      separación existe para que un pulgar apurado no dé una por la otra. */
   gap: clamp(1.6rem, 5vw, 4rem);
   /* Aire propio: los botones son de la interfaz, no de la mesa, y pegados
-     al peleador de abajo se leían como parte de él. */
-  margin-top: 5rem;
+     al peleador de abajo se leían como parte de él.
+     Sale del presupuesto de la pantalla en vez de ser `5rem` fijos: esos
+     cincuenta píxeles se los sacaba a la mesa siempre, incluso en una
+     ventana donde ya no cabía nada. */
+  margin-top: var(--ctrl-gap);
   transform: translateY(var(--ui-shift));
 }
 /* Los dos botones de la partida. Sin texto: se aprietan decenas de veces
@@ -2483,19 +2601,22 @@ body {
    `--lado` manda sobre los dos, así que la proporción entre ellos se
    conserva sola en cualquier pantalla. */
 .versus-controls {
-  /* En PÍXELES y no en rem, y esto importa: el responsive de este proyecto
-     baja el tamaño de fuente raíz hasta el 34%, así que un mínimo en rem se
-     encoge junto con la pantalla — justo donde más falta hace que no lo
-     haga. Con `4.6rem` el círculo terminaba midiendo 21px en un teléfono.
+  /* `--lado` y `--canto` viven ahora en .versus-screen, junto al resto del
+     presupuesto de alto: la banda de botones es una de las cosas que le
+     restan sitio a la mesa, y el cálculo tiene que poder leerlas. Siguen
+     valiendo lo mismo acá abajo porque las propiedades personalizadas se
+     heredan.
+
+     Van en PÍXELES y no en rem, y esto importa: el responsive de este
+     proyecto baja el tamaño de fuente raíz hasta el 34%, así que un mínimo
+     en rem se encoge junto con la pantalla — justo donde más falta hace que
+     no lo haga. Con `4.6rem` el círculo terminaba midiendo 21px en un
+     teléfono.
 
      El piso sale de la regla de toque: 44px es lo mínimo que un dedo acierta
      con confianza, y como el círculo es el 60% del lado, el lado no puede
      bajar de 74. El área de toque es una medida física, del dedo, y no
      tipográfica: por eso no sigue a la tipografía. */
-  --lado: clamp(111px, 16.5vmin, 162px);
-  /* El canto que se ve por debajo. Es lo que da el grosor de tecla, y baja
-     a cero al apretar: el botón se hunde hasta apoyarse. */
-  --canto: clamp(0.5rem, 1.1vmin, 0.8rem);
   align-items: center;
   justify-content: center;
   /* Más juntos que antes. La separación existía para que un pulgar apurado
@@ -2583,6 +2704,58 @@ body {
     0 calc(var(--canto) + 0.4rem) 0.9rem rgba(0, 0, 0, 0.55);
 }
 
+/* ►► La cara amarilla brilla siempre. ◄◄
+ *
+ * No es decoración: es la única cosa de la pantalla que dice "te toca a
+ * vos, movete". El destello de abajo sólo aparecía con el dedo ya apoyado,
+ * o sea que recompensaba a quien YA había encontrado el botón — que es
+ * exactamente quien no lo necesitaba. Encendido de entrada, el ojo cae ahí
+ * solo al terminar de mirar el dado.
+ *
+ * Va condicionado a `:not(:disabled)` y no suelto sobre `.tirar`: fuera de
+ * turno el botón está en gris, y un gris que late sería una invitación a
+ * apretar algo que no responde.
+ *
+ * Los tres primeros renglones de sombra son los mismos de la tecla. Se
+ * repiten adentro del keyframe porque una animación de `box-shadow` pisa la
+ * propiedad ENTERA: sin ellos el botón perdía su grosor y su brillo de
+ * arriba justo mientras late, y quedaba una etiqueta plana flotando. */
+.btn-accion.tirar:not(:disabled) {
+  animation: brillo-tirar var(--dur-boton-brillo) var(--ease-boton-brillo) infinite;
+}
+@keyframes brillo-tirar {
+  0%, 100% {
+    box-shadow:
+      inset 0 3px 0 rgba(255, 255, 255, 0.6),
+      inset 0 -4px 0 rgba(0, 0, 0, 0.22),
+      0 var(--canto) 0 #6d5000,
+      0 calc(var(--canto) + 0.5rem) 1rem rgba(0, 0, 0, 0.55),
+      0 0 1.1rem 0.05rem rgba(228, 167, 0, 0.5);
+  }
+  50% {
+    box-shadow:
+      inset 0 3px 0 rgba(255, 255, 255, 0.78),
+      inset 0 -4px 0 rgba(0, 0, 0, 0.22),
+      0 var(--canto) 0 #6d5000,
+      0 calc(var(--canto) + 0.5rem) 1rem rgba(0, 0, 0, 0.55),
+      0 0 2.6rem 0.45rem rgba(255, 201, 61, 0.9);
+  }
+}
+
+/* Sin latido, pero encendido: el resplandor es lo que dice de quién es el
+   turno, y eso es información, no adorno. */
+@media (prefers-reduced-motion: reduce) {
+  .btn-accion.tirar:not(:disabled) {
+    animation: none;
+    box-shadow:
+      inset 0 3px 0 rgba(255, 255, 255, 0.6),
+      inset 0 -4px 0 rgba(0, 0, 0, 0.22),
+      0 var(--canto) 0 #6d5000,
+      0 calc(var(--canto) + 0.5rem) 1rem rgba(0, 0, 0, 0.55),
+      0 0 1.8rem 0.25rem rgba(228, 167, 0, 0.7);
+  }
+}
+
 .btn-accion:not(:disabled):hover {
   filter: brightness(1.06);
 }
@@ -2650,9 +2823,28 @@ body {
   }
 }
 
+/* ►► Fuera de turno los botones se apagan a gris. ◄◄
+ *
+ * Antes sólo bajaban a `opacity: 0.4`, y un dorado translúcido sobre
+ * fieltro verde sigue siendo dorado: se leía como el mismo botón un poco
+ * más flojo, no como un botón que no responde. Un dedo apurado lo apretaba
+ * igual y no pasaba nada, que es la peor respuesta posible —ninguna—.
+ *
+ * `grayscale(1)` le saca el color de raíz, así que la diferencia se nota
+ * aunque la pantalla esté al sol, y sobrevive a que alguien le cambie el
+ * degradado al botón mañana. El `brightness` de más lo hunde contra la
+ * mesa: apagado Y más oscuro es lo que lo saca del primer plano.
+ *
+ * La opacidad sube de 0.4 a 0.55 justo por eso: con el color ya fuera de
+ * juego no hacía falta desdibujarlo tanto, y la silueta tiene que seguir
+ * ahí — desaparecer del todo haría dudar de si el botón existe. */
 .btn-accion:disabled {
-  opacity: 0.4;
+  filter: grayscale(1) brightness(0.62);
+  opacity: 0.55;
   cursor: default;
+  /* El latido del dorado no corre acá, pero se corta explícito por si
+     alguna regla futura vuelve a encenderlo sobre un botón muerto. */
+  animation: none;
 }
 .btn-accion:focus-visible {
   outline: 3px solid var(--c-gold);
@@ -2680,7 +2872,16 @@ body {
    portrait the stack is right no matter how big the screen is. */
 @media (min-width: 860px) and (min-height: 560px) and (orientation: landscape) {
   .versus-screen {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr) minmax(0, 1fr);
+    /* Las columnas de los costados miden lo que miden sus peleadores —marco
+       más abanico— y la mesa se queda con todo el resto.
+       Antes el reparto era `1fr : 2.2fr : 1fr`, una proporción fija que no
+       sabía nada de lo que iba adentro: con las cartas al 130% los costados
+       pedían más de lo que su cuarto de pantalla les daba y el abanico se
+       montaba sobre el fieltro, mientras que con la mano vacía sobraba
+       espacio a los lados y la mesa se quedaba chica sin motivo. Con `auto`
+       cada columna pide lo suyo una sola vez y no hay número que ajustar
+       cuando algo cambia de tamaño. */
+    grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-rows: minmax(0, 1fr) auto;
     /* Dos filas: los jugadores con sus cartas, y los controles. La mano ya
        no cruza el ancho porque dejó de ser de nadie en particular: cada
@@ -2688,8 +2889,42 @@ body {
     grid-template-areas:
       "f1    table  f2"
       "ctrl  ctrl   ctrl";
-    gap: clamp(1.6rem, 3vw, 3.2rem);
+    gap: var(--gap-v) clamp(1rem, 1.8vw, 2rem);
+
+    /* Acá los peleadores van AL LADO de la mesa, no arriba y abajo, así que
+       el presupuesto ya no tiene que descontar dos líneas de peleador: esa
+       fila es la misma que la de la mesa. Ese alto liberado es lo que le
+       permite al tablero crecer de verdad al pasar a doce columnas en vez
+       de repartir el mismo ancho entre una casilla más. */
+    --tabla-alto: calc(
+      100dvh
+      - 2 * var(--pad-v)
+      - var(--gap-v)
+      - 2 * var(--table-gap)
+      - var(--ctrl-gap)
+      - var(--lado)
+      - var(--canto)
+      - env(safe-area-inset-bottom)
+    );
+
+    /* Menos margen a los costados: es ancho que no hacía nada y que la mesa
+       aprovecha entero. */
+    padding:
+      var(--pad-v)
+      clamp(0.8rem, 1.6vw, 2rem)
+      calc(var(--pad-v) + env(safe-area-inset-bottom));
   }
+
+  /* En columnas auto, un ancho del 100% se muerde la cola: la columna mide
+     lo que mide su contenido y el contenido pide la columna entera. Al
+     contenido, entonces.
+
+     Y el alto vuelve a ser el del contenido. El alto declarado existe para
+     que las dos líneas de peleador no le coman fila a la mesa, y acá no hay
+     tal cosa: peleadores y mesa comparten la MISMA fila, así que lo que
+     midan a los costados no le saca ni un píxel al tablero. Fijarlo igual
+     sólo serviría para cortar el marcador cuando aparecen las defensas. */
+  .fighter-linea { width: auto; height: auto; max-height: 100%; }
   /* Con lugar de sobra los números vuelven abajo del dibujo. */
   .fighter,
   .fighter.f2 {
@@ -2730,11 +2965,17 @@ body {
   .versus-screen.flip .fighter.f1 .f-numbers,
   .versus-screen.flip .fighter.f2 .f-numbers { flex-direction: row; }
 
-  /* 23vw is the side-column ceiling: the grid splits 1 : 2.2 : 1, so a
-     fighter column is about a quarter of the width, and at 5:6 a frame
-     taller than ~23vw would spill out of its own column. Reduced 20%. */
-  .fighter-frame { height: clamp(9rem, 21.4dvh, 22rem); }
-  .pool-table { width: min(100%, 66rem, 80dvh); }
+  /* Acá los peleadores son columnas y no renglones: el marco va arriba de
+     los números en lugar de al lado, así que la línea necesita el alto de
+     los dos sumados y no el del más alto. El marco baja a la mitad para que
+     el conjunto entre en el mismo renglón que la mesa.
+     El alto de la línea sube porque acá no compite con nada: es la misma
+     fila del tablero, y lo que la mesa no usa a los costados no lo usa
+     nadie. */
+  .versus-screen { --fighter-h: max(9rem, min(30dvh, 22vw)); }
+  .fighter-frame { height: calc(var(--fighter-h) * 0.52); }
+  .f-score { font-size: calc(var(--fighter-h) * 0.4); }
+  .f-current { font-size: calc(var(--fighter-h) * 0.09); }
 }
 
 /* Chips only survive as decoration in the rules modal footer — the
@@ -3524,6 +3765,13 @@ body {
   .select-footer .sys-msg { width: 100%; text-align: center; font-size: 1rem; order: 3; }
 
   /* Versus — the keyboard hints are noise on a device with no keyboard */
+  /* La línea del peleador baja acá y no en el bloque general porque el
+     problema es de ANCHO, no de alto: el marcador sale de `--fighter-h`, y
+     en un teléfono ese número grande más las cartas del rival a su derecha
+     no entran en el mismo renglón que el dibujo. Bajando la variable se
+     achican los tres a la vez y la línea vuelve a caber. */
+  .versus-screen { --fighter-h: max(6rem, min(16dvh, 30vw)); }
+
   .chip { width: 2rem; height: 2rem; }
   .key-hint { display: none; }
   .snake-eyes-warning { font-size: 2.4rem; }

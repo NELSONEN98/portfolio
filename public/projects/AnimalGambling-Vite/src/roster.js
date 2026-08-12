@@ -30,7 +30,7 @@ export const ROSTER = [
     age: "11",
     cond: "Dice que se retiró. Vuelve todas las noches.",
     quote: "Nunca dudé. Ni un segundo.",
-    loseQuote: "Una más. Dale. Una más.",
+    loseQuote: "Una más. Solo una más.",
     tags: ["VETERANO", "MENTIROSO"],
   },
   {

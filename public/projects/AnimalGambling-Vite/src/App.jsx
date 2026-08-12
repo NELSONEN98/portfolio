@@ -307,7 +307,7 @@ export default function App() {
   const crearSala = async () => {
     try {
       await sala.crear();
-      notify("Sala creada — pasale el código a tu rival");
+      notify("Sala creada — pásale el código a tu rival");
     } catch (e) {
       notify(errorText(e), "error");
     }
@@ -315,7 +315,7 @@ export default function App() {
 
   const unirseASala = async (codigo) => {
     if (!codigo) {
-      notify("Pegá el código de la sala", "error");
+      notify("Pega el código de la sala", "error");
       return;
     }
     try {
@@ -330,7 +330,7 @@ export default function App() {
   useEffect(() => {
     if (!online || screen !== "room-choice") return;
     if (sala.room?.status === "playing") {
-      notify("Tu rival entró — elegí tu gato");
+      notify("Tu rival entró — elige tu gato");
       go("select");
     }
   }, [online, screen, sala.room, go, notify]);
@@ -503,6 +503,60 @@ export default function App() {
       notify(errorText(e), "error");
     }
   };
+
+  /* Llegar al objetivo termina la partida sola.
+   *
+   * Plantarse es una DECISIÓN: se elige entre guardar lo del turno o seguir
+   * arriesgando. Con el acumulado ya en 100 esa decisión no existe —seguir
+   * tirando no puede mejorar nada y sí puede quemar el turno—, así que
+   * pedir el botón era pedir un trámite. Con 95 y un 6 en el dado ya
+   * ganaste; el botón sólo servía para enterarte.
+   *
+   * Se dispara el MISMO plantarse que el botón en vez de declarar el final
+   * por afuera: plantarse revela las cartas puestas, cobra los robos y
+   * recién ahí mide contra el objetivo. Un final aparte se saltearía todo
+   * eso y dejaría cartas boca abajo sobre la mesa de una partida terminada.
+   *
+   * El disparo espera a `rolling` en bajo, que es la señal de que el turno
+   * terminó de resolverse. Antes de eso el acumulado todavía puede subir por
+   * el dado y bajar por la casilla: en una penitencia, el marcador toca 100
+   * un instante y vuelve a 94, y mirando ese instante se declararía un
+   * ganador que no ganó. */
+  const cerrandoPorMeta = useRef(false);
+  /* El espejo se escribe en un efecto y no durante el pintado: `plantarse`
+     se arma de nuevo en cada vuelta, así que listarlo en las dependencias
+     del efecto de abajo lo dispararía en todas. Y el efecto que lo copia va
+     declarado ANTES que el que lo lee, porque React los corre en ese
+     orden. */
+  const plantarseRef = useRef(plantarse);
+  useEffect(() => {
+    plantarseRef.current = plantarse;
+  });
+
+  useEffect(() => {
+    if (juego.finished) {
+      cerrandoPorMeta.current = false;
+      return;
+    }
+    if (!juego.playing || juego.rolling) return;
+    /* En online sólo se cierra el turno propio: el servidor rechaza un hold
+       fuera de turno, y el del rival lo dispara su propia pantalla. */
+    if (online && juego.active !== juego.miLado) return;
+
+    const p = juego.players[juego.active];
+    if (!p) return;
+    if ((p.score ?? 0) + (p.current ?? 0) < juego.goal) return;
+
+    /* Una sola vez por partida: en online el sondeo vuelve a escribir los
+       jugadores cada dos segundos, y sin esto cada repetición mandaría otro
+       hold contra una sala ya terminada. */
+    if (cerrandoPorMeta.current) return;
+    cerrandoPorMeta.current = true;
+    plantarseRef.current();
+  }, [
+    juego.players, juego.active, juego.playing, juego.rolling,
+    juego.finished, juego.goal, juego.miLado, online,
+  ]);
 
   const jugarCarta = async (uid) => {
     if (!online) {

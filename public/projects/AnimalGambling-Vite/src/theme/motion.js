@@ -367,6 +367,19 @@ export const MOTION = {
       loop: true,
       nota: "Cada botón destella de su propio color: dorado el del dado, blanco el de plantarse.",
     },
+    /* El latido permanente del botón de tirar, mientras se pueda tirar.
+       Tres veces más lento que el destello del toque a propósito: aquél es
+       una respuesta a algo que hiciste y tiene que ser inmediato; éste es
+       ambiente —el cartel de neón de la mesa— y a la velocidad del otro
+       sería un parpadeo nervioso imposible de ignorar. */
+    brillo: {
+      ms: 2200,
+      ease: EASE.suave,
+      keyframes: "brillo-tirar",
+      el: ".btn-accion.tirar:not(:disabled)",
+      loop: true,
+      nota: "Es lo que señala a dónde hay que ir cuando te toca. Se apaga solo al deshabilitarse el botón, que es cuando no es tu turno.",
+    },
   },
 
   // ─── AVISOS ──────────────────────────────────────────────────────────

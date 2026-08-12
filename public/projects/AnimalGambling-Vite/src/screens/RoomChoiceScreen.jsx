@@ -33,7 +33,7 @@ export default function RoomChoiceScreen({
             <input
               type="text"
               value={entrada}
-              placeholder="Pegá el código acá"
+              placeholder="Pega el código aquí"
               onChange={(e) => setEntrada(e.target.value.toUpperCase().trim())}
               onKeyDown={(e) => e.key === "Enter" && onJoin(entrada)}
             />

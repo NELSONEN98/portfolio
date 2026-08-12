@@ -32,7 +32,7 @@ export default function GameOverScreen({ ganador, perdedor, porAbandono, online,
           <div className="go-name">{perdedor.char.name}</div>
           <div className="go-score">{perdedor.score}</div>
           <div className="go-quote">
-            {porAbandono ? '"me borré."' : `"${perdedor.char.loseQuote}"`}
+            {porAbandono ? '"me retiré."' : `"${perdedor.char.loseQuote}"`}
           </div>
         </div>
       </div>

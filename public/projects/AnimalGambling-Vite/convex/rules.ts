@@ -97,7 +97,7 @@ export function cardHint(card: Card): string {
     case CARD.CURSE:
       return `${CURSE_TURNS} turnos: el dado del rival no pasa de ${CURSED_MAX_ROLL}`;
     case CARD.DOUBLE:
-      return "Tirás con dos dados y se suman los dos";
+      return "Tiras con dos dados y se suman los dos";
     default:
       return "";
   }
@@ -115,23 +115,32 @@ export const SQUARE = {
 
 export type SquareType = (typeof SQUARE)[keyof typeof SQUARE];
 
-/* El camino es el borde de una grilla de 9×8: 2·9 + 2·8 − 4 = 30 casillas.
+/* El camino es el borde de una grilla de 12×10: 2·12 + 2·10 − 4 = 40 casillas.
    Estas tres constantes son la única definición del tamaño — el cliente
    dibuja la grilla con COLS y ROWS, y BOARD_SIZE sale de las dos. Tocar
    una sola descuadra el tablero.
 
+   Al pasar de 11 a 12 columnas hay que acompañar dos cosas del CSS que no
+   se recalculan solas: la proporción de `.pool-table` y el `--board-cols`
+   de `.pool-felt`, que es de donde se ubican el mazo y las cartas puestas.
+
    El camino es circular, así que no hay meta: se gana por puntos y las
    casillas son lo que le pasa a tu ficha en el camino. */
-export const BOARD_COLS = 11;
+export const BOARD_COLS = 12;
 export const BOARD_ROWS = 10;
 export const BOARD_SIZE = 2 * BOARD_COLS + 2 * BOARD_ROWS - 4;
 
-/* Sobre 30 casillas. Con seis penitencias se pisaba alguna casi una vez por
-   turno y el recorrido era más castigo que camino; con tres quedaba
-   inofensivo. Un bonus de más que penitencias inclina el tablero apenas a
-   favor del que avanza. */
-export const PENALTY_COUNT = 3;
-export const BONUS_COUNT = 4;
+/* Sobre 40 casillas. Con seis penitencias sobre treinta se pisaba alguna
+   casi una vez por turno y el recorrido era más castigo que camino; con
+   tres quedaba inofensivo. Un bonus de más que penitencias inclina el
+   tablero apenas a favor del que avanza.
+
+   Los dos números suben con el camino —de 3 y 4 sobre 30 a 4 y 5 sobre
+   40— para mantener la MISMA densidad. Dejándolos fijos, agrandar la mesa
+   habría sido además un cambio de balance: las especiales se pisarían un
+   cuarto menos seguido sin que nadie lo hubiera pedido. */
+export const PENALTY_COUNT = 4;
+export const BONUS_COUNT = 5;
 
 /* El tablero se sortea por partida, así que deja de ser constante: pasa a
    ser estado de la sala. Si cada lado lo generara por su cuenta verían

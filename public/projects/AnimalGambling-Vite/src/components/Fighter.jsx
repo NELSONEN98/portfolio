@@ -47,13 +47,6 @@ export default function Fighter({
         <div className="f-name">{jugador.char.name}</div>
       </div>
 
-      {/* Fuera del marco: ese recorta lo que se sale (overflow hidden) para
-          que el dibujo no desborde el papel, y adentro la mano del rival
-          quedaba cortada por completo. */}
-      {mostrarMano && (
-        <RivalHand cantidad={jugador.hand?.length ?? 0} lado={lado} />
-      )}
-
       <div className="fighter-readout">
         <div className="score-row">
           {/* Cuánto se perdió. El número grande contando hacia abajo dice
@@ -65,6 +58,18 @@ export default function Fighter({
           <div className={`f-score${score.bajando ? " down bump" : " bump"}`}>
             {score.shown}
           </div>
+
+          {/* Las cartas del rival, a la derecha de su puntaje y en el mismo
+              renglón — el mismo lugar que ocupan las tuyas respecto del
+              tuyo. Antes colgaban absolutas de una esquina del peleador:
+              quedaban a distinta altura en cada lado y sin relación visible
+              con el marcador, que es justamente el dato que completan.
+              Va DENTRO del renglón del puntaje y fuera de .fighter-frame:
+              ese recorta lo que se sale (overflow hidden) y ahí la mano
+              quedaba cortada por completo. */}
+          {mostrarMano && (
+            <RivalHand cantidad={jugador.hand?.length ?? 0} lado={lado} />
+          )}
         </div>
         <div className="f-current">
           +<span className={current.bajando ? "down" : ""}>{current.shown}</span>
