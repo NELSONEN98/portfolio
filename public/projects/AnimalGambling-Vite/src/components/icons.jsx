@@ -58,9 +58,30 @@ export const TwoDiceIcon = () => (
   </Svg>
 );
 
+/* El signo de pregunta del bonus. Va como <text> y no como path: un "?"
+   dibujado a mano a 24px se convierte en un garabato, y el glifo de la
+   tipografía del juego ya está cargado y resuelto para cualquier tamaño.
+   Sin `fill` propio — lo hereda de `.square svg`, igual que el resto.
+   Es además el mismo signo que lleva el mazo de bonus sobre el fieltro: la
+   casilla y el montón del que sale la carta ahora dicen lo mismo. */
+export const QuestionIcon = () => (
+  <Svg>
+    <text
+      x="12"
+      y="18"
+      textAnchor="middle"
+      fontSize="18"
+      fontFamily="var(--display), sans-serif"
+      fontWeight="700"
+    >
+      ?
+    </text>
+  </Svg>
+);
+
 export const SQUARE_ICON = {
   [SQUARE.PENALTY]: SkullIcon,
-  [SQUARE.BONUS]: StarIcon,
+  [SQUARE.BONUS]: QuestionIcon,
 };
 
 /* La rata del robo. Conserva su grilla original de 512 en vez de rehacerse
@@ -102,9 +123,30 @@ export const HeartShieldIcon = () => (
   </Svg>
 );
 
+/* El puño del golpe. Conserva la grilla de 512 de su archivo, igual que la
+   rata: rehecho en 24 perdería los nudillos, que es lo que lo hace un puño
+   y no una mancha. Sin `fill` propio, para que tome el color de la carta.
+   El <rect> transparente del original se descarta: era el lienzo del editor
+   y acá sólo agrandaría la caja del dibujo. */
+export const PunchIcon = () => (
+  <Svg viewBox="0 0 512 512">
+    <path d="M198.844 64.75c-.985 0-1.974.03-2.97.094-15.915 1.015-32.046 11.534-37.78 26.937-34.072 91.532-51.085 128.865-61.5 222.876 14.633 13.49 31.63 26.45 50.25 38.125l66.406-196.467 17.688 5.968L163.28 362.5c19.51 10.877 40.43 20.234 62 27.28l75.407-201.53 17.5 6.53-74.937 200.282c19.454 5.096 39.205 8.2 58.78 8.875L381.345 225.5l17.094 7.594-75.875 170.656c21.82-1.237 43.205-5.768 63.437-14.28 43.317-53.844 72.633-109.784 84.5-172.69 5.092-26.992-14.762-53.124-54.22-54.81l-6.155-.282-2.188-5.75c-8.45-22.388-19.75-30.093-31.5-32.47-11.75-2.376-25.267 1.535-35.468 7.376l-13.064 7.47-.906-15c-.99-16.396-10.343-29.597-24.313-35.626-13.97-6.03-33.064-5.232-54.812 9.906l-10.438 7.25-3.812-12.125c-6.517-20.766-20.007-27.985-34.78-27.97zM103.28 188.344C71.143 233.448 47.728 299.56 51.407 359.656c27.54 21.84 54.61 33.693 80.063 35.438 14.155.97 27.94-1.085 41.405-6.438-35.445-17.235-67.36-39.533-92.594-63.53l-3.343-3.157.5-4.595c5.794-54.638 13.946-91.5 25.844-129.03z" />
+  </Svg>
+);
+
+/* La maldición deja de ser una poción y pasa a ser una calavera con alas
+   sobre una lápida. La poción se leía como algo que se toma —un premio— y
+   la maldición se la ponés a OTRO. */
+export const DeathNoteIcon = () => (
+  <Svg viewBox="0 0 512 512">
+    <path d="m294.3 53.6-81.2.24-79.5 70.56 18.3 70.5L201 187l-25.8 74.7 38.7-22.4 11 35.9 30.2-37.1 30.2 38.8 18.5-38.5 31.7 21.1-25.4-71.9 46.4 6.1 18.9-67.1c-27.1-24.3-54.1-48.7-81.1-73zm-88.8 61.2c13.3-.1 28.3 9 35.9 27l-61.9 9.3c-3.9-18.1 11-35.7 26-36.3zm104.5 0c15.1.1 28.1 12.1 26 36.3l-62-9.3c7.7-18 22.7-27.1 36-27zm-54.5 38.5 25.6 56.7h-47.9zM93.26 288.5 51.3 317.7l207.3 72.7L466 317.3l-41-28.8c-54.7 9.2-120.6-14.4-150.7 31.8h-31.4c-41-45.7-104.5-25.2-149.64-31.8zM29 329.8l-6.17 17.6 190.67 66.7v17.8h91.6v-18.7c62.3-21.8 125.5-43.9 188.1-65.8l-6.2-17.6-205.7 71.9 4.1 11.5h-54.8l4.1-11.5c-68.6-24-137.15-48-205.7-71.9z" />
+  </Svg>
+);
+
 export const CARD_ICON = {
   [CARD.STEAL]: RatIcon,
   [CARD.DEFENSE]: ShieldIcon,
-  [CARD.CURSE]: PotionIcon,
+  [CARD.CURSE]: DeathNoteIcon,
   [CARD.DOUBLE]: TwoDiceIcon,
+  [CARD.PUNCH]: PunchIcon,
 };

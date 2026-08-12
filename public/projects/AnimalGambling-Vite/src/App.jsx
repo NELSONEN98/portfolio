@@ -44,7 +44,7 @@ const MENSAJES = {
   /* Sin aviso cuando la carta se muestra sola: dos anuncios de lo mismo se
      pisan. El texto queda para el caso en que no hay carta que enseñar. */
   bonus: (e) => (e.carta ? null : [`Bonus — carta nueva para ${e.nombre}`]),
-  bonusLleno: () => ["Bonus, pero la mano está llena"],
+  bonusLleno: () => ["Mazo lleno", "error"],
   dosDados: () => ["Dos dados en tu próxima tirada"],
   cartaPuesta: (e) => [
     e.cantidad > 1
@@ -392,6 +392,13 @@ export default function App() {
          ahora el recorrido dura lo que diga el dado: con una tirada larga
          la carta aparecía con la ficha todavía a mitad de camino. */
       if (r.gainedCard) cartaEnCamino.current = r.gainedCard;
+      /* Caíste en bonus y no vino carta: la única razón es que la mano ya
+         está en el tope. En local ese aviso lo emite el motor como hecho,
+         pero en online las casillas las resuelve el servidor y ese hecho
+         nunca llega hasta acá — así que se deduce de la respuesta, que trae
+         dónde caíste y qué entregó. Sin esto, el jugador en línea perdía
+         una carta sin que nada se lo dijera. */
+      else if (r.landed === SQUARE.BONUS) notify("Mazo lleno", "error");
     } catch (e) {
       /* Si la tirada falló, el dado tiene que dejar de girar: si no, queda
          dando vueltas para siempre sobre un turno que nunca ocurrió. */

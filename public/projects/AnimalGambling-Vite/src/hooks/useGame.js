@@ -12,6 +12,7 @@ import {
   randomBonusCard,
   resolveRoll,
   applyPenalty,
+  applyPunch,
   cappedScore,
   hasDefense,
   dropCard,
@@ -286,6 +287,11 @@ export function useGame() {
         const robado = Math.min(carta.value ?? 0, rivalScore);
         rivalScore -= robado;
         miScore += robado;
+      } else if (carta.type === CARD.PUNCH) {
+        /* El golpe RESTA, no transfiere: al que pega no le suma nada. Es lo
+           que lo separa del robo —ahí los puntos cambian de dueño— y lo que
+           lo deja valer sólo por lo que rompe. */
+        rivalScore = applyPunch(rivalScore);
       } else if (carta.type === CARD.CURSE) {
         rivalCurse = CURSE_TURNS;
       }

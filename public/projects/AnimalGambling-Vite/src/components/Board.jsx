@@ -326,7 +326,21 @@ export default function Board({ board, players, onLlegada, retrasoCasilla = 0 })
               ...cellCenter(posVisual[i] ?? 0),
               "--paso": `${pasoActual.current[i] ?? PASO_MS}ms`,
             }}
-          />
+          >
+            {/* El número del jugador, dentro de la ficha.
+                Va en un <svg> con viewBox y no como texto suelto porque el
+                tamaño de la ficha sale de un porcentaje del tablero: no hay
+                forma de atar un `font-size` a eso —los porcentajes de
+                font-size miden contra la letra del padre, no contra su
+                ancho—. Con el viewBox el dígito escala solo, exacto, en
+                cualquier pantalla. Es el mismo recurso que usa el "?" de
+                las casillas de bonus. */}
+            <svg viewBox="0 0 10 10" aria-hidden="true">
+              <text x="5" y="7.35" textAnchor="middle">
+                {i + 1}
+              </text>
+            </svg>
+          </span>
         );
       })}
     </div>

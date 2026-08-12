@@ -23,9 +23,12 @@ export const BUST = 1;
    positivo. */
 export const PENALTY_POINTS = 6;
 
-/* Con la maldición encima el dado del rival no pasa de 5: le saca el mejor
-   resultado sin quitarle el riesgo del 1. */
-export const CURSED_MAX_ROLL = 5;
+/* Con la maldición encima el dado del rival no pasa de 4: le saca los dos
+   mejores resultados sin quitarle el riesgo del 1. Baja de 5 a 4 porque a 5
+   la maldición se sentía un impuesto y no un castigo —perdías el 6 y poco
+   más—; a 4 el turno maldito rinde un tercio menos y recién ahí vale la
+   pena gastar una carta en ponerla. */
+export const CURSED_MAX_ROLL = 4;
 export const CURSE_TURNS = 3;
 
 export const HAND_LIMIT = 5;
@@ -35,6 +38,11 @@ export const CARD = {
   DEFENSE: "defense",
   CURSE: "curse",
   DOUBLE: "double",
+  /* El golpe. Saca poco —tres puntos— pero es la carta que ROMPE defensas:
+     contra un rival escudado, robar o maldecir es tirar la carta a la
+     basura, porque la defensa se gasta igual tape lo que tape. El golpe
+     existe para gastársela barato y dejar la siguiente sin tapa. */
+  PUNCH: "punch",
 } as const;
 
 export type CardType = (typeof CARD)[keyof typeof CARD];
@@ -71,11 +79,17 @@ export function randomStealValue(rand: () => number): number {
   return STEAL_WEIGHTS[0][0];
 }
 
+/* Lo que saca el golpe. Chico a propósito: su valor no está en el daño sino
+   en que obliga al rival a gastar la defensa. Si sacara tanto como un robo
+   no habría motivo para jugar ninguna otra carta. */
+export const PUNCH_POINTS = 3;
+
 export const CARD_LABEL: Record<CardType, string> = {
   steal: "ROBAR",
   defense: "DEFENSA",
   curse: "MALDICIÓN",
   double: "DOS DADOS",
+  punch: "GOLPE",
 };
 
 /* Qué hace la carta, en una línea.
@@ -98,6 +112,8 @@ export function cardHint(card: Card): string {
       return `${CURSE_TURNS} turnos: el dado del rival no pasa de ${CURSED_MAX_ROLL}`;
     case CARD.DOUBLE:
       return "Tiras con dos dados y se suman los dos";
+    case CARD.PUNCH:
+      return `Le saca ${PUNCH_POINTS} puntos al rival, o le quema la defensa`;
     default:
       return "";
   }
@@ -140,7 +156,18 @@ export const BOARD_SIZE = 2 * BOARD_COLS + 2 * BOARD_ROWS - 4;
    habría sido además un cambio de balance: las especiales se pisarían un
    cuarto menos seguido sin que nadie lo hubiera pedido. */
 export const PENALTY_COUNT = 4;
-export const BONUS_COUNT = 5;
+/* Un bonus más: seis sobre cuarenta. Las cartas ahora se gastan mucho más
+   rápido —el golpe existe para quemarse contra una defensa— así que el
+   tablero tiene que reponerlas al mismo ritmo o la mano se seca. */
+export const BONUS_COUNT = 6;
+
+/* La salida. Es de donde arrancan las fichas y por dónde vuelven a pasar en
+   cada vuelta, así que se dibuja a cuadros de bandera y NO puede llevar
+   encima ninguna casilla especial: son dos fondos peleando por el mismo
+   lugar, y el que gana es el que la hoja de estilos declare último. Con una
+   penitencia en la salida el damero desaparecía y quedaba un cuadrado rojo
+   donde tendría que estar la referencia del recorrido. */
+export const START_SQUARE = 0;
 
 /* El tablero se sortea por partida, así que deja de ser constante: pasa a
    ser estado de la sala. Si cada lado lo generara por su cuenta verían
@@ -148,16 +175,17 @@ export const BONUS_COUNT = 5;
 export function makeBoard(rand: () => number): SquareType[] {
   const board: SquareType[] = new Array(BOARD_SIZE).fill(SQUARE.PLAIN);
 
-  /* Dos especiales pegadas hacen que una tirada de 6 se sienta arbitraria:
-     caés en penitencia y la casilla de al lado también te castiga. */
+  /* Un lugar donde se puede poner algo. Dos condiciones:
+     · la salida queda libre siempre —ver START_SQUARE—;
+     · dos especiales pegadas hacen que una tirada de 6 se sienta
+       arbitraria: caés en penitencia y la casilla de al lado también te
+       castiga. */
+  const libre = (i: number) => i !== START_SQUARE && board[i] === SQUARE.PLAIN;
+
   const isolated = (i: number) => {
     const prev = (i - 1 + BOARD_SIZE) % BOARD_SIZE;
     const next = (i + 1) % BOARD_SIZE;
-    return (
-      board[i] === SQUARE.PLAIN &&
-      board[prev] === SQUARE.PLAIN &&
-      board[next] === SQUARE.PLAIN
-    );
+    return libre(i) && board[prev] === SQUARE.PLAIN && board[next] === SQUARE.PLAIN;
   };
 
   const place = (type: SquareType, count: number) => {
@@ -170,10 +198,14 @@ export function makeBoard(rand: () => number): SquareType[] {
       board[i] = type;
       placed++;
     }
-    // Si la separación no alcanzó, se completa pegado antes que dejar el
-    // tablero con menos casillas de las que corresponde.
-    for (let i = 0; placed < count && i < BOARD_SIZE; i++) {
-      if (board[i] === SQUARE.PLAIN) {
+    /* Si la separación no alcanzó, se completa pegado antes que dejar el
+       tablero con menos casillas de las que corresponde. Arranca en 1 y
+       vuelve a preguntar por `libre`: este era el camino por el que se
+       colaba una especial en la salida —el azar de arriba la evitaba, pero
+       el relleno recorría el tablero desde el índice 0 y la primera
+       casilla vacía que encontraba era justamente esa—. */
+    for (let i = 1; placed < count && i < BOARD_SIZE; i++) {
+      if (libre(i)) {
         board[i] = type;
         placed++;
       }
@@ -219,15 +251,27 @@ export function startingHand(): Card[] {
   ];
 }
 
-/* Lo que entrega una casilla de bonus. El robo pesa más que el resto
-   porque es la carta que mueve el marcador; la defensa aparece seguido
-   para que atacar no sea siempre gratis. Dos dados sube de 12% a 22%:
-   al 12% casi no se veía, y es la única carta que cambia cómo se tira. */
+/* Lo que entrega una casilla de bonus.
+ *
+ * El reparto ES la mecánica, no un ajuste de balance. El juego que se busca
+ * es: el rival se escuda, vos le gastás la defensa a golpes, y recién con la
+ * guardia baja entra el robo o la maldición. Para que esa secuencia ocurra
+ * de verdad hacen falta las dos mitades a la vez —golpes Y escudos—, y por
+ * eso son las dos más probables y salen empatadas: si los escudos escasearan
+ * no habría nada que quemar, y si escasearan los golpes no habría con qué.
+ *
+ *   golpe 28% · defensa 28% · robo 22% · maldición 12% · dos dados 10%
+ *
+ * El robo baja de 35 a 22 y sigue siendo la carta que decide partidas: lo
+ * que cambió es que ahora hay que ABRIRSE PASO hasta poder usarlo, en vez de
+ * que caiga solo. Dos dados baja a 10 porque es la única que no participa de
+ * ese intercambio — no ataca ni defiende, así que es la que sobra. */
 export function randomBonusCard(rand: () => number, seed: number): Card {
   const roll = rand();
-  if (roll < 0.35) return makeCard(CARD.STEAL, randomStealValue(rand), seed);
-  if (roll < 0.6) return makeCard(CARD.DEFENSE, undefined, seed);
-  if (roll < 0.78) return makeCard(CARD.CURSE, undefined, seed);
+  if (roll < 0.28) return makeCard(CARD.PUNCH, undefined, seed);
+  if (roll < 0.56) return makeCard(CARD.DEFENSE, undefined, seed);
+  if (roll < 0.78) return makeCard(CARD.STEAL, randomStealValue(rand), seed);
+  if (roll < 0.9) return makeCard(CARD.CURSE, undefined, seed);
   return makeCard(CARD.DOUBLE, undefined, seed);
 }
 
@@ -278,6 +322,13 @@ export type PlayerLike = {
    en 0, no en -11. */
 export function applyPenalty(score: number): number {
   return Math.max(0, score - PENALTY_POINTS);
+}
+
+/* El golpe tampoco puede dejar el marcador en negativo. Va acá y no escrito
+   en los dos lugares que resuelven cartas —el motor local y el servidor—
+   porque dos restas iguales copiadas se desincronizan calladas. */
+export function applyPunch(score: number): number {
+  return Math.max(0, score - PUNCH_POINTS);
 }
 
 /* Al ganar el marcador queda clavado en el objetivo: el sobrante de la

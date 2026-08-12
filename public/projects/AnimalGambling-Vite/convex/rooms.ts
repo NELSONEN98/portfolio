@@ -14,6 +14,7 @@ import {
   randomBonusCard,
   resolveRoll,
   applyPenalty,
+  applyPunch,
   cappedScore,
   hasDefense,
   dropCard,
@@ -467,6 +468,11 @@ export const holdScore = mutation({
           const taken = Math.min(pending.value ?? 0, rivalScore);
           rivalScore -= taken;
           myScore += taken;
+        } else if (pending.type === CARD.PUNCH) {
+          /* Resta y no transfiere: al que pega no le suma. Misma regla que
+             en el motor local, y sale de la misma función para que las dos
+             no puedan separarse. */
+          rivalScore = applyPunch(rivalScore);
         } else if (pending.type === CARD.CURSE) {
           rivalCurse = CURSE_TURNS;
         }

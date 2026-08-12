@@ -23,6 +23,18 @@
   --felt-1: #0a2e1f;
   --felt-2: #0f4028;
   --felt-3: #155233;
+
+  /* El paño de la MESA, aparte del fondo de la sala.
+     Los tres de arriba los usa el fondo a sangre de `.table`, que es la
+     habitación entera; si se oscurecieran ahí, se oscurecería todo y la
+     mesa volvería a fundirse con el ambiente —que es justo lo contrario de
+     lo que se busca—. Estos tres son sólo del fieltro, un tercio más
+     oscuros, y existen para poder bajarle la luz a la mesa sin tocar la
+     sala. Con el camino ahora encendido en dorado, el paño tiene que ceder
+     protagonismo: cuanto menos verde compite, más se despegan las casillas. */
+  --felt-mesa-alto: #0c3120;
+  --felt-mesa-medio: #061d13;
+  --felt-mesa-bajo: #030f09;
   --felt-edge: #3a1a0e;
   --wood: #2a120a;
   --wood-light: #4a2414;
@@ -1013,8 +1025,11 @@ body {
   font-family: var(--display);
   /* Atado al puntaje, no a la ventana: es el mismo dato dicho en chico y
      tiene que conservar la proporción con el número grande en cualquier
-     pantalla. */
-  font-size: calc(var(--fighter-h) * 0.14);
+     pantalla.
+     Un 20% más grande (0.14 → 0.168). Es lo que se mira entre tirada y
+     tirada para decidir si conviene plantarse, así que se estaba leyendo
+     mucho más de lo que su tamaño daba a entender. */
+  font-size: calc(var(--fighter-h) * 0.168);
   color: var(--bone-dim);
   letter-spacing: 0.1em;
 }
@@ -1265,12 +1280,98 @@ body {
   gap: 2px;
 }
 
+/* ►► La sombra que el anillo de casillas proyecta hacia adentro. ◄◄
+ *
+ * Las casillas ya se levantan de la mesa una por una, pero el HUECO del
+ * medio seguía plano: el paño llegaba hasta el filo del camino sin que nada
+ * dijera que ahí abajo hay un escalón. Esta capa cubre exactamente ese
+ * hueco y lleva una sombra hacia adentro, así que el borde interno del
+ * anillo se lee como el canto de algo que está por encima del fieltro.
+ *
+ * Las medidas salen de la grilla y no de un número a ojo: el camino es una
+ * celda de espesor, así que el hueco empieza a una fila del borde arriba y
+ * abajo, y a una columna a los costados. Escrito como porcentaje del propio
+ * track, acompaña solo cualquier tamaño de mesa —y si mañana cambian
+ * BOARD_COLS o BOARD_ROWS, se corrige acá con los mismos dos números que
+ * usa el resto del fieltro.
+ *
+ * `pointer-events: none` porque cubre el centro entero, que es justo por
+ * donde se agarra y se arroja el dado. */
+.board-track::after {
+  content: "";
+  position: absolute;
+  inset: calc(100% / var(--board-rows)) calc(100% / var(--board-cols));
+  border-radius: 0.6rem;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 1.4rem rgba(0, 0, 0, 0.6),
+    inset 0 0 0.35rem rgba(0, 0, 0, 0.55),
+    inset 0 3px 0.6rem rgba(0, 0, 0, 0.45);
+}
+
 /* Cada casilla llena su celda, así el camino se lee como una cadena y no
-   como puntos sueltos. */
+   como puntos sueltos.
+ *
+ * ►► Las casillas se apoyan SOBRE la mesa, no están pintadas en ella. ◄◄
+ *
+ * Antes eran un velo blanco translúcido: dejaban ver el fieltro por debajo
+ * y se leían como una mancha de pintura sobre el paño. Ahora el fondo es
+ * oscuro y opaco —tapa el fieltro, que es lo que hace que sea un OBJETO— y
+ * el volumen sale de tres sombras que hay que leer juntas:
+ *
+ *   1. `inset 0 1px 0` claro    → la luz pegando en el canto de arriba
+ *   2. `inset 0 -3px 4px` oscuro → el hueco bajo el canto de abajo
+ *   3. la última, sin `inset`    → la sombra que la ficha proyecta en la mesa
+ *
+ * Son las tres las que arman el relieve, y en ese orden: sólo con la de
+ * afuera la casilla flota sin espesor, y sólo con las de adentro se hunde
+ * en el paño en lugar de levantarse. El truco es el mismo de los botones de
+ * la botonera —luz arriba, sombra abajo, apoyo debajo—, que ya está probado
+ * en esta misma pantalla.
+ *
+ * El aro negro de 1px queda de antes: es el filo de la pieza, lo que la
+ * separa de la de al lado cuando dos quedan pegadas. */
 .square {
+  /* El relieve va en una variable porque `box-shadow` es UNA propiedad: las
+     casillas de colores y la salida redeclaran la suya para agregarse un
+     resplandor, y al hacerlo borraban la lista entera. Con la variable cada
+     una escribe `var(--relieve), <su brillo>` y el volumen no se puede
+     perder por olvido. */
+  /* ►► El aro dorado: el mismo color que las bombillas del marco. ◄◄
+     No es un dorado parecido sino EL de las luces —`--c-gold`, igual que
+     los `radial-gradient` del borde de la mesa— y con su mismo halo. Ahí
+     está el sentido: el camino deja de ser una decoración suelta sobre el
+     paño y pasa a ser parte de la misma instalación eléctrica que rodea la
+     mesa. Un dorado distinto habría leído como otro objeto.
+     Va PRIMERO en la lista porque `box-shadow` pinta la primera encima de
+     las demás, y este aro es el filo de la pieza: tiene que quedar sobre el
+     degradado, no debajo. */
+  /* ►► La luz en la juntura. ◄◄
+     Entre casilla y casilla hay 2px de separación, y ahí es donde va a
+     parar este resplandor: cada pieza lo tira hacia afuera por sus cuatro
+     lados, así que en la juntura se encuentran los de las dos vecinas y la
+     costura se enciende sola. No hace falta dibujar la línea —no existe
+     como elemento, es el hueco de la grilla—; alcanza con que las piezas
+     iluminen a su alrededor.
+     El desenfoque es corto (3px) y con 1px de expansión a propósito: apenas
+     lo necesario para cruzar la separación. Más ancho y el camino entero se
+     empasta en una mancha dorada en vez de leerse como piezas separadas por
+     una costura encendida.
+     Va antes que la sombra negra de apoyo porque en la lista de `box-shadow`
+     la primera se pinta sobre las siguientes, y la juntura tiene que ganar
+     ahí; la negra igual se sigue viendo porque cae desplazada hacia abajo y
+     con más desenfoque, así que asoma por debajo de la pieza. */
+  --relieve:
+    inset 0 0 0 1px var(--c-gold),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -3px 4px rgba(0, 0, 0, 0.5),
+    0 0 3px 1px rgba(255, 201, 61, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.6),
+    0 0 0.6rem rgba(228, 167, 0, 0.32);
+
   border-radius: 0.35rem;
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45);
+  background: rgba(6, 16, 11, 0.82);
+  box-shadow: var(--relieve);
 
   display: grid;
   place-items: center;
@@ -1285,9 +1386,7 @@ body {
 .square.meta {
   background-image: repeating-conic-gradient(#f2f2f2 0% 25%, #111 0% 50%);
   background-size: 50% 50%;
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.55),
-    0 0 0.6rem rgba(255, 255, 255, 0.4);
+  box-shadow: var(--relieve), 0 0 0.6rem rgba(255, 255, 255, 0.4);
 }
 /* Sobre los cuadros no entra ningún ícono: acá manda la meta. */
 .square.meta svg { display: none; }
@@ -1306,11 +1405,11 @@ body {
    tamaño un símbolo no se distingue. */
 .square.penalty {
   background: var(--c-red);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0.6rem rgba(199, 0, 0, 0.75);
+  box-shadow: var(--relieve), 0 0 0.6rem rgba(199, 0, 0, 0.75);
 }
 .square.bonus {
   background: var(--c-blue);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0.6rem rgba(7, 36, 117, 0.9);
+  box-shadow: var(--relieve), 0 0 0.6rem rgba(7, 36, 117, 0.9);
 }
 
 /* ---- caer en una casilla ----
@@ -1374,9 +1473,12 @@ body {
 .token.aterriza {
   animation: ficha-aterriza var(--dur-tablero-aterriza) var(--ease-tablero-aterriza);
 }
+/* El rebote se achica de 1.35 a 1.18: la ficha ahora mide el 86% de su
+   casilla, así que aquel salto la hacía crecer más allá del borde y
+   aplastaba a las vecinas por un instante. A 1.18 llega justo al filo. */
 @keyframes ficha-aterriza {
   0%   { transform: translate(-50%, -50%) scale(1); }
-  30%  { transform: translate(-50%, -62%) scale(1.35); }
+  30%  { transform: translate(-50%, -58%) scale(1.18); }
   100% { transform: translate(-50%, -50%) scale(1); }
 }
 
@@ -1390,8 +1492,21 @@ body {
    transition, así el salto de casillas se ve recorrer el camino. */
 .token {
   position: absolute;
-  width: clamp(1.5rem, 4.2vmin, 2.7rem);
+  /* ►► La ficha, casi del tamaño de su casilla. ◄◄
+     Sale de la GRILLA y no de `vmin`, y ese es el cambio de fondo: con una
+     medida propia, la ficha ocupaba la mitad de la casilla en una laptop y
+     casi el ancho entero en un teléfono —dos objetos distintos según la
+     pantalla—. Un porcentaje del tablero dividido por las columnas ES el
+     ancho de una casilla, así que la proporción entre ficha y casilla queda
+     clavada en todos lados.
+     El 0.86 es el "casi": deja ver un anillo de casilla alrededor, que es
+     lo que permite saber en cuál está parada. Al 100% la ficha TAPARÍA la
+     casilla y no se sabría si el color de abajo es penitencia o bonus. */
+  width: calc(100% / var(--board-cols) * 0.86);
   aspect-ratio: 1;
+
+  display: grid;
+  place-items: center;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   z-index: 4;
@@ -1408,6 +1523,25 @@ body {
 .token.p1 { background: var(--c-gold); }
 .token.p2 { background: #fff; }
 
+/* El número, ocupando la ficha entera. El <svg> se estira a la ficha y el
+   viewBox hace el resto: el dígito mide siempre lo mismo respecto del
+   círculo, sin un solo `clamp`. */
+.token svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.token text {
+  font-family: var(--display);
+  /* En unidades del viewBox de 10: el dígito ocupa dos tercios del alto de
+     la ficha, que es lo que entra dentro de un círculo sin tocar el canto. */
+  font-size: 6.6px;
+  font-weight: 700;
+  /* Oscuro sobre los dos: la ficha 1 es dorada y la 2 blanca, y las dos son
+     colores claros. Un número blanco desaparecería en la segunda. */
+  fill: var(--ink);
+}
+
 /* Cuando los dos caen en la misma casilla se separan un poco para que no
    quede una sola ficha a la vista. Escala con la ficha: fijo en rem, dos
    fichas grandes seguían tapándose.
@@ -1418,8 +1552,12 @@ body {
    El desplazamiento también se achicó: separadas más de medio ancho de
    ficha parecían estar en casillas distintas, que es justo lo contrario de
    lo que este ajuste quiere decir. */
-.token.juntas.p1 { margin-left: clamp(-0.6rem, -1vmin, -0.35rem); }
-.token.juntas.p2 { margin-left: clamp(0.35rem, 1vmin, 0.6rem); }
+/* El corrimiento también pasa a medirse en casillas. En rem se quedaba fijo
+   mientras la ficha crecía: a este tamaño, medio centímetro de separación
+   entre dos círculos que ahora ocupan la casilla entera no alcanzaba a
+   despegarlos y se veía una sola ficha con un borde raro. */
+.token.juntas.p1 { margin-left: calc(100% / var(--board-cols) * -0.3); }
+.token.juntas.p2 { margin-left: calc(100% / var(--board-cols) * 0.3); }
 
 @media (prefers-reduced-motion: reduce) {
   .token { transition: none; }
@@ -2255,6 +2393,11 @@ body {
 }
 .card.defense { background: var(--c-green); color: #fff; }
 .card.curse   { background: var(--c-purple); color: #fff; }
+/* El golpe, en rojo. Es el único rojo del mazo y no compite con nada: el
+   robo quedó en negro justamente para dejar libre este color, y el rojo es
+   además el del destello que se ve al recibirlo, así que la carta y su
+   consecuencia se leen como la misma cosa. */
+.card.punch   { background: var(--c-red); color: #fff; }
 /* Dos dados pasa a dorado: el azul quedó reservado para las casillas de
    bonus y repetirlo acá los mezclaba. */
 .card.double  { background: var(--c-gold); color: var(--c-black); }
@@ -2417,6 +2560,7 @@ body {
 }
 .pc-front.defense { background: var(--c-green); }
 .pc-front.curse   { background: var(--c-purple); }
+.pc-front.punch   { background: var(--c-red); }
 .pc-front.double  { background: var(--c-gold); color: var(--c-black); }
 
 /* Bloqueada por la defensa del rival: se ve igual pero apagada y tachada,
@@ -2526,10 +2670,17 @@ body {
      mesa y verlas de distinto tamaño las haría parecer de dos mazos. */
   --carta-mesa-w: clamp(4.2rem, 10.4vmin, 6.5rem);
   border-radius: clamp(0.4rem, 1vmin, 0.8rem);
-  background: radial-gradient(ellipse 72% 82% at 50% 45%, var(--felt-3), var(--felt-1) 62%, var(--felt-0));
+  background: radial-gradient(
+    ellipse 72% 82% at 50% 45%,
+    var(--felt-mesa-alto),
+    var(--felt-mesa-medio) 62%,
+    var(--felt-mesa-bajo)
+  );
+  /* Y las sombras internas se cargan un poco: el paño más oscuro perdía el
+     hundido de las esquinas, que es lo que le da profundidad de mesa. */
   box-shadow:
-    inset 0 0 4rem rgba(0, 0, 0, 0.6),
-    inset 0 0.4rem 1rem rgba(0, 0, 0, 0.45);
+    inset 0 0 5rem rgba(0, 0, 0, 0.72),
+    inset 0 0.4rem 1.2rem rgba(0, 0, 0, 0.55);
   display: grid;
   place-items: center;
 }
@@ -2975,7 +3126,8 @@ body {
   .versus-screen { --fighter-h: max(9rem, min(30dvh, 22vw)); }
   .fighter-frame { height: calc(var(--fighter-h) * 0.52); }
   .f-score { font-size: calc(var(--fighter-h) * 0.4); }
-  .f-current { font-size: calc(var(--fighter-h) * 0.09); }
+  /* El mismo 20% que arriba: 0.09 → 0.108. */
+  .f-current { font-size: calc(var(--fighter-h) * 0.108); }
 }
 
 /* ============================================
@@ -3164,7 +3316,15 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   font-family: var(--display);
-  font-size: clamp(28px, 11vmin, 96px);
+  /* En `vw` y no en `vmin`, y ahí estaba el error: en un teléfono vertical
+     vmin ES el ancho, así que 11vmin sobre 390px daba 43px de letra para un
+     texto de trece caracteres —unos 468px de largo con esta tipografía, que
+     es ancha y encima lleva tracking—. El cartel se salía por los dos
+     costados.
+     El texto no se parte (`nowrap`), así que su largo es proporcional al
+     cuerpo: a 7.5vw ocupa ~82% del ancho pase lo que pase, y el techo en
+     píxeles evita que en un monitor grande se coma la pantalla. */
+  font-size: clamp(18px, 7.5vw, 64px);
   color: #fff;
   text-shadow:
     0 0 0.6rem rgba(0, 0, 0, 0.95),

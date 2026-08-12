@@ -7,6 +7,7 @@ import {
   CURSE_TURNS,
   CURSED_MAX_ROLL,
   PENALTY_POINTS,
+  PUNCH_POINTS,
   STEAL_VALUES,
   SQUARE,
   startingHand,
@@ -131,7 +132,8 @@ export default function RulesModal({ abierta, onClose }) {
                   Te descuenta {PENALTY_POINTS} puntos del marcador. Nunca baja de cero.
                 </Item>
                 <Item muestra={<Casilla tipo={SQUARE.BONUS} />} nombre="BONUS">
-                  Te da una carta, hasta un máximo de {HAND_LIMIT} en la mano.
+                  Te da una carta. Con {HAND_LIMIT} en la mano ya no entra
+                  ninguna más y la casilla no entrega nada.
                 </Item>
               </div>
             }
@@ -149,9 +151,15 @@ export default function RulesModal({ abierta, onClose }) {
                   Le saca puntos al rival y te los suma. Vienen de {robos}, y no
                   puede robar más de lo que el otro tiene.
                 </Item>
+                <Item muestra={<Carta tipo={CARD.PUNCH} />} nombre={CARD_LABEL.punch}>
+                  Le saca {PUNCH_POINTS} puntos al rival. Saca poco a propósito:
+                  sirve para <b>quemarle la defensa</b> barato y dejar sin tapa
+                  el robo o la maldición que venga después.
+                </Item>
                 <Item muestra={<Carta tipo={CARD.DEFENSE} />} nombre={CARD_LABEL.defense}>
-                  No se juega: se gasta sola cuando te atacan y anula el robo o la
-                  maldición. Tenerla en la mano ya te protege.
+                  No se juega: se gasta sola cuando te atacan y anula <i>una</i>{" "}
+                  carta, sea un golpe o un robo de {mayor}. Tenerla en la mano ya
+                  te protege.
                 </Item>
                 <Item muestra={<Carta tipo={CARD.CURSE} />} nombre={CARD_LABEL.curse}>
                   Durante {CURSE_TURNS} turnos el dado del rival no pasa de{" "}
