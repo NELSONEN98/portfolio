@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import * as CANNON from "cannon-es";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
-import { COLOR } from "../theme";
+import { DADO } from "../theme";
 
 /* El dado de verdad: cubos con física que ruedan y chocan por toda la mesa.
  *
@@ -244,6 +244,19 @@ function texturaCara(numero, fondo, punto) {
   }
 
   const tex = new THREE.CanvasTexture(c);
+  /* ►► Declarar el espacio de color NO es opcional. ◄◄
+   *
+   * Un canvas 2D dibuja en sRGB. Sin este renglón, Three asume que los
+   * valores ya vienen en lineal y se saltea la conversión: el 0.91 del hueso
+   * entra como 0.91 cuando en lineal es 0.81. Todo el medio tono se levanta,
+   * la diferencia entre la cara iluminada y la que está en sombra se
+   * comprime, y el cubo queda plano y lechoso — exactamente lo que se ve
+   * como "opaco". No era falta de luz: era el contraste aplastado antes de
+   * que la luz llegara a hacer nada.
+   *
+   * Con la conversión en su lugar, el sombreado vuelve a repartirse como
+   * corresponde y recién ahí los números de intensidad significan algo. */
+  tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
   return tex;
 }
@@ -328,8 +341,30 @@ export function crearEscena(canvas) {
    *                                          más claro de toda la pantalla
    *   lado iluminado                 0.62
    *   lado en sombra                 0.20 */
-  scene.add(new THREE.AmbientLight(0xfff2d8, 0.2));
-  const luz = new THREE.DirectionalLight(0xfff2d8, 1.1);
+  /* ►► Por qué la cara de arriba salía crema y no blanca. ◄◄
+   *
+   * No era falta de intensidad —ya llegaba a 1.22— sino el CANAL AZUL, que
+   * venía frenado por dos cosas a la vez:
+   *   · la textura de hueso (#e8e1cc) arranca con el azul en 0.80;
+   *   · y la lámpara cálida (0xfff2d8) lo baja otro 15%.
+   * Multiplicados daban 0.78 de azul contra 1.00 de rojo: eso ES crema. Se
+   * podía subir la intensidad para siempre y el rojo iba a saturar mucho
+   * antes de que el azul llegara a blanco — más luz sólo la habría vuelto
+   * MÁS amarilla.
+   *
+   * Por eso la direccional pasa de 0xfff2d8 a 0xfffaf0, casi blanca. La
+   * calidez de la mesa la sigue poniendo la ambiental, que baña todo; la
+   * lámpara que pega de lleno en la cara de arriba es la que tiene que
+   * llegar limpia. Así se ve una bombilla fuerte sobre marfil, no marfil
+   * teñido de amarillo.
+   *
+   * Con 1.30 el azul llega a 0.97 y las tres componentes quedan juntas —
+   * blanco de verdad— pero SIN saturar del todo: si se pasara, el bisel
+   * redondeado del cubo también se iría a blanco puro y el dado perdería el
+   * canto. Los laterales suben apenas (0.51 → 0.55), así que el contraste
+   * entre la cara iluminada y las de costado se mantiene. */
+  scene.add(new THREE.AmbientLight(0xfff2d8, 0.12));
+  const luz = new THREE.DirectionalLight(0xfffaf0, 1.5);
   luz.position.set(6, 16, 7);
   luz.castShadow = true;
   /* Mapa chico a propósito: la sombra de un cubo es una mancha con borde
@@ -456,7 +491,14 @@ export function crearEscena(canvas) {
     dados = [];
 
     for (let i = 0; i < n; i++) {
-      const mesh = new THREE.Mesh(geometria, materialesDe(COLOR.hueso, COLOR.negro));
+      /* Los colores salen de `DADO.cara`, que es el token del dado, y no de
+         la paleta suelta. Estaban escritos a mano acá —`COLOR.hueso`— así
+         que el token existía y nadie lo leía: cambiarlo en el tema no movía
+         un píxel del cubo. */
+      const mesh = new THREE.Mesh(
+        geometria,
+        materialesDe(DADO.cara.fondo, DADO.cara.punto)
+      );
       // Arroja sombra; no la recibe: un dado no se sombrea a sí mismo.
       mesh.castShadow = true;
       scene.add(mesh);

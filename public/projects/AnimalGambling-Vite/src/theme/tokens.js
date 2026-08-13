@@ -41,6 +41,15 @@ export const COLOR = {
   tinta: "#05110a",
   hueso: "#e8e1cc",
   huesoTenue: "#a89e85",
+  /* El marfil del dado, aparte del hueso de la interfaz.
+     `hueso` es un crema de tipografía: su azul está en 0.80, y eso alcanza
+     sobre fondo negro pero impide que la cara iluminada del dado llegue a
+     blanco por más luz que se le eche —el rojo satura mucho antes que el
+     azul y la cara se pone amarilla en vez de blanca—. Este marfil sube el
+     azul a 0.92 y deja que la lámpara la lleve hasta el blanco.
+     Va aparte y no reemplaza a `hueso` porque ese color es correcto en todo
+     lo demás: acá el problema no es el tono sino el margen que deja. */
+  marfil: "#f7f4ea",
   blanco: "#ffffff",
 
   // Acentos de cartel
@@ -144,7 +153,7 @@ export const TABLERO = {
    viaja — RN no tiene contexto 3D en views. Al portar, o se rehace con
    una librería 3D o se cambia por seis imágenes y una rotación plana. */
 export const DADO = {
-  cara: { fondo: COLOR.hueso, punto: COLOR.negro, radio: 0.16 },
+  cara: { fondo: COLOR.marfil, punto: COLOR.negro, radio: 0.16 },
   /* Grados de cada cara para dejarla mirando al frente. Esto sí viaja:
      son números, no CSS.
    *
