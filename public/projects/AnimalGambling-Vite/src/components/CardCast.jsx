@@ -84,5 +84,4 @@ export const COLOR_IMPACTO = {
   /* El golpe tiñe de rojo igual que el robo: los dos bajan el marcador, y
      el destello cuenta que perdiste puntos —no con qué carta—. Inventarle
      un color propio sugeriría una consecuencia distinta de la que tiene. */
-  [CARD.PUNCH]: "robo",
 };

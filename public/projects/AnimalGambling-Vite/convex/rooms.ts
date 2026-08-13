@@ -5,16 +5,19 @@ import {
   GOAL,
   makeBoard,
   CARD,
-  HAND_LIMIT,
+  hasRoomFor,
   CURSE_TURNS,
   SQUARE,
-  squareAt,
+  squareFor,
+  targetOf,
+  nextSeat,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
   advance,
   startingHand,
   randomBonusCard,
   resolveRoll,
   applyPenalty,
-  applyPunch,
   cappedScore,
   hasDefense,
   dropCard,
@@ -45,16 +48,57 @@ async function findRoom(ctx: any, roomId: string) {
     .unique();
 }
 
-/* Quién tira: devuelve el jugador y su clave, o null si el sessionId no
-   pertenece a esta sala. */
+/* ►► Los tres adaptadores de forma. ◄◄
+ *
+ * Toda lectura de la sala pasa por acá y sale siempre en la forma nueva —un
+ * array de asientos y un número de turno—, venga el documento como venga.
+ * Es lo que permite cambiar el schema sin romper las partidas en curso: una
+ * sala vieja se sigue leyendo bien, y en cuanto alguien la toca se guarda ya
+ * con la forma nueva.
+ *
+ * El único lugar del archivo que sabe que existió una forma vieja es este
+ * bloque. El resto del código habla de asientos y nada más. */
+function seatsOf(room: any) {
+  if (room.players?.length) return room.players;
+  // Sala anterior a la migración: dos campos sueltos, en orden.
+  return [room.player1, room.player2].filter(Boolean);
+}
+
+function seatOf(room: any): number {
+  if (typeof room.seat === "number") return room.seat;
+  return room.turn === "player2" ? 1 : 0;
+}
+
+/* El ganador, siempre como asiento. Las salas viejas lo guardaron con
+   nombre; las nuevas, con número. */
+function winnerSeat(room: any): number | undefined {
+  if (typeof room.winner === "number") return room.winner;
+  if (room.winner === "player2") return 1;
+  if (room.winner === "player1") return 0;
+  return undefined;
+}
+
+/* Quién tira: devuelve el jugador, su ASIENTO y a quién apuntan sus cartas.
+   Devolvía `{ key, other }` — dos nombres fijos, o sea una mesa de dos
+   escrita en el tipo. Ahora `objetivo` sale de `targetOf`, así que con
+   cuatro sillas cada uno le pega al de su derecha sin tocar nada de acá. */
 function whoIs(room: Doc<"rooms">, sessionId: string) {
-  if (room.player1.sessionId === sessionId) {
-    return { player: room.player1, key: "player1" as const, other: "player2" as const };
-  }
-  if (room.player2 && room.player2.sessionId === sessionId) {
-    return { player: room.player2, key: "player2" as const, other: "player1" as const };
-  }
-  return null;
+  const seats = seatsOf(room);
+  const seat = seats.findIndex((p: any) => p?.sessionId === sessionId);
+  if (seat === -1) return null;
+  return {
+    player: seats[seat],
+    seat,
+    objetivo: targetOf(seat, seats.length),
+    seats,
+  };
+}
+
+/* Devuelve la mesa con un asiento reemplazado. Las mutaciones escriben así
+   en vez de `[me.key]: {...}`: el array entero se guarda de una, y no hay
+   forma de olvidarse de un jugador. */
+function withSeat(seats: any[], seat: number, player: any) {
+  return seats.map((p, i) => (i === seat ? player : p));
 }
 
 /* Las salas creadas antes del tablero no traen estos campos. Leerlos por
@@ -103,11 +147,12 @@ export const createRoom = mutation({
 
     await ctx.db.insert("rooms", {
       roomId,
-      // El personaje se elige en la pantalla siguiente.
-      player1: freshPlayer(args.sessionId),
-      // player2 es v.optional: se omite hasta que alguien entre. Mandar
-      // null acá es lo que rompía el insert.
-      turn: "player1",
+      /* La mesa arranca con un solo asiento ocupado: el del que creó. Los
+         demás se agregan con `joinRoom`, en el orden en que llegan — y ese
+         orden es el de la ronda y el de los ataques, así que entrar primero
+         no es lo mismo que entrar último. */
+      players: [freshPlayer(args.sessionId)],
+      seat: 0,
       status: "waiting",
       // Un tablero distinto por partida.
       board: makeBoard(rand),
@@ -134,7 +179,11 @@ export const updatePlayerCharacter = mutation({
     if (!me) throw new ConvexError("You are not in this room");
 
     await ctx.db.patch(room._id, {
-      [me.key]: { ...me.player, name: args.playerName, catId: args.catId },
+      players: withSeat(me.seats, me.seat, {
+        ...me.player,
+        name: args.playerName,
+        catId: args.catId,
+      }),
     });
 
     return { success: true };
@@ -156,10 +205,20 @@ export const joinRoom = mutation({
 
     if (room.status !== "waiting") throw new ConvexError("Room full or finished");
 
+    const seats = seatsOf(room);
+    if (seats.length >= MAX_PLAYERS) throw new ConvexError("Room full or finished");
+
+    /* Se suma al final: el índice en el array es el asiento, y el asiento
+       decide el orden de la ronda y a quién le pega cada uno. Insertar en el
+       medio le cambiaría la víctima a alguien que ya está jugando.
+
+       La sala pasa a `playing` en cuanto hay dos, pero SIGUE aceptando gente
+       hasta el tope: con cuatro sillas, esperar a que se llenen todas para
+       arrancar dejaría colgada cualquier partida de tres. */
+    const conElNuevo = [...seats, freshPlayer(args.sessionId)];
     await ctx.db.patch(room._id, {
-      // Igual que player1: el gato llega por updatePlayerCharacter.
-      player2: freshPlayer(args.sessionId),
-      status: "playing",
+      players: conElNuevo,
+      status: conElNuevo.length >= MIN_PLAYERS ? "playing" : "waiting",
     });
 
     return { roomId: args.roomId };
@@ -189,9 +248,17 @@ export const leaveRoom = mutation({
     }
 
     if (room.status === "playing") {
+      /* Con dos jugadores, que uno se vaya termina la partida y gana el que
+         queda. Con más de dos eso sería absurdo —quedan tres jugando— pero
+         resolverlo de verdad pide decidir qué pasa con el asiento vacío: si
+         se saca del círculo cambian todos los objetivos a mitad de partida,
+         y si se deja se le pega a un fantasma. Es una decisión de diseño
+         pendiente, así que por ahora se conserva el comportamiento conocido
+         y el ganador es el de la derecha del que se fue. */
+      const ganador = me.objetivo;
       await ctx.db.patch(room._id, {
         status: "finished",
-        winner: me.other,
+        winner: ganador,
         endedByAbandon: true,
       });
 
@@ -199,7 +266,7 @@ export const leaveRoom = mutation({
         roomId: args.roomId,
         sessionId: args.sessionId,
         action: "abandon",
-        payload: { winner: me.other },
+        payload: { winner: ganador },
         timestamp: Date.now(),
       });
     }
@@ -249,8 +316,20 @@ export const getRoom = query({
       .first();
 
     /* El objetivo viaja con la sala: es el backend quien corta la partida,
-       así que las dos pantallas tienen que leerlo de acá. */
-    return { ...room, goal: GOAL, lastEvent };
+       así que las dos pantallas tienen que leerlo de acá.
+
+       Y sale NORMALIZADA: `players`, `seat` y `winner` siempre en la forma
+       nueva, aunque el documento todavía tenga la vieja. Así el cliente no
+       necesita saber que existieron dos formas — toda esa deuda queda de
+       este lado, que es el único que se despliega de una vez. */
+    return {
+      ...room,
+      players: seatsOf(room),
+      seat: seatOf(room),
+      winner: winnerSeat(room),
+      goal: GOAL,
+      lastEvent,
+    };
   },
 });
 
@@ -266,7 +345,7 @@ export const rollDice = mutation({
 
     const me = whoIs(room, args.sessionId);
     if (!me) throw new ConvexError("You are not in this room");
-    if (room.turn !== me.key) throw new ConvexError("Not your turn");
+    if (seatOf(room) !== me.seat) throw new ConvexError("Not your turn");
 
     const mine = boardOf(me.player);
 
@@ -285,7 +364,11 @@ export const rollDice = mutation({
        Tiene que ser idéntico al cliente o las dos fichas se separan. */
     const steps = outcome.dice.reduce((a, b) => a + b, 0);
     const pos = advance(mine.pos, steps);
-    const square = squareAt(room.board as any, pos);
+    /* Qué es la casilla PARA ESTE jugador: con la maldición encima, sus
+       bonus dejan de entregar carta y le cortan el turno. El tablero
+       guardado no se toca —es el mismo para los dos— y la conversión ocurre
+       acá, al leerlo. */
+    const square = squareFor(room.board as any, pos, cursed);
 
     let score = me.player.score;
     let hand = mine.hand;
@@ -298,15 +381,25 @@ export const rollDice = mutation({
     if (square === SQUARE.PENALTY) {
       score = applyPenalty(score);
       landed = SQUARE.PENALTY;
+    } else if (square === SQUARE.TURN_LOSS) {
+      /* No toca puntos ni mano: lo único que hace es avisar. El plantarse
+         forzado lo dispara el cliente llamando a `holdScore`, que es la
+         misma mutación del botón — así las cartas puestas se revelan y se
+         cobran exactamente igual que en un plantarse a mano, en vez de
+         tener acá una segunda copia de esa resolución que se desincronice
+         con la primera. */
+      landed = SQUARE.TURN_LOSS;
     } else if (square === SQUARE.BONUS) {
       landed = SQUARE.BONUS;
-      /* La carta que está sobre la mesa cuenta para el límite: puede
-         volver a la mano al quemarse, y sin contarla la mano terminaría
-         con una de más. */
-      const ocupadas = hand.length + mine.pendingCards.length;
-      // Mano llena: la casilla se pisa igual pero no entrega nada.
-      if (ocupadas < HAND_LIMIT) {
-        gainedCard = randomBonusCard(rand, Date.now());
+      /* Se sortea primero y se pregunta después: la respuesta depende de
+         qué salió, porque los escudos tienen su propio tope y no compiten
+         por el lugar de las cartas jugables. Misma función que el motor
+         local, así que los dos no pueden discrepar sobre si una carta entró
+         o se perdió. */
+      const sorteada = randomBonusCard(rand, Date.now());
+      // Sin lugar: la casilla se pisa igual pero no entrega nada.
+      if (hasRoomFor(sorteada, hand, mine.pendingCards)) {
+        gainedCard = sorteada;
         hand = [...hand, gainedCard];
       }
     }
@@ -342,9 +435,13 @@ export const rollDice = mutation({
          quemarse ya cuesta el turno entero, no tiene por qué costar
          también las cartas. */
       const devueltas = [...hand, ...mine.pendingCards];
+      /* El turno pasa al SIGUIENTE asiento, no "al otro". Con dos es lo
+         mismo; con cuatro, `nextSeat` gira la ronda y aquel `me.other` se
+         habría quedado siempre en el segundo. */
+      const siguiente = nextSeat(me.seat, me.seats.length);
       await ctx.db.patch(room._id, {
-        turn: me.other,
-        [me.key]: {
+        seat: siguiente,
+        players: withSeat(me.seats, me.seat, {
           ...base,
           hand: devueltas,
           pendingCard: null,
@@ -354,14 +451,14 @@ export const rollDice = mutation({
              Descontándola en cada tirada duraba 1,4 turnos en vez de 3,
              porque un turno normal son casi cuatro tiradas. */
           curseTurns: Math.max(0, mine.curseTurns - 1),
-        },
+        }),
       });
-      return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, newTurn: me.other, score };
+      return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, newTurn: siguiente, score };
     }
 
     const newCurrent = me.player.current + outcome.gained;
     await ctx.db.patch(room._id, {
-      [me.key]: { ...base, current: newCurrent },
+      players: withSeat(me.seats, me.seat, { ...base, current: newCurrent }),
     });
 
     return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, newCurrent, score };
@@ -383,7 +480,7 @@ export const playCard = mutation({
 
     const me = whoIs(room, args.sessionId);
     if (!me) throw new ConvexError("You are not in this room");
-    if (room.turn !== me.key) throw new ConvexError("Not your turn");
+    if (seatOf(room) !== me.seat) throw new ConvexError("Not your turn");
 
     const mine = boardOf(me.player);
 
@@ -399,7 +496,7 @@ export const playCard = mutation({
        mismo turno, así que se aplica ya y no queda pendiente. */
     if (chosen.type === CARD.DOUBLE) {
       await ctx.db.patch(room._id, {
-        [me.key]: { ...me.player, hand, doubleNext: true },
+        players: withSeat(me.seats, me.seat, { ...me.player, hand, doubleNext: true }),
       });
       return { applied: "double" };
     }
@@ -407,12 +504,12 @@ export const playCard = mutation({
     /* Se apilan: en un mismo turno se pueden poner varias y todas se
        revuelven al plantarse, una atrás de la otra. */
     await ctx.db.patch(room._id, {
-      [me.key]: {
+      players: withSeat(me.seats, me.seat, {
         ...me.player,
         hand,
         pendingCard: null,
         pendingCards: [...mine.pendingCards, chosen],
-      },
+      }),
     });
 
     return { applied: "pending", card: chosen, pending: mine.pendingCards.length + 1 };
@@ -433,10 +530,12 @@ export const holdScore = mutation({
     if (!me) throw new ConvexError("You are not in this room");
     /* Sin esto el rival podía plantarse durante tu turno y llevarse tu
        acumulado. */
-    if (room.turn !== me.key) throw new ConvexError("Not your turn");
+    if (seatOf(room) !== me.seat) throw new ConvexError("Not your turn");
 
     const mine = boardOf(me.player);
-    const rivalRaw = me.key === "player1" ? room.player2 : room.player1;
+    /* La víctima es la de tu derecha, no "el otro": sale de `targetOf`, que
+       ya vale para cualquier tamaño de mesa. */
+    const rivalRaw = me.seats[me.objetivo];
     const rival = rivalRaw ? boardOf(rivalRaw) : null;
 
     let myScore = me.player.score + me.player.current;
@@ -468,11 +567,6 @@ export const holdScore = mutation({
           const taken = Math.min(pending.value ?? 0, rivalScore);
           rivalScore -= taken;
           myScore += taken;
-        } else if (pending.type === CARD.PUNCH) {
-          /* Resta y no transfiere: al que pega no le suma. Misma regla que
-             en el motor local, y sale de la misma función para que las dos
-             no puedan separarse. */
-          rivalScore = applyPunch(rivalScore);
         } else if (pending.type === CARD.CURSE) {
           rivalCurse = CURSE_TURNS;
         }
@@ -506,22 +600,31 @@ export const holdScore = mutation({
       ? { ...rivalRaw, score: rivalScore, hand: rivalHand, curseTurns: rivalCurse }
       : undefined;
 
+    /* Los dos asientos se escriben sobre el MISMO array y en un solo patch.
+       Antes eran dos claves sueltas del documento y daba igual el orden;
+       ahora no: aplicar `withSeat` dos veces sobre `me.seats` por separado
+       produciría dos arrays distintos y el segundo pisaría al primero,
+       perdiendo lo que le pasó a la víctima. Encadenado, cada paso parte del
+       resultado del anterior. */
+    const mesaFinal = rivalAfter
+      ? withSeat(withSeat(me.seats, me.seat, meAfter), me.objetivo, rivalAfter)
+      : withSeat(me.seats, me.seat, meAfter);
+
     if (gameFinished) {
       await ctx.db.patch(room._id, {
-        [me.key]: meAfter,
-        ...(rivalAfter ? { [me.other]: rivalAfter } : {}),
+        players: mesaFinal,
         status: "finished",
-        winner: me.key,
+        winner: me.seat,
       });
-      return { newScore, gameFinished: true, winner: me.key, resolved };
+      return { newScore, gameFinished: true, winner: me.seat, resolved };
     }
 
+    const siguiente = nextSeat(me.seat, me.seats.length);
     await ctx.db.patch(room._id, {
-      [me.key]: meAfter,
-      ...(rivalAfter ? { [me.other]: rivalAfter } : {}),
-      turn: me.other,
+      players: mesaFinal,
+      seat: siguiente,
     });
 
-    return { newScore, gameFinished: false, newTurn: me.other, resolved };
+    return { newScore, gameFinished: false, newTurn: siguiente, resolved };
   },
 });

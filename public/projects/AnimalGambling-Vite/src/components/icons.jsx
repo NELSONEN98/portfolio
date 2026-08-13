@@ -79,21 +79,13 @@ export const QuestionIcon = () => (
   </Svg>
 );
 
-export const SQUARE_ICON = {
-  [SQUARE.PENALTY]: SkullIcon,
-  [SQUARE.BONUS]: QuestionIcon,
-};
+/* SQUARE_ICON no está acá sino más abajo, junto a CARD_ICON: necesita a
+   DeathNoteIcon, que se declara después. Un `const` se puede nombrar antes
+   sólo dentro de una función que corra más tarde; en el cuerpo del módulo,
+   como es este caso, tira ReferenceError al cargar. Y eso NO lo detecta el
+   build: es un error de ejecución, así que se ve recién con la pantalla en
+   blanco. */
 
-/* La rata del robo. Conserva su grilla original de 512 en vez de rehacerse
-   en los 24 del resto: a esa escala se le perderían la cola y las patas,
-   que es lo que la hace reconocible de un vistazo. El `fill` fijo del
-   archivo se saca para que herede el color de la carta, igual que los
-   demás íconos. */
-export const RatIcon = () => (
-  <Svg viewBox="0 0 512 512">
-    <path d="M433.5 31.6c-8.5 0-15.1 6.58-15.1 14.81s6.6 14.81 15.1 14.81 15.1-6.58 15.1-14.81S442 31.6 433.5 31.6zM267 59.05c6.6 15.84 17.1 18.03 31.1 24.77-11.2 20.98-23.2 51.08-43.5 59.28-64.7 26.1-98.7 58.3-112.3 98.7-13.1 39-7 87.2 13.3 145.4 61.8 4.9 127.3 9.2 159.4 2.8-1.3-4.4-5.8-7.5-8.6-9-28.5-9.8-45.2-10.9-71.5-12l1.1-9.6c2.2-19.6.4-44.3-7.7-61.3-4.1-8.5-9.5-14.9-16.5-18.8-7-3.9-15.8-5.7-28.4-3.3l-3.2-17.8c13.5-2.4 29.4-.6 40.4 5.4 10.9 6.1 18.7 15.8 23.9 26.7 9.1 18.9 11.1 41.6 9.9 61.8 10 .6 18.9 1.6 26.8 2.9 19.2-30.7 37-60.4 39.5-90.7-13.8-4-32.4-10.7-34.3-24.4-2.7-19.6 3.6-45 19.3-55.5-1 27.8-4.3 43.9-2.3 49.7 5.8 10.9 30.3 15.2 40.1 17.4v.1c17.4 4.8 31.9 7 34.8 25.6 18.2-29.5-14.4-45-36.2-54.5l-.1-5.8c-.3-23.5 5.5-39.4 13.5-53.1 8-13.6 17.7-25 26.9-43.2v-.1c-9.4-1.3-19.4-.1-27.1 1.3 5.7-19.9 23.2-23.73 38.6-16.1 5.9-8.3 13.4-18.83 24.9-29.96-12.7-9.39-19.9-20.4-18.1-33.92-28-3.4-57.4-4.45-78.6 9.84l-4-3.72c-15.7-17.87-60.9-12.3-51.1 11.11zm67.9-4.17c4 7.92 14.9 12.95 29.2 13.88-8 6.49-20.7 11.42-30.3 5.24-7.3-4.71-3.7-13.07 1.1-19.12zM129.4 364.6c-14.6 3.2-38.77 7-49.63 16-8.5 7.4-15.03 19.8-16.19 31.4-1.17 11.6 1.99 21.6 12.85 28.8C120 469.7 165 466.4 205.4 454.9c40.4-11.6 75.4-32.6 119.4-22.8 8.4 2.5 15.7 6.5 14.5 15.9-.4 2.8-1.5 4.8-2.7 6.5-9.7 10.8-30.9 17.7-33.6 21.5-6.4 9.2 34.2 2.8 45-7.6 4.2-4.2 8.1-13 8.9-21.3.8-8.3-1.3-15.3-4.9-18.3-11.2-9.6-24.1-15.1-39.8-15.1-15.7-.1-34 1.7-53.5 6.5-39.1 9.6-83.6 27.5-127.4 18.6-17-3.4-27.4-6.8-33.77-14.9-3.22-4-4.39-10.6-2.48-15.4 7.45-15.2 28.15-17.8 40.95-20.5-2.4-7.2-4.6-16.4-6.6-23.4z" />
-  </Svg>
-);
 
 
 /* Los dos íconos de la botonera del versus. Reemplazan a las palabras
@@ -123,17 +115,6 @@ export const HeartShieldIcon = () => (
   </Svg>
 );
 
-/* El puño del golpe. Conserva la grilla de 512 de su archivo, igual que la
-   rata: rehecho en 24 perdería los nudillos, que es lo que lo hace un puño
-   y no una mancha. Sin `fill` propio, para que tome el color de la carta.
-   El <rect> transparente del original se descarta: era el lienzo del editor
-   y acá sólo agrandaría la caja del dibujo. */
-export const PunchIcon = () => (
-  <Svg viewBox="0 0 512 512">
-    <path d="M198.844 64.75c-.985 0-1.974.03-2.97.094-15.915 1.015-32.046 11.534-37.78 26.937-34.072 91.532-51.085 128.865-61.5 222.876 14.633 13.49 31.63 26.45 50.25 38.125l66.406-196.467 17.688 5.968L163.28 362.5c19.51 10.877 40.43 20.234 62 27.28l75.407-201.53 17.5 6.53-74.937 200.282c19.454 5.096 39.205 8.2 58.78 8.875L381.345 225.5l17.094 7.594-75.875 170.656c21.82-1.237 43.205-5.768 63.437-14.28 43.317-53.844 72.633-109.784 84.5-172.69 5.092-26.992-14.762-53.124-54.22-54.81l-6.155-.282-2.188-5.75c-8.45-22.388-19.75-30.093-31.5-32.47-11.75-2.376-25.267 1.535-35.468 7.376l-13.064 7.47-.906-15c-.99-16.396-10.343-29.597-24.313-35.626-13.97-6.03-33.064-5.232-54.812 9.906l-10.438 7.25-3.812-12.125c-6.517-20.766-20.007-27.985-34.78-27.97zM103.28 188.344C71.143 233.448 47.728 299.56 51.407 359.656c27.54 21.84 54.61 33.693 80.063 35.438 14.155.97 27.94-1.085 41.405-6.438-35.445-17.235-67.36-39.533-92.594-63.53l-3.343-3.157.5-4.595c5.794-54.638 13.946-91.5 25.844-129.03z" />
-  </Svg>
-);
-
 /* La maldición deja de ser una poción y pasa a ser una calavera con alas
    sobre una lápida. La poción se leía como algo que se toma —un premio— y
    la maldición se la ponés a OTRO. */
@@ -143,10 +124,33 @@ export const DeathNoteIcon = () => (
   </Svg>
 );
 
+/* El pescado muerto del robo. Reemplaza a la rata desde que la carta dejó
+   de ser sólo "robar": ahora es también la munición que se gasta contra la
+   defensa del otro, y un pescado tirado dice DAÑO —algo que quedó por el
+   camino— mientras que la rata decía ladrón. El número al lado sigue
+   contando cuánto, que es el otro dato que hay que leer de un golpe.
+   Conserva la grilla de 512 del archivo, igual que el resto de los dibujos
+   grandes, y sin `fill` propio para que tome el color de la carta. */
+export const FishCorpseIcon = () => (
+  <Svg viewBox="0 0 512 512">
+    <path d="M435.125 19.72c-2.52.003-5.002.024-7.47.06-66.318 1.013-117.573 12.795-180.874 39.376-35.44 52.333-24.53 139.625 5.5 202.063 15.218 31.635 35.318 56.506 53.657 67 9.17 5.245 17.488 7.007 25.22 5.53 7.73-1.477 15.614-6.244 23.656-16.813l.375-.5.437-.437c39.966-40.123 69.86-81.484 91.344-124.03l-13.72-33.376-26.156 52-20.53-40.75-40.22 74-18.47-30.344-49.187 46.156 49.938-91.187 18.844 31.03 26.28-87.313 28.656 38.75 30.563-73.78 33 71.093c15.2-41.172 23.373-83.366 25.967-126.5-20.24-1.287-39.178-2.06-56.812-2.03zM300.44 63.17a38.648 55.07 27.484 0 1 23.156 69.732 38.648 55.07 27.484 0 1-68.672-35.476A38.648 55.07 27.484 0 1 300.44 63.17zM93.564 122.406c28.366 36.35 50.67 75.307 69.562 115.72-10.936 12.19-21.54 24.897-31.72 37.905-18.43-22.897-46.54-42.48-90.75-58.155 27.937 28.82 50.546 56.503 70.314 85.438a838.712 838.712 0 0 0-22.157 32.437c-13.103-12.897-31.868-23.74-59.688-31.97 17.43 19.285 31.776 37.524 44.97 55.564-8.043 13.375-15.393 26.5-21.97 39.156-8.645-3.69-19.512-6.08-33.344-8.313 8.2 8.02 16.466 16.23 25.126 24.688-14.698 30.534-24.126 57.313-26.5 76.25 10.822-19.19 24.69-40.377 40.844-62.406a972.77 972.77 0 0 0 26.188 24.03c-3.135-18.866-7.292-31.496-13.938-40.344a933.95 933.95 0 0 1 21.875-27.312c10.99 15.793 21.803 31.7 33.72 48.25-4.94-24.664-8.18-47.663-17.032-67.813a985.887 985.887 0 0 1 24.406-26.78c13.917 23.576 26.725 48.49 39.593 75.875-4.698-35.502-8.05-68.197-18.72-97.28a879.647 879.647 0 0 1 30.47-28.908c14.92 37.328 27.988 75.47 41.125 113.563-1.928-46.754-2.054-94.115-12.844-137.906 4.92-4.03 9.854-8.007 14.812-11.844-7.81-19.14-14.064-39.805-18-60.906a511.066 511.066 0 0 0-18.47 17.156c-18.918-33.25-49.116-62.76-97.874-86.094z" />
+  </Svg>
+);
+
+export const SQUARE_ICON = {
+  [SQUARE.PENALTY]: SkullIcon,
+  [SQUARE.BONUS]: QuestionIcon,
+  /* El bonus convertido por la maldición lleva el dibujo de la carta que lo
+     convirtió, no la calavera de la penitencia. Con la calavera se leería
+     como una casilla de castigo más y no habría forma de entender de dónde
+     salió; con este, el jugador ata lo que ve en el camino con la carta que
+     acaba de recibir. */
+  [SQUARE.TURN_LOSS]: DeathNoteIcon,
+};
+
 export const CARD_ICON = {
-  [CARD.STEAL]: RatIcon,
+  [CARD.STEAL]: FishCorpseIcon,
   [CARD.DEFENSE]: ShieldIcon,
   [CARD.CURSE]: DeathNoteIcon,
   [CARD.DOUBLE]: TwoDiceIcon,
-  [CARD.PUNCH]: PunchIcon,
 };

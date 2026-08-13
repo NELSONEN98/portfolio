@@ -4,10 +4,10 @@ import {
   CARD,
   CARD_LABEL,
   HAND_LIMIT,
+  DEFENSE_LIMIT,
   CURSE_TURNS,
   CURSED_MAX_ROLL,
   PENALTY_POINTS,
-  PUNCH_POINTS,
   STEAL_VALUES,
   SQUARE,
   startingHand,
@@ -78,6 +78,7 @@ export default function RulesModal({ abierta, onClose }) {
 
   const robos = STEAL_VALUES.map((v) => `−${v}`).join(", ");
   const mayor = STEAL_VALUES[STEAL_VALUES.length - 1];
+  const menor = STEAL_VALUES[0];
 
   /* La mano de arranque se lee de la regla en vez de describirse a mano. */
   const conteo = startingHand().reduce((acc, c) => {
@@ -132,8 +133,9 @@ export default function RulesModal({ abierta, onClose }) {
                   Te descuenta {PENALTY_POINTS} puntos del marcador. Nunca baja de cero.
                 </Item>
                 <Item muestra={<Casilla tipo={SQUARE.BONUS} />} nombre="BONUS">
-                  Te da una carta. Con {HAND_LIMIT} en la mano ya no entra
-                  ninguna más y la casilla no entrega nada.
+                  Te da una carta. Aguantas {HAND_LIMIT} jugables y{" "}
+                  {DEFENSE_LIMIT} defensas, y cada tope va por su cuenta: tener
+                  la mano llena no te impide recibir un escudo.
                 </Item>
               </div>
             }
@@ -148,18 +150,16 @@ export default function RulesModal({ abierta, onClose }) {
             extra={
               <div className="rule-items">
                 <Item muestra={<Carta tipo={CARD.STEAL} value={mayor} />} nombre={CARD_LABEL.steal}>
-                  Le saca puntos al rival y te los suma. Vienen de {robos}, y no
-                  puede robar más de lo que el otro tiene.
-                </Item>
-                <Item muestra={<Carta tipo={CARD.PUNCH} />} nombre={CARD_LABEL.punch}>
-                  Le saca {PUNCH_POINTS} puntos al rival. Saca poco a propósito:
-                  sirve para <b>quemarle la defensa</b> barato y dejar sin tapa
-                  el robo o la maldición que venga después.
+                  Le saca puntos <b>al jugador de tu derecha</b> y te los suma.
+                  Vienen de {robos}, y no puede robar más de lo que el otro
+                  tiene. La de −{menor} es munición: sirve para{" "}
+                  <b>gastarle la defensa</b> barato y dejar sin tapa la de −
+                  {mayor} que venga atrás.
                 </Item>
                 <Item muestra={<Carta tipo={CARD.DEFENSE} />} nombre={CARD_LABEL.defense}>
                   No se juega: se gasta sola cuando te atacan y anula <i>una</i>{" "}
-                  carta, sea un golpe o un robo de {mayor}. Tenerla en la mano ya
-                  te protege.
+                  carta entera, sea de −{menor} o de −{mayor}. Tenerla en la mano
+                  ya te protege.
                 </Item>
                 <Item muestra={<Carta tipo={CARD.CURSE} />} nombre={CARD_LABEL.curse}>
                   Durante {CURSE_TURNS} turnos el dado del rival no pasa de{" "}

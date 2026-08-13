@@ -2,17 +2,18 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import {
   GOAL,
   CARD,
-  HAND_LIMIT,
+  hasRoomFor,
   CURSE_TURNS,
   PENALTY_POINTS,
   SQUARE,
-  squareAt,
+  squareFor,
   advance,
   startingHand,
   randomBonusCard,
   resolveRoll,
   applyPenalty,
-  applyPunch,
+  targetOf,
+  nextSeat,
   cappedScore,
   hasDefense,
   dropCard,
@@ -79,10 +80,14 @@ export function useGame() {
 
   const consumeEvents = useCallback(() => setEvents([]), []);
 
-  const start = useCallback((p1, p2) => {
-    hayPartida.current = Boolean(p1 && p2);
+  /* Recibe la mesa entera como array, no dos jugadores sueltos. `(p1, p2)`
+     era la última firma del motor que decía "acá juegan exactamente dos": el
+     estado ya era un array, pero para llenarlo había que pasar por una
+     puerta de dos. */
+  const start = useCallback((jugadores) => {
+    hayPartida.current = jugadores.length >= 2 && jugadores.every(Boolean);
     setBoard(makeBoard(rand));
-    setPlayers([p1, p2]);
+    setPlayers(jugadores);
     setActive(0);
     setPlaying(true);
     setFinished(false);
@@ -95,7 +100,11 @@ export function useGame() {
      Devuelve el jugador modificado en vez de mutarlo: React necesita
      objetos nuevos para volver a pintar. */
   const efectoCasilla = useCallback((p, lado, tablero) => {
-    const casilla = squareAt(tablero, p.pos ?? 0);
+    /* `squareFor` y no `squareAt`: lo que la casilla HACE depende de quién
+       la pisa. Con la maldición encima, el bonus de este jugador ya no
+       entrega carta —le corta el turno—, y quien ejecuta ese corte es la
+       pantalla, no esta función: acá alcanza con no entregar nada. */
+    const casilla = squareFor(tablero, p.pos ?? 0, (p.curseTurns ?? 0) > 0);
     const hechos = [];
     let { score, hand } = p;
 
@@ -107,16 +116,22 @@ export function useGame() {
         evento("penitencia", { nombre: p.char.name, puntos: PENALTY_POINTS, lado })
       );
     } else if (casilla === SQUARE.BONUS) {
-      const ocupadas = (hand?.length ?? 0) + (p.pendingCards?.length ?? 0);
-      if (ocupadas < HAND_LIMIT) {
-        const ganada = randomBonusCard(rand, Date.now());
+      /* Se sortea PRIMERO y se pregunta después, porque ahora la respuesta
+         depende de qué salió: un escudo mira el tope de escudos y el resto
+         mira el de la mano. Preguntando antes habría que adivinar cuál de
+         los dos bolsillos va a hacer falta. */
+      const ganada = randomBonusCard(rand, Date.now());
+      if (hasRoomFor(ganada, hand ?? [], p.pendingCards ?? [])) {
         hand = [...(hand ?? []), ganada];
         /* La carta viaja con el hecho: la interfaz la muestra grande antes
            de que llegue al abanico, y comparando manos no podría separar la
            ganada de una devuelta al quemarse. */
         hechos.push(evento("bonus", { nombre: p.char.name, carta: ganada }));
       } else {
-        hechos.push(evento("bonusLleno"));
+        /* El tipo viaja con el hecho: "no te entra otro escudo" y "tenés la
+           mano llena" son dos cosas distintas, y con un solo mensaje el
+           jugador no sabría cuál de los dos bolsillos destrabar. */
+        hechos.push(evento("bonusLleno", { tipo: ganada.type }));
       }
     }
 
@@ -223,9 +238,16 @@ export function useGame() {
   }, [active, board, efectoCasilla, emit]);
 
   const endTurn = useCallback(() => {
-    setActive((a) => (a === 0 ? 1 : 0));
+    /* El turno gira en el mismo sentido que apuntan las cartas: al de tu
+       derecha. Era `a === 0 ? 1 : 0`, que con dos jugadores da lo mismo y
+       con cuatro daría siempre el segundo asiento. */
+    setActive((a) => nextSeat(a, players.length));
     setRolling(false);
-  }, []);
+    /* Depende del NÚMERO de jugadores, no del array: `players.length` es un
+       número, así que esta función sólo cambia de identidad cuando cambia
+       el tamaño de la mesa —nunca durante una partida— y los efectos que la
+       listan no se vuelven a disparar en cada tirada. */
+  }, [players.length]);
 
   const playCard = useCallback(
     (uid) => {
@@ -263,7 +285,11 @@ export function useGame() {
    */
   const hold = useCallback(() => {
     const yo = players[active];
-    const otro = active === 0 ? 1 : 0;
+    /* A quién le pegan tus cartas: al de tu derecha, siempre. Con dos
+       jugadores es el otro y no cambia nada; con cuatro, ya está resuelto.
+       Esta línea era `active === 0 ? 1 : 0` — la suposición de que la mesa
+       es de dos, escrita a mano en el medio de la resolución de cartas. */
+    const otro = targetOf(active, players.length);
     const rival = players[otro];
     if (!yo) return { gano: false, revelaciones: [] };
 
@@ -287,11 +313,6 @@ export function useGame() {
         const robado = Math.min(carta.value ?? 0, rivalScore);
         rivalScore -= robado;
         miScore += robado;
-      } else if (carta.type === CARD.PUNCH) {
-        /* El golpe RESTA, no transfiere: al que pega no le suma nada. Es lo
-           que lo separa del robo —ahí los puntos cambian de dueño— y lo que
-           lo deja valer sólo por lo que rompe. */
-        rivalScore = applyPunch(rivalScore);
       } else if (carta.type === CARD.CURSE) {
         rivalCurse = CURSE_TURNS;
       }

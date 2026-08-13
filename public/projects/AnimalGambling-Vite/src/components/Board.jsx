@@ -5,6 +5,7 @@ import {
   BOARD_SIZE,
   PENALTY_POINTS,
   SQUARE,
+  squareFor,
 } from "../../convex/rules";
 import { ms } from "../theme";
 import { SQUARE_ICON } from "./icons";
@@ -57,7 +58,16 @@ function pasoDe(pasos) {
   return Math.min(PASO_MS, Math.max(24, Math.round(VIAJE_MAX_MS / pasos)));
 }
 
-export default function Board({ board, players, onLlegada, retrasoCasilla = 0 }) {
+/* De quién es la vista del tablero. En online cada uno pinta la suya; en
+   local hay una sola pantalla para dos jugadores, así que manda el que está
+   jugando el turno — sus bonus se ven convertidos mientras le toca y vuelven
+   a la normalidad cuando pasa. Que el camino cambie de color al cambiar el
+   turno no es un efecto: es la forma de que el maldito VEA su condena.
+   Sin dibujarla, la maldición sería una trampa escondida —caer en lo que
+   parece un premio y perder el turno— y eso no es dificultad, es que el
+   juego mienta. */
+export default function Board({ board, players, mirandoLado = 0, onLlegada, retrasoCasilla = 0 }) {
+  const maldito = (players[mirandoLado]?.curseTurns ?? 0) > 0;
   /* Dónde y de qué tipo fue el último impacto. Sólo las casillas que hacen
      algo se anuncian: encender también las vacías volvería el aviso ruido
      de fondo y dejaría de significar nada. */
@@ -196,7 +206,10 @@ export default function Board({ board, players, onLlegada, retrasoCasilla = 0 })
         }, viaje)
       );
 
-      const tipo = board[fin];
+      /* La casilla se lee para EL QUE LLEGA, no para el que mira: en local
+         los dos comparten pantalla, y el aviso que sale de acá es el que
+         ordena el turno del jugador que acaba de caer. */
+      const tipo = squareFor(board, fin, (p.curseTurns ?? 0) > 0);
       const castiga = tipo === SQUARE.PENALTY;
 
       /* El aviso de que la ficha frenó. Es el que ordena el turno: el
@@ -258,7 +271,7 @@ export default function Board({ board, players, onLlegada, retrasoCasilla = 0 })
           justo los últimos índices—. Recorriendo la geometría, lo que falta
           es información de una casilla, no la casilla. */}
       {Array.from({ length: BOARD_SIZE }, (_, i) => {
-        const tipo = board[i] ?? SQUARE.PLAIN;
+        const tipo = squareFor(board, i, maldito);
         const { col, row } = squareCell(i);
         const Icono = SQUARE_ICON[tipo];
         const golpeada = impacto?.pos === i;
@@ -316,8 +329,20 @@ export default function Board({ board, players, onLlegada, retrasoCasilla = 0 })
            Se compara lo que se ve y no lo que dice la partida: mientras una
            ficha camina, las dos pueden cruzarse por una casilla que ninguna
            de las dos tiene como destino. */
-        const otro = i === 0 ? 1 : 0;
-        const juntas = Boolean(players[otro]) && posVisual[otro] === posVisual[i];
+        /* Quiénes están parados en esta misma casilla, en orden de asiento.
+           Era `const otro = i === 0 ? 1 : 0` — una mesa de dos escrita en el
+           cálculo del desvío, que con cuatro dejaba a las fichas 3 y 4
+           siempre pegadas en el centro.
+           El desvío reparte a todos alrededor del medio: con dos quedan a
+           −0.17 y +0.17 de casilla, con cuatro a −0.51, −0.17, +0.17, +0.51.
+           Lo consume el CSS como `--junta`. */
+        const enLaCasilla = players.reduce(
+          (acc, p, k) => (p && posVisual[k] === posVisual[i] ? [...acc, k] : acc),
+          []
+        );
+        const juntas = enLaCasilla.length > 1;
+        const lugar = enLaCasilla.indexOf(i);
+        const desvio = juntas ? (lugar - (enLaCasilla.length - 1) / 2) * 0.34 : 0;
         return (
           <span
             key={i}
@@ -325,6 +350,7 @@ export default function Board({ board, players, onLlegada, retrasoCasilla = 0 })
             style={{
               ...cellCenter(posVisual[i] ?? 0),
               "--paso": `${pasoActual.current[i] ?? PASO_MS}ms`,
+              "--junta": desvio,
             }}
           >
             {/* El número del jugador, dentro de la ficha.

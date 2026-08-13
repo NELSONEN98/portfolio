@@ -17,6 +17,40 @@ const REINTENTO_MS = ms("red.reintento");
  * pasó desde la última mirada. Traducir eso a animaciones es de la capa de
  * arriba, que es la única que cambia entre web y móvil.
  */
+/* ►► La sala, siempre en forma de asientos. ◄◄
+ *
+ * El servidor nuevo ya la devuelve así, pero el cliente y el backend se
+ * despliegan con DOS comandos distintos —`publish:game` y `convex deploy`—
+ * y por lo tanto nunca están sincronizados al segundo. En esa ventana el
+ * cliente nuevo le pedía `players` a un servidor viejo, recibía `undefined`,
+ * y la partida se quedaba esperando para siempre a que se sentaran dos
+ * jugadores en una mesa que leía vacía.
+ *
+ * Que el arreglo viva ACÁ y no repartido por la pantalla es lo que importa:
+ * es el único punto por donde entra una sala, así que del efecto de
+ * sincronía para adentro nadie sabe que existieron dos formas. Es el mismo
+ * criterio que los adaptadores del servidor, del otro lado del cable.
+ *
+ * Se puede borrar cuando el backend desplegado sea el nuevo y no quede
+ * ninguna sala vieja viva — media hora después del despliegue. */
+function enAsientos(sala) {
+  if (!sala || sala.players?.length) return sala;
+
+  const players = [sala.player1, sala.player2].filter(Boolean);
+  const seat =
+    typeof sala.seat === "number" ? sala.seat : sala.turn === "player2" ? 1 : 0;
+  const winner =
+    typeof sala.winner === "number"
+      ? sala.winner
+      : sala.winner === "player2"
+        ? 1
+        : sala.winner === "player1"
+          ? 0
+          : undefined;
+
+  return { ...sala, players, seat, winner };
+}
+
 export function useOnlineRoom() {
   const [roomId, setSala] = useState(() => getRoomId());
   const [room, setRoom] = useState(null);
@@ -29,10 +63,14 @@ export function useOnlineRoom() {
   const [novedad, setNovedad] = useState(null);
   const vivo = useRef(false);
 
+  /* En qué asiento estás sentado. Se busca en la mesa en vez de preguntar
+     "¿sos el primero? entonces 0, si no 1" — que era una respuesta binaria y
+     por lo tanto una mesa de dos.
+     El −1 de `findIndex` se convierte en 0 para el instante en que la sala
+     todavía no llegó: cualquier otro valor haría que la pantalla se dibuje
+     un cuadro con el asiento de otro. */
   const miLado = room
-    ? room.player1?.sessionId === getSessionId()
-      ? 0
-      : 1
+    ? Math.max(0, (room.players ?? []).findIndex((p) => p?.sessionId === getSessionId()))
     : 0;
 
   const detener = useCallback(() => {
@@ -54,7 +92,9 @@ export function useOnlineRoom() {
 
     if (!vivo.current) return;
     if (sala) {
-      setRoom(sala);
+      /* Se normaliza al ENTRAR, no al usarse: así hay un solo lugar que
+         conoce la forma vieja en vez de un `??` en cada lectura. */
+      setRoom(enAsientos(sala));
 
       const ev = sala.lastEvent;
       if (ev && ev._id !== ultimoEvento.current) {

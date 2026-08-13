@@ -14,25 +14,36 @@ export default function SelectScreen({
   onPlay,
   onBack,
 }) {
-  const [p1, p2] = elegidos;
-  const listo = online ? p1 !== null : p1 !== null && p2 !== null;
+  /* La mesa se lee del propio array de elegidos: su largo ES la cantidad de
+     sillas. La pantalla no sabe si el modo es de dos o de cuatro, y no le
+     hace falta. */
+  const faltan = elegidos.filter((x) => x === null).length;
+  const listo = online ? elegidos[0] !== null : faltan === 0;
+  const turno = elegidos.indexOf(null) + 1;
 
   return (
     <section className="screen select-screen active">
       <div className="select-header">
-        <div className="prompt-title">ELIGE TU GATO APOSTADOR</div>
+        <div className="prompt-title">
+          {online || elegidos.length < 3
+            ? "ELIGE TU GATO APOSTADOR"
+            : faltan > 0
+              ? `JUGADOR ${turno} — ELIGE TU GATO`
+              : "MESA COMPLETA"}
+        </div>
       </div>
 
-      <div className={`char-grid${!online && p1 !== null ? " p2-turn" : ""}`}>
+      <div className={`char-grid${!online && faltan < elegidos.length ? " p2-turn" : ""}`}>
         {ROSTER.map((c, i) => {
-          const comoP1 = p1 === i;
-          const comoP2 = p2 === i;
-          const marcado = comoP1 || comoP2;
+          /* En qué asiento quedó este gato, o −1 si nadie lo tomó. Reemplaza
+             a las dos comparaciones contra p1 y p2. */
+          const puesto = elegidos.indexOf(i);
+          const marcado = puesto !== -1;
           return (
             <div
               key={c.id}
-              className={`char-card${marcado ? " selected" : ""}${comoP1 ? " p1" : ""}${comoP2 ? " p2" : ""}`}
-              data-player={comoP1 ? "P1" : comoP2 ? "P2" : undefined}
+              className={`char-card${marcado ? " selected" : ""}${marcado ? ` p${puesto + 1}` : ""}`}
+              data-player={marcado ? `P${puesto + 1}` : undefined}
               onClick={() => onPick(i)}
             >
               <div className="char-art boil" data-cat={c.id} role="img" aria-label={c.name} />

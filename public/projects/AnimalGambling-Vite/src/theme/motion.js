@@ -346,7 +346,11 @@ export const MOTION = {
 
   ambiente: {
     humo: { ms: 18000, ease: EASE.lineal, keyframes: "drift", el: ".smoke-wisp", loop: true },
-    luces: { ms: 1100, ease: EASE.cuadro, keyframes: "bulbs-on", el: ".pool-table::after", loop: true },
+    /* Baja de 1100 a 820ms: dos alternancias por segundo en vez de una y
+       pico. A 1100 el cartel parecía respirar; a 820 titila, que es lo que
+       hace un cartel de casino. Más rápido que esto empieza a molestar
+       encima de una mesa donde hay que leer números. */
+    luces: { ms: 820, ease: EASE.cuadro, keyframes: "bulbs-on", el: ".pool-table::after", loop: true },
     /* El mismo keyframe con dos duraciones: en la mesa las fichas entran
        más rápido que en la decoración de las reglas. */
     fichaEntra: { ms: 400, ease: EASE.salida, keyframes: "chip-in", el: ".chip" },

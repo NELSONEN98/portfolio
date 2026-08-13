@@ -77,7 +77,12 @@ export default function VersusScreen({
   );
 
   return (
-    <section className={`screen versus-screen active${flip ? " flip" : ""}`}>
+    /* `mesa-N` le dice al CSS cuántas sillas hay que acomodar. Sin esto, con
+       cuatro jugadores las líneas f3 y f4 no encuentran su `grid-area` y el
+       navegador las tira en celdas automáticas, encima de la mesa. */
+    <section
+      className={`screen versus-screen active mesa-${players.length}${flip ? " flip" : ""}`}
+    >
       {/* Cada peleador con sus cartas en la misma línea: CARTAS · PUNTAJE ·
           PERSONAJE, con el abanico hacia afuera y el dibujo hacia la mesa.
           Antes el abanico flotaba en un costado fijo y reservaba una franja
@@ -108,6 +113,10 @@ export default function VersusScreen({
           <Board
             board={board}
             players={players}
+            /* Con qué ojos se dibuja el camino. Es la misma cuenta que
+               decide de quién son las cartas del abanico: en online siempre
+               vos, en local el que está jugando el turno. */
+            mirandoLado={ladoMano}
             onLlegada={onLlegada}
             retrasoCasilla={retrasoCasilla}
           />

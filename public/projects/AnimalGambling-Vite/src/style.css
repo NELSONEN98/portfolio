@@ -654,12 +654,20 @@ body {
 .versus-screen.flip .fighter-linea.f1 { grid-area: f2; justify-self: end; }
 .versus-screen.flip .fighter-linea.f2 { grid-area: f1; justify-self: start; }
 
-/* Sólo el que TIENE cartas invierte su orden, para que el puntaje quede
-   entre el abanico y el dibujo. El rival no tiene abanico, así que se queda
-   como siempre estuvo —dibujo y después números— y no hay motivo para darlo
-   vuelta: invertirlo sin cartas delante lo dejaba en espejo respecto de
-   cómo se lo venía viendo toda la partida. */
-.fighter-linea.con-cartas .fighter { flex-direction: row-reverse; }
+/* ►► LOS DOS con el mismo orden: PUNTAJE · PERSONAJE. ◄◄
+ *
+ * Antes esta vuelta la daba sólo el que tenía cartas, para que su puntaje
+ * quedara entre el abanico y el dibujo. El razonamiento fallaba en lo que
+ * no miraba: al rival lo dejaba en `row`, o sea dibujo primero y números
+ * después, y su puntaje terminaba en la punta OPUESTA a su personaje. Los
+ * dos marcadores decían lo mismo pero cada uno del lado contrario, y para
+ * comparar cómo viene cada uno había que reinterpretar la fila al pasar de
+ * arriba a abajo.
+ *
+ * Ahora el número está pegado a su dueño en las dos líneas. Es el mismo
+ * criterio que ya regía dentro del marcador —`text-align: right`, para que
+ * la cifra caiga contra el dibujo— sólo que aplicado también a la línea. */
+.fighter-linea .fighter { flex-direction: row-reverse; }
 
 /* En online el jugador tiene que verse siempre abajo, mire quien mire la
    pantalla. Al que le tocó ser player1 se le intercambian las dos
@@ -1303,10 +1311,39 @@ body {
   inset: calc(100% / var(--board-rows)) calc(100% / var(--board-cols));
   border-radius: 0.6rem;
   pointer-events: none;
+
+  /* ►► El dibujo del interior. ◄◄
+   *
+   * Va en ESTA capa y no en una nueva porque este elemento ya está recortado
+   * exactamente al hueco del medio —una fila y una columna adentro del
+   * borde, sacado de la grilla— que es justo el área que la imagen tiene que
+   * cubrir. Un elemento aparte tendría que repetir esa misma cuenta, y dos
+   * copias de una medida se separan en cuanto alguien toca una.
+   *
+   * `cover` y no `100% 100%`: la proporción del hueco se mueve un 0,6% entre
+   * dispositivos —el padding y el inset se calculan en unidades distintas—,
+   * así que estirar la imagen la deformaría de forma distinta en cada
+   * pantalla. Con `cover` se recorta ese medio punto por el borde, que es
+   * donde el propio dibujo se va a negro y no se nota. */
+  background-image: url("board/board.png");
+  background-size: cover;
+  background-position: center;
+
+  /* La regla global `* { image-rendering: pixelated }` existe para los
+     dibujos a mano de los gatos, que son pixel art y se arruinan si el
+     navegador los suaviza. Acá es exactamente al revés: es una textura de
+     grano fino, y sin suavizado el grano se convierte en un damero duro al
+     escalarla. Es la única imagen del juego que necesita esta excepción. */
+  image-rendering: auto;
+
+  /* La sombra baja de 1.4rem a 1rem: el dibujo YA trae su propia viñeta —los
+     bordes se van a negro solos— y sumarle la sombra entera empastaba el
+     canto en una franja oscura sin forma. Lo que queda es lo justo para que
+     el anillo de casillas siga leyéndose por encima del fondo. */
   box-shadow:
-    inset 0 0 1.4rem rgba(0, 0, 0, 0.6),
-    inset 0 0 0.35rem rgba(0, 0, 0, 0.55),
-    inset 0 3px 0.6rem rgba(0, 0, 0, 0.45);
+    inset 0 0 1rem rgba(0, 0, 0, 0.45),
+    inset 0 0 0.35rem rgba(0, 0, 0, 0.5),
+    inset 0 3px 0.6rem rgba(0, 0, 0, 0.4);
 }
 
 /* Cada casilla llena su celda, así el camino se lee como una cadena y no
@@ -1363,11 +1400,23 @@ body {
      con más desenfoque, así que asoma por debajo de la pieza. */
   --relieve:
     inset 0 0 0 1px var(--c-gold),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -3px 4px rgba(0, 0, 0, 0.5),
-    0 0 3px 1px rgba(255, 201, 61, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    /* Luz POR DENTRO. Es la capa nueva y la que más cambia la lectura: hasta
+       acá el dorado era un contorno, o sea una pieza con el borde pintado.
+       Un resplandor que entra desde los cuatro cantos hacia el centro la
+       convierte en una pieza ENCENDIDA — la misma diferencia que hay entre
+       una baldosa con filete y una luz empotrada en el piso. */
+    inset 0 0 0.55rem rgba(255, 201, 61, 0.34),
+    inset 0 -3px 4px rgba(0, 0, 0, 0.45),
+    /* La juntura, más fuerte y un pelo más ancha: 3px→4px de desenfoque y
+       1px→1.5px de expansión. Sigue sin pasarse de la separación de 2px, así
+       que el camino se lee como piezas con la costura encendida y no como
+       una mancha dorada continua. */
+    0 0 4px 1.5px rgba(255, 201, 61, 0.72),
     0 2px 4px rgba(0, 0, 0, 0.6),
-    0 0 0.6rem rgba(228, 167, 0, 0.32);
+    /* Y el halo que cae sobre el fieltro, de 0.6rem a 1rem: es lo que hace
+       que la pieza parezca estar iluminando la mesa en vez de sólo brillar. */
+    0 0 1rem rgba(228, 167, 0, 0.5);
 
   border-radius: 0.35rem;
   background: rgba(6, 16, 11, 0.82);
@@ -1410,6 +1459,16 @@ body {
 .square.bonus {
   background: var(--c-blue);
   box-shadow: var(--relieve), 0 0 0.6rem rgba(7, 36, 117, 0.9);
+}
+/* El bonus dado vuelta por la maldición. Morado y no rojo: el rojo es la
+   penitencia, que existe en el tablero de los dos y siempre; ésta la puso
+   un rival, dura dos turnos y sólo la ve quien la sufre. Pintarla igual que
+   una penitencia sería decir que el tablero cambió, cuando lo que cambió es
+   tu situación. El morado es el color de la carta de maldición, así que la
+   casilla se explica sola. */
+.square.turnloss {
+  background: var(--c-purple);
+  box-shadow: var(--relieve), 0 0 0.7rem rgba(91, 45, 142, 0.95);
 }
 
 /* ---- caer en una casilla ----
@@ -1520,8 +1579,14 @@ body {
               top var(--paso, var(--dur-tablero-paso-ficha)) var(--ease-tablero-paso-ficha);
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.7), 0 0 0.8rem rgba(0, 0, 0, 0.6);
 }
+/* Un color por asiento. Los dos nuevos esquivan a propósito el rojo, el azul
+   y el morado: esos tres son las casillas —penitencia, bonus y la maldita—
+   y una ficha del mismo color que el suelo que pisa desaparece justo cuando
+   más importa saber dónde cayó. */
 .token.p1 { background: var(--c-gold); }
 .token.p2 { background: #fff; }
+.token.p3 { background: var(--toxic); }
+.token.p4 { background: var(--cyan); }
 
 /* El número, ocupando la ficha entera. El <svg> se estira a la ficha y el
    viewBox hace el resto: el dígito mide siempre lo mismo respecto del
@@ -1552,12 +1617,15 @@ body {
    El desplazamiento también se achicó: separadas más de medio ancho de
    ficha parecían estar en casillas distintas, que es justo lo contrario de
    lo que este ajuste quiere decir. */
-/* El corrimiento también pasa a medirse en casillas. En rem se quedaba fijo
-   mientras la ficha crecía: a este tamaño, medio centímetro de separación
-   entre dos círculos que ahora ocupan la casilla entera no alcanzaba a
-   despegarlos y se veía una sola ficha con un borde raro. */
-.token.juntas.p1 { margin-left: calc(100% / var(--board-cols) * -0.3); }
-.token.juntas.p2 { margin-left: calc(100% / var(--board-cols) * 0.3); }
+/* El corrimiento se mide en casillas, y CUÁNTO lo decide Board.jsx: son dos
+   reglas por lado mientras la mesa sea de dos, pero con cuatro fichas en el
+   mismo casillero hacen falta cuatro desvíos distintos y repartidos
+   alrededor del centro. Eso es una cuenta, no una lista de casos, así que el
+   componente la resuelve y acá sólo se aplica.
+   En rem el desvío se quedaba fijo mientras la ficha crecía: a este tamaño,
+   medio centímetro entre dos círculos que ocupan la casilla entera no
+   alcanzaba a despegarlos y se veía una sola ficha con un borde raro. */
+.token.juntas { margin-left: calc(100% / var(--board-cols) * var(--junta, 0)); }
 
 @media (prefers-reduced-motion: reduce) {
   .token { transition: none; }
@@ -2373,7 +2441,7 @@ body {
    confundiría con el de tenerla en la mano. */
 .card.steal   { background: var(--c-black); color: #fff; }
 
-/* La rata es lo que identifica la carta de lejos, así que se lleva casi
+/* El pescado es lo que identifica la carta de lejos, así que se lleva casi
    todo el alto disponible. Puede ser más grande que los íconos de las
    otras porque el rótulo y el número comparten una sola línea abajo en vez
    de ocupar dos. */
@@ -2393,11 +2461,6 @@ body {
 }
 .card.defense { background: var(--c-green); color: #fff; }
 .card.curse   { background: var(--c-purple); color: #fff; }
-/* El golpe, en rojo. Es el único rojo del mazo y no compite con nada: el
-   robo quedó en negro justamente para dejar libre este color, y el rojo es
-   además el del destello que se ve al recibirlo, así que la carta y su
-   consecuencia se leen como la misma cosa. */
-.card.punch   { background: var(--c-red); color: #fff; }
 /* Dos dados pasa a dorado: el azul quedó reservado para las casillas de
    bonus y repetirlo acá los mezclaba. */
 .card.double  { background: var(--c-gold); color: var(--c-black); }
@@ -2549,7 +2612,7 @@ body {
   color: #fff;
   background: var(--c-bronze);
 }
-/* Sobre la mesa la carta se revela chica, así que la rata cede más lugar
+/* Sobre la mesa la carta se revela chica, así que el dibujo cede más lugar
    todavía a la cifra: es lo que hay que poder leer desde el otro lado del
    fieltro. El fondo acompaña al de la mano — una carta tiene que verse
    igual esté donde esté, o parecen dos cartas distintas. */
@@ -2560,7 +2623,6 @@ body {
 }
 .pc-front.defense { background: var(--c-green); }
 .pc-front.curse   { background: var(--c-purple); }
-.pc-front.punch   { background: var(--c-red); }
 .pc-front.double  { background: var(--c-gold); color: var(--c-black); }
 
 /* Bloqueada por la defensa del rival: se ve igual pero apagada y tachada,
@@ -2617,6 +2679,13 @@ body {
 
   filter: drop-shadow(0 0 0.35rem rgba(228, 167, 0, 0.9));
   animation: bulbs-on var(--dur-ambiente-luces) steps(1, end) infinite;
+  /* El titileo va a cambiar `filter`, que es de las propiedades caras de
+     animar. Con `steps(1, end)` hay sólo dos estados y ningún cuadro
+     intermedio que calcular, pero el aviso al navegador igual vale: son
+     cuatro tiras de luces sobre toda la mesa, prendiéndose dos veces por
+     segundo, y sin la promoción a capa propia el repintado arrastra al
+     tablero entero que tiene debajo. */
+  will-change: opacity, filter;
 }
 
 .pool-table::before {
@@ -2634,21 +2703,61 @@ body {
   animation-name: bulbs-off;
 }
 
+/* ►► El titileo, con mucho más recorrido. ◄◄
+ *
+ * Antes las dos capas sólo cambiaban de opacidad entre 1 y 0.15, y a esa
+ * distancia el cartel se leía como un latido flojo. Ahora cambian TRES cosas
+ * a la vez y en el mismo instante:
+ *
+ *   · la opacidad baja hasta 0.06 — la bombilla apagada casi desaparece, que
+ *     es lo que hace que la encendida se note;
+ *   · el halo pasa de una sombra a dos, una corta y blanca al centro y otra
+ *     larga y dorada alrededor: así la luz parece salir del vidrio en vez de
+ *     ser un círculo pintado;
+ *   · y apagada conserva un resto de brillo tenue, porque una bombilla
+ *     apagada en un cartel de neón sigue reflejando a las de al lado.
+ *
+ * `steps(1, end)` se mantiene y es lo que hace que esto sea barato: no hay
+ * cuadros intermedios, sólo dos estados que se alternan de golpe. Un cartel
+ * de casino no hace fundidos; prende y apaga. */
 @keyframes bulbs-on {
-  0%, 49.9% { opacity: 1; }
-  50%, 100% { opacity: 0.15; }
+  0%, 49.9% {
+    opacity: 1;
+    filter:
+      drop-shadow(0 0 0.28rem rgba(255, 240, 200, 0.95))
+      drop-shadow(0 0 0.9rem rgba(255, 201, 61, 0.85));
+  }
+  50%, 100% {
+    opacity: 0.06;
+    filter: drop-shadow(0 0 0.15rem rgba(228, 167, 0, 0.4));
+  }
 }
 @keyframes bulbs-off {
-  0%, 49.9% { opacity: 0.15; }
-  50%, 100% { opacity: 1; }
+  0%, 49.9% {
+    opacity: 0.06;
+    filter: drop-shadow(0 0 0.15rem rgba(228, 167, 0, 0.4));
+  }
+  50%, 100% {
+    opacity: 1;
+    filter:
+      drop-shadow(0 0 0.28rem rgba(255, 240, 200, 0.95))
+      drop-shadow(0 0 0.9rem rgba(255, 201, 61, 0.85));
+  }
 }
 
-/* Un titileo es un parpadeo por definición: se dejan todas prendidas. */
+/* Un titileo es un parpadeo por definición: se dejan todas prendidas.
+   Y con el halo NUEVO, no con el de reposo: quien pidió menos movimiento
+   pidió eso, no una mesa peor iluminada. Es la misma sombra doble del
+   keyframe encendido, quieta. */
 @media (prefers-reduced-motion: reduce) {
   .pool-table::before,
   .pool-table::after {
     animation: none;
-    opacity: 0.85;
+    opacity: 0.9;
+    filter:
+      drop-shadow(0 0 0.28rem rgba(255, 240, 200, 0.85))
+      drop-shadow(0 0 0.9rem rgba(255, 201, 61, 0.7));
+    will-change: auto;
   }
 }
 
@@ -3076,9 +3185,17 @@ body {
      midan a los costados no le saca ni un píxel al tablero. Fijarlo igual
      sólo serviría para cortar el marcador cuando aparecen las defensas. */
   .fighter-linea { width: auto; height: auto; max-height: 100%; }
-  /* Con lugar de sobra los números vuelven abajo del dibujo. */
-  .fighter,
-  .fighter.f2 {
+  /* Con lugar de sobra los números vuelven abajo del dibujo.
+     El selector repite `.fighter-linea` para igualar la especificidad del
+     `row-reverse` de la vista apilada: en CSS la especificidad le gana al
+     orden del archivo, así que un `.fighter` suelto perdía contra aquél y
+     acá adentro el peleador se quedaba acostado. Empatados, gana el que va
+     último — este.
+     De paso arregla algo que ya estaba roto: la regla vieja apuntaba a
+     `.fighter-linea.con-cartas .fighter`, más específica todavía, así que
+     en pantalla ancha el jugador CON cartas nunca llegaba a ponerse en
+     columna y quedaba distinto de su rival. */
+  .fighter-linea .fighter {
     flex-direction: column;
     align-items: center;
     gap: 0.8rem;
@@ -3180,6 +3297,49 @@ body {
     transform: translateY(calc(clamp(1.5rem, 6vh, 4.5rem) * -1));
   }
 }
+
+/* ============================================
+   MESA DE CUATRO — disposición provisional
+   ============================================ */
+/* ►► Esto es un andamio, no el diseño final. ◄◄
+ *
+ * Existe para poder PROBAR la mesa de cuatro, que el motor y el servidor ya
+ * soportan pero la pantalla no. Dos jugadores arriba, dos abajo, mesa en el
+ * medio: no es la disposición que merece un juego de cuatro —eso pide
+ * repensar dónde va cada uno respecto de a quién le pega— pero es honesta y
+ * entra en el presupuesto de alto sin tocarlo.
+ *
+ * Y esa es la razón de las DOS filas y no cuatro: `--tabla-alto` descuenta
+ * `2 × --fighter-h`. Poniendo cada jugador en su propio renglón habría que
+ * rehacer la cuenta y la mesa se quedaría sin la mitad de su alto.
+ *
+ * Gana sobre el bloque apaisado por especificidad —`.versus-screen.mesa-4`
+ * son dos clases contra una—, así que la mesa de cuatro se ve igual en
+ * cualquier ventana. Deliberado: una sola disposición que revisar mientras
+ * esto sea provisorio. */
+.versus-screen.mesa-4 {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto;
+  grid-template-areas:
+    "f1    f2"
+    "table table"
+    "f3    f4"
+    "ctrl  ctrl";
+}
+.versus-screen.mesa-4 .fighter-linea.f1 { grid-area: f1; justify-self: start; }
+.versus-screen.mesa-4 .fighter-linea.f2 { grid-area: f2; justify-self: end; }
+.versus-screen.mesa-4 .fighter-linea.f3 { grid-area: f3; justify-self: start; }
+.versus-screen.mesa-4 .fighter-linea.f4 { grid-area: f4; justify-self: end; }
+
+/* Cada línea tiene la mitad del ancho, así que el peleador se achica para
+   que el marcador no empuje al abanico fuera de su celda. */
+.versus-screen.mesa-4 { --fighter-h: max(6rem, min(15dvh, 17vw)); }
+
+/* El hueco que despega la línea de abajo de la mesa vale para las dos de
+   abajo, no sólo para f2. */
+.versus-screen.mesa-4 .fighter-linea.f3,
+.versus-screen.mesa-4 .fighter-linea.f4 { margin-top: var(--f2-gap); }
+.versus-screen.mesa-4 .fighter-linea.f2 { margin-top: 0; }
 
 /* Chips only survive as decoration in the rules modal footer — the
    in-hand chip rows went out with the player panels. */

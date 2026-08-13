@@ -12,13 +12,17 @@ export function CardFace({ carta }) {
      es lo que decide si conviene jugarla ahora o guardarla, así que tiene
      que leerse en el mismo golpe de vista que la palabra. */
   if (carta.type === CARD.STEAL) {
-    const Rata = CARD_ICON[CARD.STEAL];
+    const Dibujo = CARD_ICON[CARD.STEAL];
     return (
       <>
-        <span className="card-icon">{Rata ? <Rata /> : null}</span>
-        <span className="card-kind">
-          {CARD_LABEL.steal} <b className="card-steal-num">−{carta.value}</b>
-        </span>
+        <span className="card-icon">{Dibujo ? <Dibujo /> : null}</span>
+        {/* Sin la palabra "ROBAR": el dibujo ya dice de qué carta se trata y
+            el rótulo sólo le robaba lugar a la cifra, que es el único dato
+            que cambia entre una y otra. Con dos denominaciones —3 y 6— lo
+            que hay que leer de un vistazo es CUÁNTO, no cómo se llama.
+            Usa `.card-value`, el mismo tamaño que llevan los números del
+            resto del mazo, en vez del rótulo chico de antes. */}
+        <span className="card-value">−{carta.value}</span>
       </>
     );
   }

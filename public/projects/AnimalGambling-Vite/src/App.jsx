@@ -18,7 +18,7 @@ import RoomChoiceScreen from "./screens/RoomChoiceScreen";
 import SelectScreen from "./screens/SelectScreen";
 import VersusScreen from "./screens/VersusScreen";
 import GameOverScreen from "./screens/GameOverScreen";
-import { SQUARE } from "../convex/rules";
+import { CARD, SQUARE } from "../convex/rules";
 import { ms } from "./theme";
 
 /* Cuánto queda teñido el peleador golpeado. Un pelo más que la animación
@@ -44,7 +44,13 @@ const MENSAJES = {
   /* Sin aviso cuando la carta se muestra sola: dos anuncios de lo mismo se
      pisan. El texto queda para el caso en que no hay carta que enseñar. */
   bonus: (e) => (e.carta ? null : [`Bonus — carta nueva para ${e.nombre}`]),
-  bonusLleno: () => ["Mazo lleno", "error"],
+  /* Dos bolsillos, dos avisos: los escudos y las cartas jugables se llenan
+     por separado, y decir "mazo lleno" cuando lo que sobra son escudos
+     mandaría a jugar cartas para hacer un lugar que ya estaba libre. */
+  bonusLleno: (e) => [
+    e.tipo === CARD.DEFENSE ? "Escudos al máximo" : "Mazo lleno",
+    "error",
+  ],
   dosDados: () => ["Dos dados en tu próxima tirada"],
   cartaPuesta: (e) => [
     e.cantidad > 1
@@ -119,6 +125,32 @@ export default function App() {
      volver solo. El mismo destello sirve para una carta que le llegó y para
      una casilla que lo castigó: en los dos casos perdió puntos, y mostrarlo
      distinto inventaría una diferencia que el juego no tiene. */
+  /* El plantarse forzado de la maldición.
+   *
+   * Se dispara el MISMO `plantarse` del botón, y esa es toda la gracia:
+   * guardar el acumulado, revelar las cartas puestas, cobrar los robos y
+   * medir contra el objetivo son cuatro cosas que ya ocurren juntas ahí.
+   * Escrito aparte, sería una segunda versión de esa secuencia que se
+   * desincroniza con la primera el día que se toque una de las dos.
+   *
+   * Espera a `rolling` en bajo por lo mismo que el cierre por objetivo: el
+   * acumulado de la tirada se suma cuando la ficha llega, no cuando frena el
+   * dado, y plantarse antes de eso guardaría el puntaje sin la última
+   * tirada. */
+  const plantarForzado = useRef(null);
+  const [plantarKey, setPlantarKey] = useState(null);
+
+  /* El aviso sale de acá y no del efecto que ejecuta el plante: un `notify`
+     adentro de un efecto es setState en cascada —el efecto corre, escribe
+     estado, eso vuelve a pintar y el efecto se evalúa de nuevo—. Acá estamos
+     en el manejador del hecho, que es donde va a parar cualquier cosa que se
+     le quiera CONTAR al jugador. El efecto queda sólo con la ejecución. */
+  const forzarPlante = useCallback(() => {
+    plantarForzado.current = true;
+    setPlantarKey(Math.random());
+    notify("Casilla maldita — se te acabó el turno", "error");
+  }, [notify]);
+
   const golpear = useCallback((lado, tipo) => {
     setImpacto({ lado, tipo, key: Math.random() });
     setTimeout(() => setImpacto(null), IMPACTO_MS);
@@ -209,7 +241,10 @@ export default function App() {
     if (typeof r.goal === "number") setGoal(r.goal);
     setMiLado(sala.miLado);
 
-    const lados = [r.player1, r.player2];
+    /* La mesa viene como array desde el servidor, que la normaliza aunque el
+       documento todavía guarde la forma vieja de dos campos. Acá ya no hay
+       que saber cuántos son. */
+    const lados = r.players ?? [];
     setPlayers((prev) =>
       lados.map((lado, i) => {
         if (!lado) return prev[i];
@@ -231,7 +266,7 @@ export default function App() {
       })
     );
 
-    setActive(r.turn === "player1" ? 0 : 1);
+    setActive(r.seat ?? 0);
 
     if (r.status === "finished" && !juego.finished) {
       if (r.endedByAbandon) notify("Tu rival se levantó de la mesa");
@@ -283,20 +318,41 @@ export default function App() {
     }
   }, [sala]);
 
+  /* Elegir gato, para una mesa de cualquier tamaño.
+   *
+   * Antes desarmaba el array en `[p1, p2]` y decidía con cuatro `if`: eso
+   * era la mesa de dos escrita en la forma de la función. Ahora es una regla
+   * sola —el toque llena el primer asiento libre, y si el gato ya estaba
+   * elegido lo suelta— que vale igual para dos que para cuatro. */
   const elegir = (i) => {
-    setElegidos(([p1, p2]) => {
+    setElegidos((prev) => {
+      // En online elegís sólo el tuyo; los demás los manda el servidor.
       if (online) return [i, null];
-      if (p1 === null) return [i, null];
-      if (p1 === i) return [null, null];
-      return [p1, i];
+
+      const ya = prev.indexOf(i);
+      if (ya !== -1) {
+        const s = [...prev];
+        s[ya] = null;
+        return s;
+      }
+      const libre = prev.indexOf(null);
+      if (libre === -1) return prev;
+      const s = [...prev];
+      s[libre] = i;
+      return s;
     });
   };
 
   const jugar = async () => {
-    const [p1, p2] = elegidos;
+    const [p1] = elegidos;
 
     if (!online) {
-      juego.start(newPlayer(ROSTER[p1]), newPlayer(ROSTER[p2 ?? (p1 + 1) % ROSTER.length]));
+      /* Un jugador por asiento elegido. El respaldo por si algún casillero
+         quedó vacío reparte gatos consecutivos: es la misma red que había
+         antes para el segundo jugador, ahora para todos. */
+      juego.start(
+        elegidos.map((idx, i) => newPlayer(ROSTER[idx ?? (p1 + i) % ROSTER.length]))
+      );
       go("game");
       return;
     }
@@ -319,7 +375,11 @@ export default function App() {
   useEffect(() => {
     if (!online || !esperandoRival) return;
     const r = sala.room;
-    if (!r?.player1?.catId || !r?.player2?.catId) return;
+    /* Arranca cuando TODOS los sentados eligieron gato, sean dos o cuatro.
+       Antes preguntaba por dos campos con nombre; con la mesa como array la
+       misma condición se dice sin saber cuántos hay. */
+    const mesa = r?.players ?? [];
+    if (mesa.length < 2 || mesa.some((p) => !p?.catId)) return;
     setEsperandoRival(false);
     /* En online los jugadores no los arma start() sino el sondeo, así que
        la bandera que el guardia del router consulta hay que marcarla acá.
@@ -399,6 +459,12 @@ export default function App() {
          dónde caíste y qué entregó. Sin esto, el jugador en línea perdía
          una carta sin que nada se lo dijera. */
       else if (r.landed === SQUARE.BONUS) notify("Mazo lleno", "error");
+      /* En online el servidor no cierra el turno solo: avisa que caíste en
+         una casilla maldita y el plantarse lo manda el cliente con la misma
+         mutación del botón, para que las cartas puestas se revelen igual
+         que siempre. Queda esperando a que la ficha llegue, como todo lo
+         demás del turno. */
+      if (r.landed === SQUARE.TURN_LOSS) forzarPlante();
     } catch (e) {
       /* Si la tirada falló, el dado tiene que dejar de girar: si no, queda
          dando vueltas para siempre sobre un turno que nunca ocurrió. */
@@ -470,6 +536,11 @@ export default function App() {
          casillas las resuelve el servidor, así que aquel hecho nunca
          llegaría a esta pantalla. */
       const castiga = tipo === SQUARE.PENALTY;
+      /* La casilla convertida por la maldición. En local la reconoce el
+         tablero, que ya lee cada casilla con los ojos del que la pisa. */
+      if (!online && tipo === SQUARE.TURN_LOSS && lado === juego.active) {
+        forzarPlante();
+      }
 
       if (online) {
         /* El servidor ya resolvió puntos y casilla; lo único que falta es
@@ -518,7 +589,7 @@ export default function App() {
     },
     [
       online, juego.active, juego.miLado,
-      sumarPuntos, resolverCasilla, endTurn, setRolling, golpear,
+      sumarPuntos, resolverCasilla, endTurn, setRolling, golpear, forzarPlante,
     ]
   );
 
@@ -576,6 +647,15 @@ export default function App() {
   useEffect(() => {
     plantarseRef.current = plantarse;
   });
+
+  /* Cae después del cierre por objetivo a propósito: si la última tirada
+     además llegó a la meta, gana — y ganar le gana a perder el turno. */
+  useEffect(() => {
+    if (plantarKey === null || !plantarForzado.current) return;
+    if (!juego.playing || juego.finished || juego.rolling) return;
+    plantarForzado.current = false;
+    plantarseRef.current();
+  }, [plantarKey, juego.playing, juego.finished, juego.rolling]);
 
   useEffect(() => {
     if (juego.finished) {
@@ -662,9 +742,16 @@ export default function App() {
   /* En online el ganador lo declara el backend: deducirlo por puntaje se
      equivoca justo en el abandono, donde el que se queda suele ir
      perdiendo. */
+  /* En online el ganador ya viene como asiento —el servidor lo normaliza—.
+     En local se busca el puntaje más alto de la mesa en vez de comparar dos:
+     `players[0] >= players[1]` era otra mesa de dos escrita a mano, y con
+     cuatro habría coronado siempre a uno de los dos primeros. */
   const ganadorIdx = online
-    ? sala.room?.winner === "player2" ? 1 : 0
-    : juego.players[0]?.score >= (juego.players[1]?.score ?? 0) ? 0 : 1;
+    ? sala.room?.winner ?? 0
+    : juego.players.reduce(
+        (mejor, p, i) => ((p?.score ?? -1) > (juego.players[mejor]?.score ?? -1) ? i : mejor),
+        0
+      );
 
   return (
     <>
@@ -686,6 +773,10 @@ export default function App() {
           <MenuScreen
             onPick={(item) => {
               setModo(item.modo);
+              /* Cuántas sillas tiene esta mesa. Se arman los casilleros de
+                 selección acá y no en la pantalla de gatos para que ésta no
+                 tenga que saber de modos: recibe un array y lo llena. */
+              setElegidos(Array(item.jugadores ?? 2).fill(null));
               go(item.ruta);
             }}
             onBack={() => go("title")}

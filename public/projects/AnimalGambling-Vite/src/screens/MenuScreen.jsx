@@ -10,6 +10,10 @@ export const MENU_ITEMS = [
   { id: "online", label: "Duelo Online", listo: true, ruta: "room-choice", modo: "online" },
   { id: "cpu", label: "Vs. IA", listo: false, nota: "práctica" },
   { id: "local", label: "Duelo Local", listo: true, ruta: "select", modo: "local" },
+  /* `jugadores` es lo único que distingue una mesa de otra: el resto del
+     camino —elegir gato, repartir, tirar— es el mismo. Sumar una mesa de
+     tres sería esta línea con un 3. */
+  { id: "local4", label: "Mesa de 4", listo: true, ruta: "select", modo: "local", jugadores: 4 },
   { id: "skins", label: "Personalización", listo: false },
   { id: "shop", label: "Tienda", listo: false },
 ];

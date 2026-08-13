@@ -29,21 +29,49 @@ export const PENALTY_POINTS = 6;
    más—; a 4 el turno maldito rinde un tercio menos y recién ahí vale la
    pena gastar una carta en ponerla. */
 export const CURSED_MAX_ROLL = 4;
-export const CURSE_TURNS = 3;
+/* Dos turnos y no tres. La maldición ahora hace DOS cosas a la vez —capa el
+   dado y convierte los bonus del maldito en casillas que le cortan el
+   turno—, así que a tres turnos decidía la partida sola. Se acorta la
+   condena en lugar de ablandarla: es preferible un castigo que se sienta y
+   pase a uno tibio que dure. */
+export const CURSE_TURNS = 2;
 
+/* ►► Dos bolsillos, no uno. ◄◄
+ *
+ * `HAND_LIMIT` cuenta SÓLO las cartas que se juegan. Las defensas van
+ * aparte, con su propio tope, y la razón no es de balance sino del bucle
+ * que sostiene el juego: se junta munición de golpes, se dumpea toda en un
+ * turno para tirar abajo la muralla de escudos, y recién entonces entra el
+ * robo. Ese plan necesita poder ACUMULAR golpes.
+ *
+ * Con un solo bolsillo era imposible. La defensa no se juega —se gasta sola
+ * cuando te atacan—, así que si el rival no ataca se queda ocupando lugar
+ * para siempre. Medido sobre 3000 partidas: el 52% de las casillas de bonus
+ * no entregaba NADA porque la mano estaba tapada de escudos que nadie podía
+ * sacar. Subir la probabilidad del escudo empeoraba el acceso al golpe: los
+ * dos síntomas eran el mismo problema.
+ *
+ * El tope de los escudos existe por lo contrario: sin él, el que no recibe
+ * ataques apila una muralla infinita y no hay dumpeo que la rompa. Con tres,
+ * cuatro golpes guardados siempre alcanzan — y cuatro entran en la mano. */
 export const HAND_LIMIT = 5;
+export const DEFENSE_LIMIT = 3;
 
 export const CARD = {
   STEAL: "steal",
   DEFENSE: "defense",
   CURSE: "curse",
   DOUBLE: "double",
-  /* El golpe. Saca poco —tres puntos— pero es la carta que ROMPE defensas:
-     contra un rival escudado, robar o maldecir es tirar la carta a la
-     basura, porque la defensa se gasta igual tape lo que tape. El golpe
-     existe para gastársela barato y dejar la siguiente sin tapa. */
-  PUNCH: "punch",
 } as const;
+
+/* Acá vivía PUNCH, una carta aparte que sacaba 3 fijos sin transferir. Se
+   fue, y no por simplificar: hacía el mismo trabajo que un robo chico —
+   gastar la defensa del otro— pero con su propio tipo, su propio color, su
+   propio ícono y su propia rama en los dos motores. Dos cartas para una
+   sola idea.
+   Ahora esa idea es un VALOR del robo: el de 3 es la munición barata que
+   rompe la muralla, el de 6 es el que duele. Mismo bucle, la mitad de
+   piezas. */
 
 export type CardType = (typeof CARD)[keyof typeof CARD];
 
@@ -55,18 +83,25 @@ export type Card = {
   value?: number;
 };
 
-/* Lo que el robo le saca al rival y le suma a quien la juega. Con el
-   objetivo en 100, tres valores chicos hacen que la carta sea un empujón y
-   no una partida ganada de una. */
-export const STEAL_VALUES = [5, 10, 15];
+/* Lo que el robo le saca al de tu derecha y te suma a vos.
+ *
+ * Dos denominaciones y nada más: 3 y 6.
+ *
+ * El 3 es munición: sale barato, y contra un rival escudado su trabajo no
+ * es sacar puntos sino GASTARLE LA DEFENSA —que se consume igual tape lo
+ * que tape—. El 6 es el que cobra de verdad, y sólo entra con la guardia ya
+ * abierta. Ese es el bucle entero del juego, dicho con una sola carta. */
+export const STEAL_VALUES = [3, 6];
 
-/* El robo grande sale mucho más seguido que los otros dos: la carta tiene
-   que sentirse una amenaza real, y con reparto parejo dos de cada tres
-   veces salía la versión floja. */
+/* Y acá el peso se DA VUELTA respecto de antes.
+   Con los valores viejos el grande salía el 70%: la carta tenía que
+   sentirse una amenaza y el reparto parejo la volvía floja. Ahora el que
+   tiene que abundar es el CHICO, porque es el que se gasta de a varios para
+   abrir la guardia. Si el de 6 fuera el común, cada rompimiento de muralla
+   costaría media partida en puntos regalados a las defensas. */
 const STEAL_WEIGHTS: Array<[number, number]> = [
-  [15, 70],
-  [10, 20],
-  [5, 10],
+  [3, 70],
+  [6, 30],
 ];
 
 export function randomStealValue(rand: () => number): number {
@@ -79,17 +114,11 @@ export function randomStealValue(rand: () => number): number {
   return STEAL_WEIGHTS[0][0];
 }
 
-/* Lo que saca el golpe. Chico a propósito: su valor no está en el daño sino
-   en que obliga al rival a gastar la defensa. Si sacara tanto como un robo
-   no habría motivo para jugar ninguna otra carta. */
-export const PUNCH_POINTS = 3;
-
 export const CARD_LABEL: Record<CardType, string> = {
   steal: "ROBAR",
   defense: "DEFENSA",
   curse: "MALDICIÓN",
   double: "DOS DADOS",
-  punch: "GOLPE",
 };
 
 /* Qué hace la carta, en una línea.
@@ -105,15 +134,13 @@ export const CARD_LABEL: Record<CardType, string> = {
 export function cardHint(card: Card): string {
   switch (card.type) {
     case CARD.STEAL:
-      return `Le saca ${card.value} puntos al rival y te los suma`;
+      return `Le saca ${card.value} puntos al de tu derecha y te los suma`;
     case CARD.DEFENSE:
-      return "Se gasta sola cuando te atacan y anula el golpe";
+      return "Se gasta sola cuando te atacan y anula una carta entera";
     case CARD.CURSE:
-      return `${CURSE_TURNS} turnos: el dado del rival no pasa de ${CURSED_MAX_ROLL}`;
+      return `${CURSE_TURNS} turnos: su dado no pasa de ${CURSED_MAX_ROLL} y sus bonus le cortan el turno`;
     case CARD.DOUBLE:
       return "Tiras con dos dados y se suman los dos";
-    case CARD.PUNCH:
-      return `Le saca ${PUNCH_POINTS} puntos al rival, o le quema la defensa`;
     default:
       return "";
   }
@@ -127,6 +154,15 @@ export const SQUARE = {
   PLAIN: "plain",
   PENALTY: "penalty",
   BONUS: "bonus",
+  /* La casilla que le corta el turno al maldito.
+   *
+   * ►► No existe en ningún tablero guardado. ◄◄
+   * `makeBoard` no la sortea nunca: aparece SÓLO como resultado de mirar un
+   * bonus con la maldición encima (ver `squareFor`). Esa es la propiedad que
+   * hace que todo esto funcione — el tablero es uno solo y compartido, y la
+   * maldición la sufre uno solo, así que la conversión no puede guardarse en
+   * el dato o se la estaríamos aplicando también al que la lanzó. */
+  TURN_LOSS: "turnloss",
 } as const;
 
 export type SquareType = (typeof SQUARE)[keyof typeof SQUARE];
@@ -155,11 +191,12 @@ export const BOARD_SIZE = 2 * BOARD_COLS + 2 * BOARD_ROWS - 4;
    40— para mantener la MISMA densidad. Dejándolos fijos, agrandar la mesa
    habría sido además un cambio de balance: las especiales se pisarían un
    cuarto menos seguido sin que nadie lo hubiera pedido. */
-export const PENALTY_COUNT = 4;
-/* Un bonus más: seis sobre cuarenta. Las cartas ahora se gastan mucho más
-   rápido —el golpe existe para quemarse contra una defensa— así que el
-   tablero tiene que reponerlas al mismo ritmo o la mano se seca. */
-export const BONUS_COUNT = 6;
+/* Una de cada una más: cinco penitencias y siete bonus sobre cuarenta.
+   Suben las dos juntas y no sólo los premios: el bonus reparte las cartas
+   que mueven la partida, y sin más castigo del otro lado el camino se
+   volvería un pasillo de regalos donde avanzar no tiene ningún riesgo. */
+export const PENALTY_COUNT = 5;
+export const BONUS_COUNT = 7;
 
 /* La salida. Es de donde arrancan las fichas y por dónde vuelven a pasar en
    cada vuelta, así que se dibuja a cuadros de bandera y NO puede llevar
@@ -224,8 +261,72 @@ export function squareAt(board: SquareType[] | undefined, pos: number): SquareTy
   return board[((pos % board.length) + board.length) % board.length];
 }
 
+/* Qué es esa casilla PARA ESTE JUGADOR, ahora.
+ *
+ * Es la única función que hay que llamar para resolver o para dibujar una
+ * casilla; `squareAt` queda debajo, diciendo qué hay guardado en el dato.
+ * La diferencia entre las dos es todo el mecanismo de la maldición.
+ *
+ * Con la maldición encima, los bonus dejan de ser premios: el maldito pisa
+ * lo que para el otro es una carta y se le termina el turno. Y como es una
+ * transformación de LECTURA y no de estado:
+ *   · el tablero guardado nunca cambia, así que las salas online abiertas
+ *     antes de esto siguen siendo válidas y no hay nada que migrar;
+ *   · no hay que acordarse de deshacerla cuando la condena vence — se
+ *     deshace sola al llegar `cursed` en falso;
+ *   · y sobre todo, el rival sigue viendo sus bonus como bonus, que es
+ *     imposible si se toca el array compartido. */
+export function squareFor(
+  board: SquareType[] | undefined,
+  pos: number,
+  cursed: boolean
+): SquareType {
+  const casilla = squareAt(board, pos);
+  if (cursed && casilla === SQUARE.BONUS) return SQUARE.TURN_LOSS;
+  return casilla;
+}
+
 export function advance(pos: number, steps: number): number {
   return (pos + steps) % BOARD_SIZE;
+}
+
+/* ============================================
+   LA MESA: QUIÉN LE PEGA A QUIÉN
+   ============================================ */
+
+/* Cuántos entran en la mesa. Dos es el mínimo para que haya partida; cuatro
+   es el techo, y no por capricho: cada jugador de más multiplica la espera
+   entre tus turnos, y con cinco ya son cuatro turnos ajenos mirando. */
+export const MIN_PLAYERS = 2;
+export const MAX_PLAYERS = 4;
+
+/* A quién le toca después. Los jugadores están sentados en círculo y el
+   turno gira siempre en el mismo sentido. */
+export function nextSeat(seat: number, total: number): number {
+  return (seat + 1) % total;
+}
+
+/* ►► A quién apuntan TUS cartas: al de tu derecha. Siempre. ◄◄
+ *
+ * El ataque es DIRECCIONAL y no elegible, y esa decisión vale mucho más de
+ * lo que cuesta:
+ *
+ *  · No hace falta elegir objetivo. Cero interfaz de selección, cero
+ *    decisión extra por carta.
+ *  · Mata el apaleo del líder. Con objetivo libre, pegarle al que va
+ *    ganando es la jugada correcta para TODOS los demás a la vez: el
+ *    puntero no se puede despegar nunca, la partida se aplana y termina
+ *    ganando el que estaba segundo cuando alguien por fin rompe. Con
+ *    dirección fija, cada uno tiene exactamente un atacante y una víctima.
+ *  · Le devuelve el valor a la defensa. Un escudo tapa una carta; contra
+ *    tres atacantes vale un tercio, contra uno vale lo que siempre valió.
+ *
+ * Con dos jugadores devuelve al otro, así que hoy no cambia nada de lo que
+ * ya funciona. Esa es justamente la idea: reemplaza al `active === 0 ? 1 : 0`
+ * que estaba escrito a mano en los dos motores —la suposición de que la mesa
+ * es de dos— por algo que ya vale para cuatro. */
+export function targetOf(seat: number, total: number): number {
+  return nextSeat(seat, total);
 }
 
 /* ============================================
@@ -260,19 +361,32 @@ export function startingHand(): Card[] {
  * eso son las dos más probables y salen empatadas: si los escudos escasearan
  * no habría nada que quemar, y si escasearan los golpes no habría con qué.
  *
- *   golpe 28% · defensa 28% · robo 22% · maldición 12% · dos dados 10%
+ *   robo 53% · defensa 35% · dos dados 7% · maldición 5%
  *
- * El robo baja de 35 a 22 y sigue siendo la carta que decide partidas: lo
- * que cambió es que ahora hay que ABRIRSE PASO hasta poder usarlo, en vez de
- * que caiga solo. Dos dados baja a 10 porque es la única que no participa de
- * ese intercambio — no ataca ni defiende, así que es la que sobra. */
+ * El robo se lleva lo que era del golpe porque ahora ES el golpe: el 35% que
+ * tenía aquél más el 18% que tenía éste. Robo y defensa siguen siendo casi
+ * el 90% del mazo, que es lo que hace que el intercambio de romper guardia y
+ * volver a levantarla deje de ser una jugada posible y pase a ser lo que
+ * ocurre casi siempre.
+ *
+ * Que el robo salga MÁS que la defensa no es un desbalance: el atacante
+ * elige cuándo dumpear y el defensor no elige nada. Con tasas iguales, la
+ * muralla se repone al mismo ritmo que la munición y no cae nunca.
+ *
+ * La maldición queda en 5% —de cada veinte cartas, una— y esa rareza es
+ * parte de su diseño: capa el dado Y le convierte los bonus en trampas al
+ * que la recibe. Una carta que cambia el tablero entero no puede salir
+ * seguido, o el juego pasa a ser sobre ella. Sale poco y por eso duele.
+ *
+ * Dos dados en 7 porque es la única que no participa del intercambio —no
+ * ataca ni defiende—, así que es la primera que sobra cuando hay que hacer
+ * lugar. */
 export function randomBonusCard(rand: () => number, seed: number): Card {
   const roll = rand();
-  if (roll < 0.28) return makeCard(CARD.PUNCH, undefined, seed);
-  if (roll < 0.56) return makeCard(CARD.DEFENSE, undefined, seed);
-  if (roll < 0.78) return makeCard(CARD.STEAL, randomStealValue(rand), seed);
-  if (roll < 0.9) return makeCard(CARD.CURSE, undefined, seed);
-  return makeCard(CARD.DOUBLE, undefined, seed);
+  if (roll < 0.53) return makeCard(CARD.STEAL, randomStealValue(rand), seed);
+  if (roll < 0.88) return makeCard(CARD.DEFENSE, undefined, seed);
+  if (roll < 0.95) return makeCard(CARD.DOUBLE, undefined, seed);
+  return makeCard(CARD.CURSE, undefined, seed);
 }
 
 /* ============================================
@@ -324,12 +438,6 @@ export function applyPenalty(score: number): number {
   return Math.max(0, score - PENALTY_POINTS);
 }
 
-/* El golpe tampoco puede dejar el marcador en negativo. Va acá y no escrito
-   en los dos lugares que resuelven cartas —el motor local y el servidor—
-   porque dos restas iguales copiadas se desincronizan calladas. */
-export function applyPunch(score: number): number {
-  return Math.max(0, score - PUNCH_POINTS);
-}
 
 /* Al ganar el marcador queda clavado en el objetivo: el sobrante de la
    última tirada no es puntaje. */
@@ -339,6 +447,31 @@ export function cappedScore(raw: number): number {
 
 export function hasDefense(hand: Card[]): boolean {
   return hand.some((c) => c.type === CARD.DEFENSE);
+}
+
+export function countDefense(hand: Card[]): number {
+  return hand.filter((c) => c.type === CARD.DEFENSE).length;
+}
+
+/* Cuántas cartas jugables se están ocupando. Las que ya están boca abajo
+   sobre la mesa cuentan: pueden volver a la mano al quemarse, y sin contarlas
+   la mano terminaría con una de más. */
+export function countPlayable(hand: Card[], pendingCards: Card[] = []): number {
+  return hand.filter((c) => c.type !== CARD.DEFENSE).length + pendingCards.length;
+}
+
+/* Si esta carta entra. Cada bolsillo mira su propio tope, así que una mano
+   llena de golpes no impide recibir un escudo ni al revés.
+   Vive acá y no en los dos motores para que el cliente y el servidor no
+   puedan discrepar sobre si una carta entró o se perdió. */
+export function hasRoomFor(
+  card: Card,
+  hand: Card[],
+  pendingCards: Card[] = []
+): boolean {
+  return card.type === CARD.DEFENSE
+    ? countDefense(hand) < DEFENSE_LIMIT
+    : countPlayable(hand, pendingCards) < HAND_LIMIT;
 }
 
 export function dropCard(hand: Card[], uid: string): Card[] {
