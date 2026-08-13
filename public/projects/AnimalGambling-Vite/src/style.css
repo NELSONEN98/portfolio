@@ -1325,9 +1325,23 @@ body {
    * así que estirar la imagen la deformaría de forma distinta en cada
    * pantalla. Con `cover` se recorta ese medio punto por el borde, que es
    * donde el propio dibujo se va a negro y no se nota. */
-  background-image: url("board/board.png");
-  background-size: cover;
-  background-position: center;
+  /* El dibujo del centro recibe la MISMA lámpara: se le apoya encima un
+     degradado que deja pasar la luz arriba del medio y va cerrando hacia
+     los bordes hasta casi negro. Sin esto el fondo quedaba parejo mientras
+     el paño de alrededor tenía relieve de luz, y el centro se leía como una
+     calcomanía pegada en vez de como parte de la mesa.
+     Va en la MISMA propiedad que la imagen —una lista de capas, la primera
+     arriba— para no sumar un elemento sólo por oscurecer. */
+  background-image:
+    radial-gradient(
+      ellipse 66% 58% at 50% 22%,
+      transparent 0%,
+      rgba(0, 0, 0, 0.34) 52%,
+      rgba(0, 0, 0, 0.68) 100%
+    ),
+    url("board/board.png");
+  background-size: cover, cover;
+  background-position: center, center;
 
   /* La regla global `* { image-rendering: pixelated }` existe para los
      dibujos a mano de los gatos, que son pixel art y se arruinan si el
@@ -2779,12 +2793,41 @@ body {
      mesa y verlas de distinto tamaño las haría parecer de dos mazos. */
   --carta-mesa-w: clamp(4.2rem, 10.4vmin, 6.5rem);
   border-radius: clamp(0.4rem, 1vmin, 0.8rem);
-  background: radial-gradient(
-    ellipse 72% 82% at 50% 45%,
-    var(--felt-mesa-alto),
-    var(--felt-mesa-medio) 62%,
-    var(--felt-mesa-bajo)
-  );
+  /* ►► La lámpara de la mesa. ◄◄
+   *
+   * Son dos capas sobre el paño, y el orden importa: la primera se pinta
+   * ARRIBA de la segunda.
+   *
+   *  1. el charco de luz — un óvalo blanco muy tenue centrado ARRIBA del
+   *     medio (50% 26%), que es lo que dice "esto viene de una lámpara
+   *     colgada", no de un sol difuso. Con el foco en el centro exacto la
+   *     mesa se ve iluminada pero sin altura;
+   *  2. el paño, con su degradado ya corrido hacia arriba para acompañar al
+   *     charco, y los bordes bastante más oscuros que antes.
+   *
+   * Todo es `background-image` sobre un elemento que ya existía: ni un nodo
+   * nuevo, ni blend modes, ni una sola operación por cuadro. El navegador
+   * rasteriza los degradados una vez y después sólo compone la capa. Es la
+   * versión barata de la luz, y a esta escala es indistinguible de la cara. */
+  background-image:
+    /* El charco baja de 0.16 a 0.09 y se cierra antes (72% → 62%).
+       Con el dado ahora quemado en la cara de arriba, el paño le competía:
+       dos cosas claras a la vez y ninguna se lee como la más iluminada. La
+       lámpara se sigue viendo —el degradado sigue ahí— pero el punto más
+       brillante de la pantalla pasa a ser el dado, que es lo que hay que
+       mirar cuando frena. */
+    radial-gradient(
+      ellipse 58% 46% at 50% 26%,
+      rgba(255, 245, 214, 0.09),
+      rgba(255, 240, 200, 0.035) 42%,
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 68% 74% at 50% 34%,
+      var(--felt-mesa-alto),
+      var(--felt-mesa-medio) 54%,
+      var(--felt-mesa-bajo) 88%
+    );
   /* Y las sombras internas se cargan un poco: el paño más oscuro perdía el
      hundido de las esquinas, que es lo que le da profundidad de mesa. */
   box-shadow:

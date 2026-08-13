@@ -250,6 +250,23 @@ function texturaCara(numero, fondo, punto) {
 
 export function crearEscena(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  /* ►► VSM y no PCFSoft. ◄◄
+   *
+   * PCFSoft suaviza tomando unas pocas muestras alrededor de cada punto del
+   * mapa de sombra, así que su borde mide dos o tres téxels y nada más. Con
+   * el mapa de 512 estirado sobre toda la mesa eso son unos milímetros: la
+   * sombra del cubo salía con el canto casi duro, un cuadrado negro pegado
+   * al fieltro.
+   *
+   * VSM (variance shadow map) desenfoca el mapa DE VERDAD, con un pase de
+   * blur propio, así que `radius` se traduce en penumbra real. Una lámpara
+   * colgada sobre una mesa no proyecta cantos: proyecta una mancha con el
+   * borde deshecho, y cuanto más lejos está el objeto del piso, más deshecho.
+   *
+   * Cuesta un blur sobre una textura de 512², una vez por cuadro. Al lado de
+   * lo que ya se paga por simular la física de los cubos, es nada. */
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.VSMShadowMap;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   const scene = new THREE.Scene();
@@ -261,10 +278,109 @@ export function crearEscena(canvas) {
   camera.position.set(0, 20, 0.001);
   camera.lookAt(0, 0, 0);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-  const luz = new THREE.DirectionalLight(0xffffff, 0.9);
-  luz.position.set(4, 12, 6);
+  /* ►► La misma lámpara que pinta el CSS, pero para los cubos. ◄◄
+   *
+   * Si el paño tiene un charco de luz colgado desde arriba y los dados
+   * siguen planos, el truco se cae: son el único objeto con volumen de la
+   * pantalla, y son justo lo que uno mira. La luz tiene que ser una sola,
+   * aunque la dibujen dos tecnologías distintas.
+   *
+   * La ambiental baja de 0.85 a 0.34. Ese número era el problema de fondo:
+   * la ambiental ilumina todas las caras por igual, así que a 0.85 el cubo
+   * llegaba casi saturado antes de que la direccional pudiera modelarlo. Con
+   * 0.34 las caras que no miran a la lámpara quedan en sombra de verdad y el
+   * dado se lee como un cuerpo y no como un recorte.
+   *
+   * La direccional sube y se centra: de (4, 12, 6) a (1.5, 18, 3.5). Casi a
+   * plomo, apenas corrida para que el relieve de los puntos se note; justo
+   * encima del todo, las caras superiores quedan sin gradiente. Y sube a 1.15
+   * para compensar lo que perdió la ambiental.
+   *
+   * El tibio (0xfff2d8) es el mismo tono del charco de luz del CSS: una
+   * lámpara de bar no es blanca. Un cubo blanco puro sobre un paño cálido
+   * delata que son dos escenas pegadas.
+   *
+   * Sobre el costo de la sombra proyectada: dije que no valía la pena y me
+   * equivoqué en la cuenta. El pase extra por cuadro sólo dibuja los objetos
+   * que ARROJAN sombra —uno o dos cubos— en un mapa de 512², que es un
+   * render de dos cajas contra una textura chica. Lo caro de las sombras es
+   * una escena con decenas de mallas o mapas de 2048; nada de eso pasa acá. */
+  /* ►► La luz se corre del eje de la cámara. ◄◄
+   *
+   * Estaba a 11.9° de la cámara, y ése era el problema real: mirando desde
+   * arriba con la lámpara también arriba, TODO lo que se ve está de frente a
+   * la luz. No hay gradiente, no hay lado oscuro, no hay nada que leer — un
+   * cubo perfectamente iluminado y perfectamente plano.
+   *
+   * A 30° las caras laterales que asoman se apagan, los cantos redondeados
+   * del cubo agarran una caída de luz, y la sombra proyectada cae a un
+   * costado en vez de esconderse justo debajo. Esa sombra corrida es la
+   * mitad del efecto: es lo que dice a qué altura está el objeto.
+   *
+   * La ambiental baja de 0.34 a 0.20. Cuanto más ambiental, más se parecen
+   * entre sí todas las caras: es luz que llega por igual a las seis, o sea
+   * exactamente lo contrario de lo que hace falta acá. Lo justo para que el
+   * lado en sombra no se vaya a negro.
+   *
+   * Con la luz a 30°, la cara de arriba recibe 0.866 de la direccional:
+   *   arriba  0.20 + 1.10 * 0.866 = 1.15  → blanca, apenas quemada a
+   *                                          propósito para que sea EL punto
+   *                                          más claro de toda la pantalla
+   *   lado iluminado                 0.62
+   *   lado en sombra                 0.20 */
+  scene.add(new THREE.AmbientLight(0xfff2d8, 0.2));
+  const luz = new THREE.DirectionalLight(0xfff2d8, 1.1);
+  luz.position.set(6, 16, 7);
+  luz.castShadow = true;
+  /* Mapa chico a propósito: la sombra de un cubo es una mancha con borde
+     suave, no un contorno que haya que resolver al píxel. A 512 el pase
+     cuesta casi nada y el desenfoque del PCF tapa cualquier escalonado. */
+  luz.shadow.mapSize.set(512, 512);
+  /* Cuánto se deshace el borde. Es EL número de esta sombra: a 2 vuelve a
+     ser un cuadrado con el canto marcado, a 20 se convierte en una nube que
+     ya no dice dónde está el dado. */
+  luz.shadow.radius = 9;
+  luz.shadow.blurSamples = 16;
+  /* El bias negativo se va con PCF. VSM no lo necesita —resuelve el moteado
+     por varianza, no por corrimiento— y encima un bias negativo acá despega
+     la sombra del objeto y la deja flotando un poco más allá del cubo, que
+     es justo lo contrario de lo que hace falta. */
+  luz.shadow.bias = 0;
+  luz.shadow.normalBias = 0.02;
   scene.add(luz);
+
+  /* El rebote del paño, ahora desde donde sirve.
+     Estaba en (-3, -6, -2), o sea DEBAJO del suelo: sólo tocaba las caras
+     que miran hacia abajo, que son justamente las que la cámara nunca ve.
+     Era una luz que no iluminaba nada.
+     Puesto enfrente de la lámpara y bajo, levanta apenas el lado que quedó
+     en sombra — que es lo que hace un fieltro verde devolviendo luz. */
+  const rebote = new THREE.DirectionalLight(0x8fb9a8, 0.26);
+  rebote.position.set(-9, 3, -7);
+  scene.add(rebote);
+
+  /* ►► El suelo que recibe la sombra, y NADA más. ◄◄
+   *
+   * `ShadowMaterial` existe justo para este caso: es transparente salvo
+   * donde le cae una sombra. Un plano con material normal taparía el fieltro
+   * —el lienzo va en alfa por encima de la mesa— y volveríamos a tener un
+   * rectángulo pegado sobre el paño, que es lo que este juego evitó desde el
+   * principio.
+   *
+   * Apenas por debajo de cero (−0.01) para no pelearse en z con la cara
+   * inferior de un cubo apoyado. */
+  const sombras = new THREE.Mesh(
+    new THREE.PlaneGeometry(1, 1),
+    /* De 0.42 a 0.26. Con el borde ya deshecho por VSM, la mancha ganó
+       superficie: al mismo negro pesaba mucho más que antes y competía con
+       las casillas, que son lo que hay que leer. Una sombra que se nota más
+       que el tablero está mal aunque sea correcta. */
+    new THREE.ShadowMaterial({ opacity: 0.26 })
+  );
+  sombras.rotation.x = -Math.PI / 2;
+  sombras.position.y = -0.01;
+  sombras.receiveShadow = true;
+  scene.add(sombras);
 
   const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -40, 0) });
   world.defaultContactMaterial.restitution = 0.32;
@@ -308,7 +424,21 @@ export function crearEscena(canvas) {
     /* El orden es el que espera el cubo: +X, −X, +Y, −Y, +Z, −Z. Puesto
        así, cada índice cae en la normal que NORMAL_DE da por sentada. */
     return [1, 6, 2, 5, 3, 4].map(
-      (n) => new THREE.MeshBasicMaterial({ map: texturaCara(n, fondo, punto) })
+      /* ►► Lambert y no Basic. ◄◄
+       *
+       * `MeshBasicMaterial` IGNORA las luces por completo: pinta la textura
+       * plana, sin importar cuántas lámparas haya en la escena. Los cubos se
+       * veían recortados sobre la mesa y ninguna cara se distinguía de otra,
+       * porque no había sombreado — no es que fuera flojo, es que no existía.
+       * Las luces de esta escena eran código decorativo que no llegaba a
+       * ningún lado.
+       *
+       * Lambert es el escalón mínimo que responde a la luz: difuso puro, sin
+       * especular ni PBR. Para un dado de hueso mate es exactamente el
+       * modelo correcto —no tiene que brillar— y es el más barato de los que
+       * se iluminan. Standard daría reflejos que este dado no debería tener,
+       * y costaría más por cada píxel. */
+      (n) => new THREE.MeshLambertMaterial({ map: texturaCara(n, fondo, punto) })
     );
   }
 
@@ -327,6 +457,8 @@ export function crearEscena(canvas) {
 
     for (let i = 0; i < n; i++) {
       const mesh = new THREE.Mesh(geometria, materialesDe(COLOR.hueso, COLOR.negro));
+      // Arroja sombra; no la recibe: un dado no se sombrea a sí mismo.
+      mesh.castShadow = true;
       scene.add(mesh);
 
       const body = new CANNON.Body({
@@ -579,6 +711,28 @@ export function crearEscena(canvas) {
        cambia, los dados rebotarían contra un muro invisible antes del borde
        o se irían de cuadro por el costado. */
     limites = { x: VISTA * aspecto - MARGEN, z: VISTA - MARGEN };
+
+    /* La sombra sigue al encuadre igual que las paredes.
+     *
+     * La cámara de sombra es ORTOGRÁFICA y su recuadro no se ajusta solo:
+     * dejándolo en el tamaño por defecto, en una mesa ancha los cubos que
+     * ruedan hacia los costados salen del área mapeada y su sombra
+     * desaparece de golpe a mitad de camino. Se estira al área visible más
+     * un margen, para que un cubo pegado al muro proyecte igual.
+     *
+     * Y el plano que las recibe se agranda con lo mismo: es transparente
+     * salvo donde cae la sombra, así que sobrarle no cuesta nada, pero
+     * quedarse corto le corta la mancha en una línea recta. */
+    const s = luz.shadow.camera;
+    s.left = -VISTA * aspecto - LADO;
+    s.right = VISTA * aspecto + LADO;
+    s.top = VISTA + LADO;
+    s.bottom = -VISTA - LADO;
+    s.near = 1;
+    s.far = 60;
+    s.updateProjectionMatrix();
+
+    sombras.scale.set(VISTA * aspecto * 2 + LADO * 2, VISTA * 2 + LADO * 2, 1);
     paredes[0].position.set(-limites.x, 0, 0);
     paredes[1].position.set(limites.x, 0, 0);
     paredes[2].position.set(0, 0, -limites.z);
