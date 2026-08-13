@@ -3,7 +3,6 @@ import {
   GOAL,
   CARD,
   hasRoomFor,
-  CURSE_TURNS,
   PENALTY_POINTS,
   SQUARE,
   squareFor,
@@ -15,9 +14,8 @@ import {
   targetOf,
   nextSeat,
   cappedScore,
-  hasDefense,
+  applyCard,
   dropCard,
-  dropFirstOfType,
   makeBoard,
 } from "../../convex/rules";
 
@@ -304,18 +302,22 @@ export function useGame() {
        frena el primero y los otros dos entran. Esa es la razón de poder
        acumular. */
     (yo.pendingCards ?? []).forEach((carta) => {
-      const bloqueada = hasDefense(rivalHand);
-      if (bloqueada) {
-        rivalHand = dropFirstOfType(rivalHand, CARD.DEFENSE);
-      } else if (carta.type === CARD.STEAL) {
-        /* El tope se recalcula carta por carta: dos robos seguidos no
-           pueden sacar más de lo que el rival tenía. */
-        const robado = Math.min(carta.value ?? 0, rivalScore);
-        rivalScore -= robado;
-        miScore += robado;
-      } else if (carta.type === CARD.CURSE) {
-        rivalCurse = CURSE_TURNS;
-      }
+      /* Qué hace la carta lo decide `applyCard`, en las reglas. Acá quedaba
+         una cadena de `else if` que era una copia de la del servidor, y las
+         dos se desincronizaron más de una vez. */
+      const r = applyCard(carta, {
+        score: rivalScore,
+        hand: rivalHand,
+        curseTurns: rivalCurse,
+      });
+      rivalScore = r.score;
+      rivalHand = r.hand;
+      rivalCurse = r.curseTurns;
+      /* Lo único que no resuelve la regla: a quién van los puntos. El robo
+         los transfiere, el golpe sólo los borra. */
+      miScore += r.taken;
+
+      const bloqueada = r.blocked;
       revelaciones.push({ carta, bloqueada });
       /* Quién la recibe viaja con el hecho. Deducirlo después por el turno
          no sirve: para cuando la carta termina de volar, el turno ya pasó

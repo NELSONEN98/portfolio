@@ -62,16 +62,19 @@ export const CARD = {
   DEFENSE: "defense",
   CURSE: "curse",
   DOUBLE: "double",
+  /* ►► El golpe: la única carta que la defensa NO tapa. ◄◄
+   *
+   * Vuelve, pero con otra regla. La primera versión sacaba 3 puntos sin
+   * transferir y el escudo la frenaba como a cualquier otra — o sea que
+   * hacía lo mismo que un robo chico pero sin darte los puntos: una carta
+   * estrictamente peor que otra, que nadie tenía motivo para jugar.
+   *
+   * Ahora no se bloquea: ROMPE el escudo. Si el rival no tiene ninguno,
+   * pega flojo. Eso la vuelve una herramienta con un uso propio —abrir la
+   * guardia— en vez de una versión aguada del robo, y hace explícito el
+   * bucle: golpe para romper, robo para cobrar. */
+  PUNCH: "punch",
 } as const;
-
-/* Acá vivía PUNCH, una carta aparte que sacaba 3 fijos sin transferir. Se
-   fue, y no por simplificar: hacía el mismo trabajo que un robo chico —
-   gastar la defensa del otro— pero con su propio tipo, su propio color, su
-   propio ícono y su propia rama en los dos motores. Dos cartas para una
-   sola idea.
-   Ahora esa idea es un VALOR del robo: el de 3 es la munición barata que
-   rompe la muralla, el de 6 es el que duele. Mismo bucle, la mitad de
-   piezas. */
 
 export type CardType = (typeof CARD)[keyof typeof CARD];
 
@@ -114,11 +117,17 @@ export function randomStealValue(rand: () => number): number {
   return STEAL_WEIGHTS[0][0];
 }
 
+/* Lo que saca el golpe cuando NO encuentra escudo que romper. Flojo a
+   propósito: su valor está en abrir la guardia, no en el daño. Si pegara
+   como un robo, romper dejaría de ser el motivo para jugarla. */
+export const PUNCH_POINTS = 2;
+
 export const CARD_LABEL: Record<CardType, string> = {
   steal: "ROBAR",
   defense: "DEFENSA",
   curse: "MALDICIÓN",
   double: "DOS DADOS",
+  punch: "GOLPE",
 };
 
 /* Qué hace la carta, en una línea.
@@ -141,6 +150,8 @@ export function cardHint(card: Card): string {
       return `${CURSE_TURNS} turnos: su dado no pasa de ${CURSED_MAX_ROLL} y sus bonus le cortan el turno`;
     case CARD.DOUBLE:
       return "Tiras con dos dados y se suman los dos";
+    case CARD.PUNCH:
+      return `La defensa no lo tapa: le rompe un escudo, o le saca ${PUNCH_POINTS} si no tiene`;
     default:
       return "";
   }
@@ -361,31 +372,33 @@ export function startingHand(): Card[] {
  * eso son las dos más probables y salen empatadas: si los escudos escasearan
  * no habría nada que quemar, y si escasearan los golpes no habría con qué.
  *
- *   robo 53% · defensa 35% · dos dados 7% · maldición 5%
+ *   golpe 35% · defensa 35% · robo 17% · dos dados 9% · maldición 4%
  *
- * El robo se lleva lo que era del golpe porque ahora ES el golpe: el 35% que
- * tenía aquél más el 18% que tenía éste. Robo y defensa siguen siendo casi
- * el 90% del mazo, que es lo que hace que el intercambio de romper guardia y
- * volver a levantarla deje de ser una jugada posible y pase a ser lo que
- * ocurre casi siempre.
+ * Golpe y defensa son SETENTA POR CIENTO del mazo, y salen empatados. Esa
+ * igualdad es la mecánica: el golpe rompe escudos uno a uno, así que si la
+ * defensa saliera más seguido la muralla se repondría más rápido de lo que
+ * se puede tirar abajo y nunca caería; si saliera menos, el escudo dejaría
+ * de significar algo. Empatados, romper la guardia es trabajo pero es
+ * posible — que es exactamente el juego que se busca.
  *
- * Que el robo salga MÁS que la defensa no es un desbalance: el atacante
- * elige cuándo dumpear y el defensor no elige nada. Con tasas iguales, la
- * muralla se repone al mismo ritmo que la munición y no cae nunca.
+ * El robo baja a 17% y esa escasez es el punto: es el premio de haber
+ * abierto la guardia, no el recurso con el que se pelea. Cuando salía la
+ * mitad del mazo no hacía falta romper nada, alcanzaba con insistir.
  *
- * La maldición queda en 5% —de cada veinte cartas, una— y esa rareza es
- * parte de su diseño: capa el dado Y le convierte los bonus en trampas al
- * que la recibe. Una carta que cambia el tablero entero no puede salir
- * seguido, o el juego pasa a ser sobre ella. Sale poco y por eso duele.
+ * La maldición, 4%: una de cada veinticinco. Capa el dado Y le convierte los
+ * bonus en trampas al que la recibe. Una carta que cambia el tablero entero
+ * no puede salir seguido, o el juego pasa a ser sobre ella. Sale poco, y por
+ * eso cuando sale duele.
  *
- * Dos dados en 7 porque es la única que no participa del intercambio —no
- * ataca ni defiende—, así que es la primera que sobra cuando hay que hacer
- * lugar. */
+ * Dos dados sube apenas, a 9: es la única que no participa del intercambio
+ * —no ataca ni defiende— y con el robo tan raro conviene que haya alguna
+ * otra forma de empujar el marcador. */
 export function randomBonusCard(rand: () => number, seed: number): Card {
   const roll = rand();
-  if (roll < 0.53) return makeCard(CARD.STEAL, randomStealValue(rand), seed);
-  if (roll < 0.88) return makeCard(CARD.DEFENSE, undefined, seed);
-  if (roll < 0.95) return makeCard(CARD.DOUBLE, undefined, seed);
+  if (roll < 0.35) return makeCard(CARD.PUNCH, undefined, seed);
+  if (roll < 0.7) return makeCard(CARD.DEFENSE, undefined, seed);
+  if (roll < 0.87) return makeCard(CARD.STEAL, randomStealValue(rand), seed);
+  if (roll < 0.96) return makeCard(CARD.DOUBLE, undefined, seed);
   return makeCard(CARD.CURSE, undefined, seed);
 }
 
@@ -445,8 +458,82 @@ export function cappedScore(raw: number): number {
   return Math.min(raw, GOAL);
 }
 
+export function applyPunch(score: number): number {
+  return Math.max(0, score - PUNCH_POINTS);
+}
+
 export function hasDefense(hand: Card[]): boolean {
   return hand.some((c) => c.type === CARD.DEFENSE);
+}
+
+/* ►► Qué le hace una carta puesta a quien la recibe. ◄◄
+ *
+ * Vive acá, en las reglas, y no repetida en el motor local y en el servidor.
+ * Antes cada uno tenía su propia cadena de `else if` y había que acordarse
+ * de tocar las dos: la carta de golpe de la primera versión llegó a estar en
+ * una y no en la otra, y el modo local y el online jugaban distinto sin que
+ * nada se quejara.
+ *
+ * Devuelve el estado nuevo del rival y qué pasó, para que la pantalla lo
+ * cuente. No toca al que la juega —eso lo resuelve quien llama, porque el
+ * robo transfiere y las demás no— ni emite eventos: es una función pura. */
+export function applyCard(
+  card: Card,
+  rival: { score: number; hand: Card[]; curseTurns: number }
+): {
+  score: number;
+  hand: Card[];
+  curseTurns: number;
+  /* La tapó un escudo y no pasó nada. El golpe nunca sale bloqueado. */
+  blocked: boolean;
+  /* El golpe encontró escudo y lo rompió. */
+  broke: boolean;
+  /* Cuánto le sacó, para que el robo sepa cuánto sumarse. */
+  taken: number;
+} {
+  const base = { score: rival.score, hand: rival.hand, curseTurns: rival.curseTurns };
+
+  /* El golpe se resuelve ANTES de preguntar por la defensa, y es el único.
+     Preguntarle primero al escudo sería tratarlo como a las demás, y su
+     regla es justamente que el escudo no lo para. */
+  if (card.type === CARD.PUNCH) {
+    if (hasDefense(rival.hand)) {
+      return {
+        ...base,
+        hand: dropFirstOfType(rival.hand, CARD.DEFENSE),
+        blocked: false,
+        broke: true,
+        taken: 0,
+      };
+    }
+    return { ...base, score: applyPunch(rival.score), blocked: false, broke: false, taken: 0 };
+  }
+
+  /* El resto sí: cada defensa tapa una sola carta, así que contra tres
+     ataques una defensa frena el primero y los otros dos entran. Esa es la
+     razón de poder acumular cartas puestas. */
+  if (hasDefense(rival.hand)) {
+    return {
+      ...base,
+      hand: dropFirstOfType(rival.hand, CARD.DEFENSE),
+      blocked: true,
+      broke: false,
+      taken: 0,
+    };
+  }
+
+  if (card.type === CARD.STEAL) {
+    /* El tope se recalcula carta por carta: dos robos seguidos no pueden
+       sacar más de lo que el rival tenía. */
+    const taken = Math.min(card.value ?? 0, rival.score);
+    return { ...base, score: rival.score - taken, blocked: false, broke: false, taken };
+  }
+
+  if (card.type === CARD.CURSE) {
+    return { ...base, curseTurns: CURSE_TURNS, blocked: false, broke: false, taken: 0 };
+  }
+
+  return { ...base, blocked: false, broke: false, taken: 0 };
 }
 
 export function countDefense(hand: Card[]): number {

@@ -19,7 +19,7 @@ import {
   resolveRoll,
   applyPenalty,
   cappedScore,
-  hasDefense,
+  applyCard,
   dropCard,
   dropFirstOfType,
   type Card,
@@ -556,21 +556,24 @@ export const holdScore = mutation({
 
     if (rivalRaw) {
       for (const pending of mine.pendingCards) {
-        const blocked = hasDefense(rivalHand);
-        if (blocked) {
-          rivalHand = dropFirstOfType(rivalHand, CARD.DEFENSE);
-        } else if (pending.type === CARD.STEAL) {
-          /* No se puede robar más de lo que el rival tiene: el marcador no
-             baja de cero y el ladrón no cobra de un bolsillo vacío. Se
-             recalcula carta por carta, así dos robos seguidos no sacan más
-             de lo que había. */
-          const taken = Math.min(pending.value ?? 0, rivalScore);
-          rivalScore -= taken;
-          myScore += taken;
-        } else if (pending.type === CARD.CURSE) {
-          rivalCurse = CURSE_TURNS;
-        }
-        resolved.push({ type: pending.type, value: pending.value, blocked });
+        /* La misma función que usa el motor local. Acá vivía una copia de
+           esa cadena de decisiones, y mantener dos copias sincronizadas de
+           una regla es exactamente lo que este proyecto evita poniendo las
+           reglas en un archivo compartido. */
+        const r = applyCard(pending, {
+          score: rivalScore,
+          hand: rivalHand,
+          curseTurns: rivalCurse,
+        });
+        rivalScore = r.score;
+        rivalHand = r.hand;
+        rivalCurse = r.curseTurns;
+        /* Los puntos que cambian de dueño: el robo transfiere, el golpe
+           sólo borra. No se puede cobrar de un bolsillo vacío — el tope lo
+           aplica `applyCard`. */
+        myScore += r.taken;
+
+        resolved.push({ type: pending.type, value: pending.value, blocked: r.blocked });
       }
     }
 

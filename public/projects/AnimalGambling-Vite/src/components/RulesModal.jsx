@@ -8,6 +8,7 @@ import {
   CURSE_TURNS,
   CURSED_MAX_ROLL,
   PENALTY_POINTS,
+  PUNCH_POINTS,
   STEAL_VALUES,
   SQUARE,
   startingHand,
@@ -156,10 +157,15 @@ export default function RulesModal({ abierta, onClose }) {
                   <b>gastarle la defensa</b> barato y dejar sin tapa la de −
                   {mayor} que venga atrás.
                 </Item>
+                <Item muestra={<Carta tipo={CARD.PUNCH} />} nombre={CARD_LABEL.punch}>
+                  <b>La defensa no lo tapa.</b> Si el rival tiene escudo, se lo{" "}
+                  <b>rompe</b>; si no tiene, le saca {PUNCH_POINTS}. Es la carta
+                  para abrir la guardia — pega flojo a propósito.
+                </Item>
                 <Item muestra={<Carta tipo={CARD.DEFENSE} />} nombre={CARD_LABEL.defense}>
                   No se juega: se gasta sola cuando te atacan y anula <i>una</i>{" "}
-                  carta entera, sea de −{menor} o de −{mayor}. Tenerla en la mano
-                  ya te protege.
+                  carta entera, sea de −{menor} o de −{mayor}. No sirve contra el
+                  golpe: ése la rompe en vez de chocar con ella.
                 </Item>
                 <Item muestra={<Carta tipo={CARD.CURSE} />} nombre={CARD_LABEL.curse}>
                   Durante {CURSE_TURNS} turnos el dado del rival no pasa de{" "}
