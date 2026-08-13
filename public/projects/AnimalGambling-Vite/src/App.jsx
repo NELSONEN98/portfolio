@@ -44,12 +44,16 @@ const MENSAJES = {
   /* Sin aviso cuando la carta se muestra sola: dos anuncios de lo mismo se
      pisan. El texto queda para el caso en que no hay carta que enseñar. */
   bonus: (e) => (e.carta ? null : [`Bonus — carta nueva para ${e.nombre}`]),
-  /* Dos bolsillos, dos avisos: los escudos y las cartas jugables se llenan
+  /* Perder una carta que la casilla ya te había entregado es de las cosas
+     más caras que te pueden pasar en un turno, así que sale en el cartel
+     grande del medio y no en un aviso al costado —que es donde iba antes y
+     donde nadie lo miraba con el dado todavía rodando—.
+     Dos bolsillos, dos textos: los escudos y las cartas jugables se llenan
      por separado, y decir "mazo lleno" cuando lo que sobra son escudos
-     mandaría a jugar cartas para hacer un lugar que ya estaba libre. */
+     mandaría a hacer lugar donde ya lo había. */
   bonusLleno: (e) => [
-    e.tipo === CARD.DEFENSE ? "Escudos al máximo" : "Mazo lleno",
-    "error",
+    e.tipo === CARD.DEFENSE ? "ESCUDOS AL MÁXIMO" : "MAZO LLENO",
+    "cartel",
   ],
   dosDados: () => ["Dos dados en tu próxima tirada"],
   cartaPuesta: (e) => [
@@ -103,10 +107,21 @@ export default function App() {
   const [impacto, setImpacto] = useState(null);
   /* Se pidió la tirada al servidor y todavía no volvió. */
   const [pidiendoTirada, setPidiendoTirada] = useState(false);
-  /* El cartel de turno perdido, con una clave que cambia en cada quemada:
-     dos unos seguidos tienen que reiniciar la animación, y sin algo que
-     cambie React reusaría el nodo y el segundo no se vería. */
-  const [quemado, setQuemado] = useState(null);
+  /* El cartel grande del medio de la pantalla, con su texto.
+   *
+   * Era `quemado`, un booleano con la frase escrita en el JSX — o sea un
+   * cartel que sólo sabía decir una cosa. Ahora guarda QUÉ decir, así el
+   * mismo nodo, la misma animación y el mismo temporizador sirven para
+   * cualquier anuncio que tenga que frenar la pantalla. Duplicarlo para el
+   * segundo mensaje habría sido duplicar también las tres cosas.
+   *
+   * La clave cambia en cada aviso: dos iguales seguidos tienen que reiniciar
+   * la animación, y sin algo que cambie React reusaría el nodo y el segundo
+   * no se vería. */
+  const [aviso, setAviso] = useState(null);
+  const anunciar = useCallback((texto) => {
+    setAviso({ texto, key: Math.random() });
+  }, []);
 
   /* La carta que el servidor ya entregó pero que todavía no se mostró:
      espera a que la ficha frene para aparecer. */
@@ -188,8 +203,17 @@ export default function App() {
     if (!eventos.length) return;
     eventos.forEach((e) => {
       const armar = MENSAJES[e.tipo];
-      const aviso = armar?.(e);
-      if (aviso) notify(...aviso);
+      const mensaje = armar?.(e);
+      /* El segundo elemento decide DÓNDE se cuenta, no sólo de qué color:
+         `cartel` va al anuncio grande del medio, cualquier otra cosa al
+         aviso al costado. Esa decisión vive en la tabla de mensajes, que ya
+         es el lugar donde se traduce un hecho del motor a algo que el
+         jugador ve — el motor sigue sin saber que existen los carteles. */
+      if (mensaje) {
+        const [texto, canal] = mensaje;
+        if (canal === "cartel") anunciar(texto);
+        else notify(texto, canal);
+      }
       if (e.tipo === "cartaRevelada") {
         setRevelada({ carta: e.carta, bloqueada: e.bloqueada });
         setLanzada({
@@ -208,16 +232,16 @@ export default function App() {
       if (e.tipo === "ganado") setFinished(true);
     });
     consumeEvents();
-  }, [eventos, consumeEvents, setFinished, notify]);
+  }, [eventos, consumeEvents, setFinished, notify, anunciar]);
 
   /* El cartel de turno perdido se va solo. Se desmonta en vez de quedarse
      invisible: mientras existe es un nodo fijo tapando la pantalla entera,
      y aunque no reciba toques es una capa de más en cada pintado. */
   useEffect(() => {
-    if (quemado === null) return;
-    const t = setTimeout(() => setQuemado(null), QUEMADO_MS);
+    if (!aviso) return;
+    const t = setTimeout(() => setAviso(null), QUEMADO_MS);
     return () => clearTimeout(t);
-  }, [quemado]);
+  }, [aviso]);
 
   // La carta revelada se muestra un rato y se va sola.
   useEffect(() => {
@@ -458,7 +482,7 @@ export default function App() {
          nunca llega hasta acá — así que se deduce de la respuesta, que trae
          dónde caíste y qué entregó. Sin esto, el jugador en línea perdía
          una carta sin que nada se lo dijera. */
-      else if (r.landed === SQUARE.BONUS) notify("Mazo lleno", "error");
+      else if (r.landed === SQUARE.BONUS) anunciar("MAZO LLENO");
       /* En online el servidor no cierra el turno solo: avisa que caíste en
          una casilla maldita y el plantarse lo manda el cliente con la misma
          mutación del botón, para que las cartas puestas se revelen igual
@@ -493,7 +517,7 @@ export default function App() {
        dado. Acá el 1 ya está a la vista y el cartel lo explica.
        Sólo a quien se quemó: `mia` viene con la tirada y en online la del
        rival llega con esa marca en falso. */
-    if (t?.isBust && t.mia !== false) setQuemado(Math.random());
+    if (t?.isBust && t.mia !== false) anunciar("PIERDES TURNO");
     /* En online el estado lo aplicó el servidor. Lo único que se adelanta
        acá es la posición, que vino en la respuesta de la tirada: mueve la
        ficha ya, sin esperar el sondeo. El resto —puntos, mano, casilla—
@@ -870,9 +894,9 @@ export default function App() {
           así que en la práctica el juego nunca avisó de una quemada.
           Acá afuera, junto al resto de los anuncios a pantalla completa,
           además sobrevive a que la pantalla cambie debajo. */}
-      {quemado !== null && (
-        <div key={quemado} className="snake-eyes-warning show" role="status">
-          PIERDES TURNO
+      {aviso && (
+        <div key={aviso.key} className="snake-eyes-warning show" role="status">
+          {aviso.texto}
         </div>
       )}
 

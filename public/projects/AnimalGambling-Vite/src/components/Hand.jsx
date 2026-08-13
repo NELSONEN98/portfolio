@@ -62,6 +62,12 @@ function posicionEnAbanico(i, total) {
 const MANTENER_MS = ms("cartaMano.mantenerHueco");
 /* Cuánto tarda la carta en irse antes de que la jugada llegue al motor. */
 const LANZADA_MS = ms("cartaMano.lanzada");
+
+/* Cuánto puede quedarse una carta marcada como "saliendo" antes de que se la
+   dé por no jugada. Sale de dos vueltas de sondeo: una jugada que salió bien
+   se refleja en la mano dentro de la primera, así que llegar a dos significa
+   que no va a llegar. */
+const SALIDA_TOPE_MS = ms("red.sondeo") * 2;
 const { arrastreMinimo: ARRASTRE_MINIMO, lanzar: LANZAR } = GESTO;
 
 /* Los tres tiempos de recibir una carta: entra desde abajo, el abanico se
@@ -149,6 +155,30 @@ export default function Hand({ cartas = [], habilitada, onPlay, lado = 1 }) {
     if (preview && !cartas.some((c) => c.uid === preview.uid)) setPreview(null);
   }, [cartas, preview]);
 
+  /* La marca de "saliendo" se levanta cuando la carta ya no está en la mano,
+     no cuando termina la animación. Es el mismo criterio que la vista previa
+     de acá arriba: el estado se limpia cuando la razón para tenerlo dejó de
+     existir, y no cuando un reloj dice que debería.
+
+     El temporizador de abajo es la red de seguridad, y hace falta: si la
+     jugada FALLA —el servidor la rechaza, se corta la red— la carta nunca
+     sale de la mano, la condición de arriba no se cumple nunca, y sin esto
+     quedaría invisible para siempre, porque el `forwards` de la animación la
+     deja transparente. Con el tope vuelve sola a su lugar en el abanico.
+     El tope es generoso a propósito: tiene que perder contra el caso normal
+     —una jugada que llega— y ganar sólo cuando algo salió mal de verdad. */
+  /* Se DERIVA en vez de sincronizarse con un efecto: la carta lleva la marca
+     mientras siga en la mano, y deja de llevarla en cuanto sale. Un efecto
+     que mirara la mano para apagar el estado sería escribir estado durante
+     un pintado para volver a pintar — el mismo dato dicho dos veces. */
+  const marcaSalida = saliendo && cartas.some((c) => c.uid === saliendo) ? saliendo : null;
+
+  useEffect(() => {
+    if (!marcaSalida) return;
+    const t = setTimeout(() => setSaliendo(null), SALIDA_TOPE_MS);
+    return () => clearTimeout(t);
+  }, [marcaSalida]);
+
   /* El temporizador de mantener sobrevive al desmontaje si no se corta:
      dispararía un setState sobre un componente que ya no está. */
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -220,12 +250,7 @@ export default function Hand({ cartas = [], habilitada, onPlay, lado = 1 }) {
       setPreview(null);
       origen.current = null;
 
-      /* Se borra el desplazamiento que escribió el gesto. Como no pasa por
-         React, tampoco se limpia solo: sin esto la carta volvería al
-         abanico corrida de donde la soltaste. */
-      e?.currentTarget?.style.removeProperty("--drag-x");
-      e?.currentTarget?.style.removeProperty("--drag-y");
-
+      const nodo = e?.currentTarget;
       const tirandola = arrastre?.uid === carta.uid;
       const llegoLejos = tirandola && arrastre.listo;
       setArrastre(null);
@@ -241,14 +266,55 @@ export default function Hand({ cartas = [], habilitada, onPlay, lado = 1 }) {
       const juega = jugable && (llegoLejos || (!tirandola && !fuePreview.current));
 
       if (juega) {
+        /* ►► El desplazamiento del gesto NO se borra si la carta se juega. ◄◄
+         *
+         * Acá estaba el "se devuelve al mazo antes de tirarse". La animación
+         * de salida arranca en `translate(var(--drag-x), var(--drag-y))`, o
+         * sea DONDE soltaste la carta; borrando esas dos variables antes de
+         * lanzarla, el primer cuadro la ponía de vuelta en el abanico y el
+         * vuelo salía desde ahí. Se veía exactamente como un rebote hacia
+         * atrás — y no era un rebote: era la carta teletransportada.
+         *
+         * Las variables se van solas con el nodo cuando `onPlay` la saca de
+         * la mano, así que no hay nada que limpiar después.
+         *
+         * `--giro-salida` guarda con qué inclinación arranca el vuelo:
+         * arrastrando la carta ya estaba enderezada, y de un toque corto
+         * sigue con el ángulo que tiene en el abanico. Sin esto, jugar de un
+         * toque enderezaba la carta de golpe en el primer cuadro. */
+        nodo?.style.setProperty("--giro-salida", tirandola ? "0deg" : "var(--giro, 0deg)");
+
         /* Se marca como saliendo antes de avisar: la carta se va hacia
            arriba y recién después desaparece de la mano. Jugándola de una,
-           el movimiento no se vería nunca. */
+           el movimiento no se vería nunca.
+         *
+         * ►► Y la marca NO se saca acá. ◄◄
+         * Antes este mismo temporizador hacía las dos cosas: quitaba la
+         * clase y avisaba. Quitarla devuelve la carta a su posición de
+         * reposo, así que si en ese instante todavía no se fue de la mano,
+         * la carta BAJA de vuelta al abanico y recién después desaparece.
+         * Eso pasaba por dos motivos distintos:
+         *
+         *   · la animación arranca en el cuadro siguiente al `setState`,
+         *     unos 16ms después de que este temporizador empezó a contar,
+         *     así que el temporizador siempre gana por poco;
+         *   · y en online `onPlay` va contra el servidor, o sea que la mano
+         *     tarda una vuelta de red en actualizarse — ahí la carta
+         *     reaparecía en el abanico durante medio segundo largo.
+         *
+         * Ahora la clase se mantiene y la carta queda donde la dejó el
+         * `forwards` de la animación: arriba y transparente. La limpieza la
+         * hace el efecto de abajo, cuando la carta EFECTIVAMENTE salió de la
+         * mano — que es el único momento en que se sabe que ya no hace
+         * falta. */
         setSaliendo(carta.uid);
-        setTimeout(() => {
-          setSaliendo(null);
-          onPlay(carta.uid);
-        }, LANZADA_MS);
+        setTimeout(() => onPlay(carta.uid), LANZADA_MS);
+      } else {
+        /* Vuelve al abanico: ahí sí hay que borrar el desplazamiento. Como
+           lo escribió el gesto sin pasar por React, no se limpia solo, y la
+           carta quedaría corrida de donde la soltaste. */
+        nodo?.style.removeProperty("--drag-x");
+        nodo?.style.removeProperty("--drag-y");
       }
       fuePreview.current = false;
     },
@@ -275,7 +341,7 @@ export default function Hand({ cartas = [], habilitada, onPlay, lado = 1 }) {
                 c.type,
                 jugable ? "" : "no-jugable",
                 c.uid === nuevaUid ? "recien-llegada" : "",
-                c.uid === saliendo ? "lanzada" : "",
+                c.uid === marcaSalida ? "lanzada" : "",
                 tirando ? "arrastrando" : "",
                 tirando && arrastre.listo ? "listo" : "",
               ]

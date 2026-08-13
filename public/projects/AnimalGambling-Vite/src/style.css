@@ -505,6 +505,17 @@ body {
      se le metía detrás del fieltro. */
   --f2-gap: clamp(4px, 2.4vh, 26px);
 
+  /* ►► Cuánto baja el abanico respecto de su línea. ◄◄
+     Es el aire entre el tablero y las cartas. Va en `transform` y no en
+     margen a propósito: el transform no ocupa espacio, así que el montón
+     puede bajar hasta invadir la banda de los botones sin empujar nada —los
+     botones van centrados y las cartas contra el borde, así que se
+     superponen sin llegar a tocarse.
+     Un solo número para las dos disposiciones: en la apilada aleja las
+     cartas del fieltro que tienen encima, y en la ancha las despega del
+     canto de la mesa que tienen al lado. Subirlo las baja más. */
+  --cartas-baja: clamp(2.4rem, 8.5vh, 6.5rem);
+
   /* ►► Separación entre los personajes y la mesa. ◄◄
      Subir este número los aleja, bajarlo los junta; acepta negativos
      hasta superponerlos. Va aparte del `gap` de arriba porque ese aplica
@@ -613,9 +624,12 @@ body {
    que sólo mirás —el marcador y el dibujo—; pegados, la mano se leía como
    parte del personaje.
 
-   El margen izquierdo despega el abanico del canto de la pantalla: apoyado
-   contra el borde parecía cortado, y en el teléfono además caía dentro de
-   la zona donde el pulgar roza sin querer al sostenerlo. */
+   El margen despega el abanico del canto de la pantalla: apoyado contra el
+   borde parecía cortado, y en el teléfono además caía dentro de la zona
+   donde el pulgar roza sin querer al sostenerlo.
+   Los dos márgenes están cambiados de lado respecto de como estaban: con la
+   línea en `row-reverse` las cartas quedan a la derecha, así que el `auto`
+   —el que empuja— va a la izquierda y el fijo al canto derecho. */
 .hand-fan {
   margin-right: auto;
   margin-left: clamp(0.8rem, 3vw, 2.4rem);
@@ -644,7 +658,9 @@ body {
 .hand-fan .card {
   --giro: calc(var(--pos, 0) * var(--paso-giro) * var(--sentido));
 }
-.fighter-linea { flex-direction: row; }
+/* El sentido de la línea se declara UNA vez, más abajo, junto al del
+   peleador: los dos tienen que leerse juntos o no se entiende de dónde sale
+   el orden final. Acá quedaba un `row` suelto que decía lo contrario. */
 .fighter-linea.f1 { grid-area: f1; justify-self: start; }
 .fighter-linea.f2 { grid-area: f2; justify-self: end; }
 
@@ -654,29 +670,32 @@ body {
 .versus-screen.flip .fighter-linea.f1 { grid-area: f2; justify-self: end; }
 .versus-screen.flip .fighter-linea.f2 { grid-area: f1; justify-self: start; }
 
-/* ►► LOS DOS con el mismo orden: PUNTAJE · PERSONAJE. ◄◄
- *
- * Antes esta vuelta la daba sólo el que tenía cartas, para que su puntaje
- * quedara entre el abanico y el dibujo. El razonamiento fallaba en lo que
- * no miraba: al rival lo dejaba en `row`, o sea dibujo primero y números
- * después, y su puntaje terminaba en la punta OPUESTA a su personaje. Los
- * dos marcadores decían lo mismo pero cada uno del lado contrario, y para
- * comparar cómo viene cada uno había que reinterpretar la fila al pasar de
- * arriba a abajo.
- *
- * Ahora el número está pegado a su dueño en las dos líneas. Es el mismo
- * criterio que ya regía dentro del marcador —`text-align: right`, para que
- * la cifra caiga contra el dibujo— sólo que aplicado también a la línea. */
-.fighter-linea .fighter { flex-direction: row-reverse; }
+/* Sólo el que TIENE cartas invierte su orden, para que el puntaje quede
+   entre el abanico y el dibujo: CARTAS · PUNTAJE · PERSONAJE.
+   El rival no tiene abanico, así que se queda como siempre estuvo —dibujo y
+   después números, pegado a la izquierda— y no hay motivo para darlo vuelta.
+   Acá llegué a invertir las DOS líneas y fue un error: el pedido era
+   acomodar al rival, no mover al jugador. */
+.fighter-linea { flex-direction: row; }
+.fighter-linea.con-cartas .fighter { flex-direction: row-reverse; }
 
 /* En online el jugador tiene que verse siempre abajo, mire quien mire la
    pantalla. Al que le tocó ser player1 se le intercambian las dos
    posiciones — no los elementos: cada fighter conserva su id, su color y
    su personaje, sólo cambia el lugar donde se dibuja. */
-/* El marcador mira hacia el dibujo, que es lo que tiene al lado. Ya no
-   depende del lado: los dos jugadores están dispuestos igual. */
+/* El marcador mira hacia el dibujo, que es lo que tiene al lado.
+   En la línea CON cartas el dibujo está a la derecha, así que la cifra se
+   alinea a la derecha para caer contra él. */
 .fighter .fighter-readout { text-align: right; }
 .fighter .f-numbers { flex-direction: row-reverse; }
+
+/* ►► Y en la línea SIN cartas, al revés — que era todo lo que había que
+   arreglar. ◄◄
+   Ahí el orden es dibujo y después números, o sea que el personaje queda a
+   la IZQUIERDA del marcador. Con la cifra alineada a la derecha se iba al
+   otro extremo del renglón y quedaba flotando lejos de su dueño; eso era lo
+   que se veía mal en el rival. Una línea, y sin tocar al jugador. */
+.fighter-linea:not(.con-cartas) .fighter-readout { text-align: left; }
 
 /* The drawings are black line on white paper, so the frame IS the paper —
    a white rounded card the artwork sits inside. A tinted or transparent
@@ -1278,7 +1297,7 @@ body {
    que ahora se reparte entre las cuarenta casillas. */
 .board-track {
   position: absolute;
-  inset: clamp(0.3rem, 1vmin, 0.7rem);
+  inset: var(--track-inset);
   pointer-events: none;
   z-index: 3;
 
@@ -1309,8 +1328,29 @@ body {
   content: "";
   position: absolute;
   inset: calc(100% / var(--board-rows)) calc(100% / var(--board-cols));
-  border-radius: 0.6rem;
   pointer-events: none;
+
+  /* ►► Marco de madera alrededor del hueco. ◄◄
+   *
+   * Es la misma madera del mueble: el degradado sale del de `.pool-table`,
+   * con los mismos cuatro tonos y el mismo ángulo. Eso importa más de lo que
+   * parece — un marrón parecido pero propio se leería como otro objeto
+   * apoyado encima, y lo que se busca es que el hueco parezca CALADO en la
+   * misma madera de la mesa, con el fieltro y el camino montados sobre ella.
+   *
+   * `border-image` y no un borde de color plano porque una tabla tiene veta:
+   * plano queda como una línea marrón, y con el degradado la esquina de
+   * arriba a la izquierda toma la luz de la lámpara y la de abajo a la
+   * derecha se va a la sombra, igual que el marco de afuera.
+   *
+   * ►► Y por eso se va el `border-radius`. ◄◄
+   * `border-image` ignora el redondeo por especificación: dejándolo, el
+   * fondo se recortaba redondo mientras el marco seguía cuadrado y quedaba
+   * una madera cortada en las cuatro esquinas. Cuadrado es además lo
+   * correcto acá: el hueco es un rectángulo de celdas, y una moldura
+   * encastrada en una mesa se corta a inglete, no se curva. */
+  border: var(--marco-interior) solid;
+  border-image: linear-gradient(145deg, #5a2e18, #2a120a 42%, #4a2414 72%, #1c0c06) 1;
 
   /* ►► El dibujo del interior. ◄◄
    *
@@ -1700,12 +1740,9 @@ body {
 .hand-fan {
   justify-content: flex-start;
 
-  /* Baja el montón entero para despegarlo de la mesa. Va en `transform` y
-     no en margen a propósito: el transform no ocupa espacio, así que el
-     abanico puede invadir la banda de los botones sin empujar nada. Los
-     botones están centrados y las cartas contra el borde, de modo que se
-     superponen sin llegar a tocarse. */
-  transform: translateY(clamp(1.5rem, 6vh, 4.5rem));
+  /* Baja el montón entero para despegarlo de la mesa. El cuánto vive en
+     `--cartas-baja`, junto al resto de las medidas de la pantalla. */
+  transform: translateY(var(--cartas-baja));
 }
 
 /* En la vista apilada la línea de abajo se despega de la mesa: el abanico
@@ -1865,9 +1902,28 @@ body {
   animation: carta-lanzada var(--dur-carta-mano-lanzada) var(--ease-carta-mano-lanzada) forwards;
   pointer-events: none;
 }
+/* Arranca DONDE quedó la carta, no donde estaría en el abanico.
+ *
+ * El `from` decía `rotate(var(--giro)) translateY(0)` — la posición de
+ * reposo— así que al soltar una carta arrastrada el primer cuadro la
+ * devolvía al montón y el vuelo salía desde ahí. Ese salto hacia atrás es lo
+ * que se veía como un rebote antes de tirarla.
+ *
+ * Ahora los dos cuadros parten del desplazamiento del gesto: en un toque
+ * corto esas variables no existen, valen 0, y queda igual que antes. La
+ * inclinación viene de `--giro-salida`, que Hand.jsx fija según se haya
+ * arrastrado o tocado. */
 @keyframes carta-lanzada {
-  from { opacity: 1; transform: rotate(var(--giro, 0deg)) translateY(0) scale(1); }
-  to   { opacity: 0; transform: rotate(0deg) translateY(-5rem) scale(1.12); }
+  from {
+    opacity: 1;
+    transform: translate(var(--drag-x, 0), var(--drag-y, 0))
+      rotate(var(--giro-salida, var(--giro, 0deg))) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--drag-x, 0), calc(var(--drag-y, 0px) - 5rem))
+      rotate(0deg) scale(1.12);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2383,8 +2439,14 @@ body {
      Y otro 30% encima. El abanico ya no le puede robar alto a la mesa —la
      línea del peleador tiene alto declarado y la carta desborda por arriba
      en vez de empujar—, así que crecer dejó de costarle nada al tablero:
-     7.3→9.5, 17.2→22.4, 11.4→14.8. */
-  --card-w: clamp(9.5rem, 22.4vmin, 14.8rem);
+     7.3→9.5, 17.2→22.4, 11.4→14.8.
+
+     Y ahora un 20% menos: 9.5→7.6, 22.4→17.9, 14.8→11.85. Aquel razonamiento
+     valía para el ALTO —la línea tiene alto declarado y el montón desborda
+     hacia afuera sin empujar nada— pero no para el ANCHO: ahí la carta sí
+     avanza sobre el fieltro, y con cinco en la mano el abanico terminaba
+     apoyado encima de la mesa. */
+  --card-w: clamp(7.6rem, 17.9vmin, 11.85rem);
   width: var(--card-w);
   aspect-ratio: 5 / 7;
   border: none;
@@ -2475,6 +2537,11 @@ body {
 }
 .card.defense { background: var(--c-green); color: #fff; }
 .card.curse   { background: var(--c-purple); color: #fff; }
+/* El golpe, en rojo. Es el unico rojo del mazo: el robo quedo en negro
+   justamente para dejar libre este color, y el rojo es ademas el del
+   destello que se ve al recibirlo, asi que la carta y su consecuencia se
+   leen como la misma cosa. */
+.card.punch   { background: var(--c-red); color: #fff; }
 /* Dos dados pasa a dorado: el azul quedó reservado para las casillas de
    bonus y repetirlo acá los mezclaba. */
 .card.double  { background: var(--c-gold); color: var(--c-black); }
@@ -2494,10 +2561,10 @@ body {
    arriba, cruzar el umbral de los 800px de alto encogería la mano de golpe
    a la mitad y parecería otro juego. */
 @media (max-height: 800px) and (max-width: 560px) {
-  .card { --card-w: clamp(5.7rem, 13.5vh, 9.1rem); }
+  .card { --card-w: clamp(4.56rem, 10.8vh, 7.28rem); }
 }
 @media (max-height: 620px) and (max-width: 560px) {
-  .card { --card-w: clamp(4.7rem, 11vh, 7.2rem); }
+  .card { --card-w: clamp(3.76rem, 8.8vh, 5.76rem); }
 }
 
 
@@ -2637,6 +2704,7 @@ body {
 }
 .pc-front.defense { background: var(--c-green); }
 .pc-front.curse   { background: var(--c-purple); }
+.pc-front.punch   { background: var(--c-red); }
 .pc-front.double  { background: var(--c-gold); color: var(--c-black); }
 
 /* Bloqueada por la defensa del rival: se ve igual pero apagada y tachada,
@@ -2786,6 +2854,15 @@ body {
      apuntando a una fila que ya no existe. */
   --board-cols: 12;
   --board-rows: 10;
+
+  /* Cuánto se mete el camino respecto del filo del fieltro. Queda como
+     variable —aunque hoy la lea sólo `.board-track`— porque es la medida
+     que ubica el borde del hueco, y cualquier cosa que quiera apoyarse ahí
+     tiene que salir de acá y no de una copia. */
+  --track-inset: clamp(0.3rem, 1vmin, 0.7rem);
+
+  /* El grosor del marco de madera que rodea el hueco del medio. */
+  --marco-interior: clamp(0.32rem, 0.95vmin, 0.62rem);
 
   /* Medida única de las cartas que descansan sobre el fieltro: las jugadas
      boca abajo y el mazo de bonus. Declarada acá, en el padre común, para
@@ -3248,9 +3325,13 @@ body {
      que despegaba la línea de abajo no tiene sentido. */
   .fighter-linea.f2,
   .versus-screen.flip .fighter-linea.f1 { margin-top: 0; }
-  /* Ni bajar: acá el abanico va al costado de la mesa y no tiene nada
-     debajo que esquivar. */
-  .hand-fan { transform: none; }
+  /* Acá el abanico va al COSTADO de la mesa, no debajo, así que bajarlo no
+     lo aleja del fieltro por arriba — lo aleja del canto que tiene al lado.
+     Las cartas van rotadas y se abren hacia la mesa: bajando el montón, esa
+     apertura queda por debajo del filo del tablero en vez de montarse sobre
+     él. Antes acá el desplazamiento se anulaba, y por eso en pantalla ancha
+     el abanico terminaba apoyado encima de la mesa. */
+  .hand-fan { transform: translateY(var(--cartas-baja)); }
 
   .fighter-linea.f1 { align-self: start; justify-self: start; }
   .fighter-linea.f2 { align-self: end; justify-self: end; }
@@ -3328,7 +3409,11 @@ body {
        abajo, contra la banda de los botones. No se tocan: los botones van
        centrados y las cartas contra el borde izquierdo. */
     align-self: flex-start;
-    transform: none;
+    /* Clavado al techo de su línea y además bajado: el ancla decide hacia
+       dónde CRECE, esto decide a qué distancia del fieltro arranca. Antes
+       acá se anulaba el desplazamiento y el montón quedaba pegado al borde
+       de la mesa. */
+    transform: translateY(var(--cartas-baja));
   }
   .fighter-linea.f1 .hand-fan,
   .versus-screen.flip .fighter-linea.f2 .hand-fan {
@@ -3337,7 +3422,7 @@ body {
        traía de fábrica empujaba el montón HACIA el fieltro, así que se le
        da vuelta el signo. */
     align-self: flex-end;
-    transform: translateY(calc(clamp(1.5rem, 6vh, 4.5rem) * -1));
+    transform: translateY(calc(var(--cartas-baja) * -1));
   }
 }
 
