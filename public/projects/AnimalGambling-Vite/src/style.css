@@ -643,7 +643,110 @@ body {
     clamp(1.2rem, 3vw, 4rem)
     calc(var(--pad-v) + env(safe-area-inset-bottom));
   height: 100%;
+
+  /* Contexto de apilado propio para el patrón del fondo. El `z-index: 0` no
+     sobra: sin él, un hijo en -1 se iría por detrás del fondo de `.table` y
+     no se vería nunca. */
+  position: relative;
+  z-index: 0;
 }
+
+/* ►► PRUEBA: patrón de estrellas animado detrás de la partida. ◄◄
+ *
+ * Dos capas de anillos desplazándose en direcciones opuestas. Van en los
+ * pseudo-elementos de la pantalla y no en `.table`, que ya tiene los suyos
+ * ocupados por el grano del paño y el canto de madera.
+ *
+ * ►► Se anima `transform` y NO `background-position`. ◄◄
+ * Es el mismo dibujo y la mitad del costo: `background-position` repinta la
+ * capa entera en cada cuadro, y acá son dos capas a pantalla completa
+ * mientras la física de los dados corre a 60fps. `transform` lo resuelve la
+ * GPU sin repintar nada.
+ * El bucle cierra porque se desplaza EXACTAMENTE un mosaico (144px): al
+ * terminar, el patrón quedó en la misma posición visual que al empezar.
+ * Si se cambia el tamaño del mosaico hay que cambiar este número con él, o
+ * el patrón pega un salto en cada vuelta.
+ *
+ * El `inset` negativo es lo que impide que se vea el canto de la capa
+ * entrando en cuadro mientras se desplaza.
+ *
+ * ►► Las estrellas van como SVG en `data:`, no como gradiente. ◄◄
+ * Los círculos salían de un `radial-gradient` —un anillo es literalmente un
+ * degradado con dos cortes duros— pero una estrella no se puede describir
+ * así: hace falta un contorno. Va embebida en el CSS y no como archivo
+ * suelto para que siga siendo una sola cosa que copiar o tirar, y porque
+ * son 269 caracteres contra una petición de red.
+ *
+ * Los diez vértices salen de calcular las puntas, no de dibujarlas a ojo:
+ * radio exterior 28.5 e interior 12 sobre un mosaico de 144.
+ *
+ * Los colores (#171a18 y #080d0a) están apenas por debajo del paño, y eso
+ * es a propósito: se ven en el centro de la mesa —donde el fieltro aclara—
+ * y se apagan solas hacia los bordes, que queda como viñeta. Bajarlas más
+ * no las oscurece: las vuelve invisibles, porque el borde del paño ya está
+ * en una luminancia de 0.008 y no hay a dónde ir.
+ *
+ * Al triplicar la estrella se triplicó TODO el patrón, no sólo el dibujo:
+ * el mosaico —si no, la estrella se sale de su celda y queda recortada—, el
+ * desplazamiento del bucle, y la duración. Esto último importa: recorrer
+ * 144px en los 8s de antes movería el fondo tres veces más rápido, y lo que
+ * se pidió es una estrella más grande, no un fondo más nervioso. */
+.versus-screen::before,
+.versus-screen::after {
+  content: "";
+  position: absolute;
+  inset: -300px;
+  z-index: -1;
+  pointer-events: none;
+  background-size: 288px 288px;
+}
+
+/* ►► Los tamaños son aleatorios, pero el azar está DENTRO del azulejo. ◄◄
+ *
+ * Un `background` repetido no puede variar de una repetición a la otra:
+ * dibuja siempre el mismo azulejo. Así que la variedad se hornea adentro —
+ * doce estrellas de radios entre 7 y 24 en la capa lenta, dieciséis de 6 a
+ * 20 en la rápida, cada una con su posición y su giro— sobre un azulejo de
+ * 288px. Se repite igual, pero con esa cantidad de formas distintas la
+ * repetición deja de leerse.
+ *
+ * Generado con semilla fija y no con `Math.random()` en el momento: el
+ * patrón tiene que ser el mismo en cada build, o cada publicación cambiaría
+ * el fondo sin que nadie lo pidiera.
+ *
+ * ►► Dos cosas que hacen que la costura no se vea. ◄◄
+ * Las estrellas que cruzan un borde se dibujan TAMBIÉN del lado opuesto: sin
+ * eso quedan medias estrellas cortadas en cada repetición.
+ * Y la separación se mide en el toro y no en el plano: dos estrellas en x=5
+ * y x=283 son vecinas cruzando la costura, y midiendo en línea recta el
+ * generador las cree lejos y las deja encimadas.
+ *
+ * El azulejo pasó de 144 a 288px, así que el bucle desplaza 288: tiene que
+ * ser un azulejo exacto o el patrón salta en cada vuelta. Y las duraciones
+ * se duplicaron con él para que la velocidad en pantalla no cambie. */
+.versus-screen::before {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='288'%20height='288'%20viewBox='0%200%20288%20288'%3E%3Cpath%20d='M124.4,232.4L114.5,228.0L106.6,235.5L107.7,224.7L98.2,219.5L108.7,217.2L110.7,206.5L116.2,215.9L126.9,214.5L119.8,222.6ZM130.7,149.2L122.8,144.3L115.2,149.7L117.4,140.7L109.9,135.1L119.2,134.4L122.1,125.6L125.7,134.2L135.0,134.2L127.9,140.3ZM225.7,221.5L233.1,217.8L232.6,209.6L238.4,215.5L246.1,212.5L242.3,219.8L247.5,226.2L239.4,224.8L234.9,231.7L233.7,223.6ZM216.2,103.0L208.8,112.8L214.9,123.5L203.3,119.5L195.0,128.6L195.2,116.3L184.0,111.3L195.7,107.7L197.0,95.4L204.1,105.5ZM3.6,144.7L6.3,161.1L22.4,165.0L7.7,172.6L8.9,189.1L-2.9,177.4L-18.2,183.7L-10.7,168.9L-21.4,156.3L-5.1,158.8ZM291.6,144.7L294.3,161.1L310.4,165.0L295.7,172.6L296.9,189.1L285.1,177.4L269.8,183.7L277.3,168.9L266.6,156.3L282.9,158.8ZM275.2,102.5L266.4,95.9L256.9,101.6L260.3,91.1L252.1,83.8L263.1,83.9L267.4,73.8L270.8,84.3L281.8,85.3L272.8,91.7ZM21.5,214.4L26.8,218.4L32.6,215.0L30.4,221.4L35.4,225.8L28.7,225.7L26.0,231.8L24.1,225.5L17.4,224.8L22.9,220.9ZM54.7,22.8L45.2,24.9L43.4,34.5L38.4,26.1L28.8,27.3L35.3,20.1L31.1,11.3L40.0,15.2L47.1,8.5L46.1,18.2ZM278.4,256.4L266.7,255.5L261.2,266.0L258.4,254.6L246.8,252.6L256.8,246.4L255.1,234.8L264.1,242.4L274.6,237.1L270.1,248.0ZM228.0,25.8L227.9,19.3L222.0,16.8L228.1,14.7L228.7,8.3L232.5,13.5L238.8,12.0L235.0,17.3L238.4,22.9L232.2,20.9ZM51.7,137.7L56.8,137.5L58.6,132.7L60.4,137.5L65.5,137.7L61.5,140.9L62.9,145.9L58.6,143.0L54.4,145.9L55.7,140.9Z'%20fill='%23171a18'/%3E%3C/svg%3E");
+  animation: patron-a 48s linear infinite;
+}
+
+.versus-screen::after {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='288'%20height='288'%20viewBox='0%200%20288%20288'%3E%3Cpath%20d='M181.7,89.3L169.6,92.5L167.8,104.8L161.1,94.3L148.8,96.4L156.7,86.8L150.9,75.8L162.5,80.3L171.2,71.4L170.5,83.8ZM133.3,263.4L136.8,259.8L134.8,255.2L139.3,257.4L143.1,254.1L142.4,259.0L146.7,261.6L141.8,262.5L140.6,267.3L138.3,262.9ZM221.2,269.9L212.9,268.5L208.4,275.6L207.2,267.2L199.0,265.1L206.6,261.4L206.1,253.0L211.9,259.0L219.8,255.9L215.9,263.4ZM106.3,204.7L101.9,202.3L98.0,205.5L98.9,200.5L94.7,197.8L99.7,197.1L101.0,192.2L103.2,196.8L108.2,196.5L104.5,200.0ZM47.2,228.2L44.0,217.9L33.2,216.8L42.1,210.6L39.8,200.0L48.5,206.5L57.9,201.1L54.3,211.3L62.4,218.5L51.6,218.4ZM105.0,166.7L96.4,173.2L99.1,183.7L90.2,177.5L81.1,183.2L84.2,172.9L75.9,166.0L86.7,165.8L90.7,155.8L94.3,166.0ZM253.5,71.4L249.8,66.9L244.2,68.5L247.4,63.6L244.1,58.7L249.7,60.2L253.3,55.6L253.6,61.4L259.2,63.4L253.7,65.5ZM199.5,235.6L196.3,225.8L186.0,225.0L194.3,218.9L191.9,208.9L200.3,214.9L209.1,209.5L205.9,219.3L213.7,226.0L203.4,226.1ZM241.0,209.3L249.2,213.0L255.8,206.8L254.9,215.7L262.8,220.1L254.0,222.0L252.3,230.9L247.8,223.1L238.8,224.2L244.8,217.5ZM111.7,16.7L114.0,12.8L111.2,9.1L115.7,10.0L118.2,6.3L118.8,10.8L123.2,12.1L119.0,14.0L119.2,18.6L116.1,15.2ZM11.9,25.9L21.5,24.3L23.8,14.9L28.2,23.5L37.9,22.8L31.1,29.7L34.8,38.7L26.1,34.3L18.7,40.6L20.2,31.0ZM177.0,136.2L174.4,139.7L176.6,143.4L172.5,142.0L169.6,145.2L169.7,140.9L165.7,139.2L169.9,137.9L170.3,133.6L172.8,137.1ZM124.6,110.1L130.0,108.1L130.3,102.3L133.9,106.9L139.4,105.4L136.2,110.2L139.4,115.0L133.8,113.4L130.2,117.9L130.0,112.1ZM126.3,23.2L128.2,33.3L138.2,35.6L129.2,40.5L130.2,50.7L122.7,43.6L113.3,47.7L117.7,38.4L110.9,30.7L121.1,32.1ZM242.3,164.1L240.9,159.8L236.3,159.4L240.0,156.7L238.9,152.2L242.7,154.9L246.6,152.5L245.2,156.9L248.7,159.9L244.1,159.9ZM220.9,135.3L217.8,121.8L204.2,119.4L216.1,112.2L214.2,98.5L224.6,107.6L237.1,101.5L231.7,114.3L241.3,124.3L227.5,123.1Z'%20fill='%230d1310'/%3E%3C/svg%3E");
+  background-position: 144px 144px;
+  animation: patron-b 30s linear infinite;
+}
+
+@keyframes patron-a {
+  to { transform: translate3d(288px, 288px, 0); }
+}
+@keyframes patron-b {
+  to { transform: translate3d(-288px, 288px, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .versus-screen::before,
+  .versus-screen::after { animation: none; }
+}
+
 .versus-screen.active {
   display: grid;
 }
