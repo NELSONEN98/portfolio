@@ -28,6 +28,9 @@ const player = v.object({
   pendingCards: v.optional(v.array(card)),
   // Turnos que le quedan al rival con el dado limitado.
   curseTurns: v.optional(v.number()),
+  // Turnos que le quedan con la mesa borrosa. Opcional como el resto: las
+  // salas abiertas de antes no lo traen y tienen que seguir validando.
+  beerTurns: v.optional(v.number()),
   // Vale para la próxima tirada y se consume ahí mismo.
   doubleNext: v.optional(v.boolean()),
 });

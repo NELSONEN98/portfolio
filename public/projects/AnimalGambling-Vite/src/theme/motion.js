@@ -229,6 +229,15 @@ export const MOTION = {
        Dura más que un paso a propósito —así hay siempre dos o tres
        encendidas— pero poco: si quedaran prendidas todo el trayecto, la
        estela taparía cuál es la casilla donde terminó. */
+    /* El confeti de la meta. Corto: es un acuse de recibo de tres puntos,
+       no una celebración de victoria — y ocurre cada vuelta, así que si
+       durara se volvería ruido de fondo. */
+    confeti: {
+      ms: 900,
+      ease: EASE.salida,
+      keyframes: "confeti-vuela",
+      el: ".confeti .papel",
+    },
     pisada: { ms: 290, ease: EASE.salida, keyframes: "casilla-pisada", el: ".square.pisada" },
     aterriza: {
       ms: 420,
@@ -351,10 +360,7 @@ export const MOTION = {
        hace un cartel de casino. Más rápido que esto empieza a molestar
        encima de una mesa donde hay que leer números. */
     luces: { ms: 820, ease: EASE.cuadro, keyframes: "bulbs-on", el: ".pool-table::after", loop: true },
-    /* El mismo keyframe con dos duraciones: en la mesa las fichas entran
-       más rápido que en la decoración de las reglas. */
     fichaEntra: { ms: 400, ease: EASE.salida, keyframes: "chip-in", el: ".chip" },
-    fichaEntraReglas: { ms: 500, ease: EASE.salida, keyframes: "chip-in", el: ".rules-overlay.open .rules-chips-deco .chip" },
   },
 
   // ─── BOTONES ─────────────────────────────────────────────────────────

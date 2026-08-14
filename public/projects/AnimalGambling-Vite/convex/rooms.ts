@@ -14,12 +14,16 @@ import {
   MAX_PLAYERS,
   MIN_PLAYERS,
   advance,
+  passedStart,
+  LAP_BONUS,
   startingHand,
   randomBonusCard,
   resolveRoll,
   applyPenalty,
   cappedScore,
   applyCard,
+  tickBeer,
+  addBeer,
   dropCard,
   dropFirstOfType,
   type Card,
@@ -111,6 +115,8 @@ function boardOf(p: any) {
        que quedaron abiertas de la versión anterior. */
     pendingCards: (p.pendingCards ?? (p.pendingCard ? [p.pendingCard] : [])) as Card[],
     curseTurns: p.curseTurns ?? 0,
+    beerTurns: p.beerTurns ?? 0,
+    beerStacks: p.beerStacks ?? 0,
     doubleNext: p.doubleNext ?? false,
   };
 }
@@ -129,6 +135,8 @@ function freshPlayer(sessionId: string) {
     pendingCard: null,
     pendingCards: [],
     curseTurns: 0,
+    beerTurns: 0,
+    beerStacks: 0,
     doubleNext: false,
   };
 }
@@ -363,6 +371,9 @@ export const rollDice = mutation({
        el tablero es posición física y tiene que coincidir con lo que se ve.
        Tiene que ser idéntico al cliente o las dos fichas se separan. */
     const steps = outcome.dice.reduce((a, b) => a + b, 0);
+    /* Se pregunta antes de avanzar: después del módulo ya no se puede saber
+       si la ficha dio la vuelta o llegó de al lado. */
+    const dioVuelta = passedStart(mine.pos, steps);
     const pos = advance(mine.pos, steps);
     /* Qué es la casilla PARA ESTE jugador: con la maldición encima, sus
        bonus dejan de entregar carta y le cortan el turno. El tablero
@@ -370,13 +381,20 @@ export const rollDice = mutation({
        acá, al leerlo. */
     const square = squareFor(room.board as any, pos, cursed);
 
-    let score = me.player.score;
+    /* El premio por la vuelta va al marcador, igual que la penitencia lo
+       descuenta de ahí: los dos son efectos del camino, y lo que el camino
+       da o saca no depende de si el turno termina bien. */
+    let score = me.player.score + (dioVuelta ? LAP_BONUS : 0);
     let hand = mine.hand;
     let landed: string = SQUARE.PLAIN;
     /* Qué carta entregó la casilla. Va en la respuesta porque el cliente la
        muestra grande antes de guardarla, y comparando manos no podría
        distinguir la ganada de una devuelta al quemarse. */
     let gainedCard: Card | null = null;
+    /* La borrachera arranca en lo que ya tenía y sólo la mueve la cerveza
+       del bonus. Se declara acá para que el patch de abajo la escriba una
+       sola vez, salga o no salga la carta. */
+    let borrachera = { beerTurns: mine.beerTurns, beerStacks: mine.beerStacks };
 
     if (square === SQUARE.PENALTY) {
       score = applyPenalty(score);
@@ -397,8 +415,17 @@ export const rollDice = mutation({
          local, así que los dos no pueden discrepar sobre si una carta entró
          o se perdió. */
       const sorteada = randomBonusCard(rand, Date.now());
-      // Sin lugar: la casilla se pisa igual pero no entrega nada.
-      if (hasRoomFor(sorteada, hand, mine.pendingCards)) {
+
+      if (sorteada.type === CARD.BEER) {
+        /* La cerveza se consume al recibirla y nunca entra a la mano: como
+           jugable era una carta muerta —sólo perjudica a quien la pone— y
+           encima ocupaba uno de los cinco lugares del bolsillo. Acá la
+           casilla de bonus pasa a tener riesgo real.
+           Se sigue devolviendo como `gainedCard` para que la pantalla la
+           muestre: el jugador tiene que ver QUÉ le nubló la mesa. */
+        gainedCard = sorteada;
+        borrachera = addBeer(borrachera);
+      } else if (hasRoomFor(sorteada, hand, mine.pendingCards)) {
         gainedCard = sorteada;
         hand = [...hand, gainedCard];
       }
@@ -425,6 +452,7 @@ export const rollDice = mutation({
       score,
       pos,
       hand,
+      ...borrachera,
       // Se consume tire lo que tire: la carta valía para esta tirada.
       doubleNext: false,
     };
@@ -451,6 +479,11 @@ export const rollDice = mutation({
              Descontándola en cada tirada duraba 1,4 turnos en vez de 3,
              porque un turno normal son casi cuatro tiradas. */
           curseTurns: Math.max(0, mine.curseTurns - 1),
+          /* Sobre `borrachera` y NO sobre `mine`: si en esta misma tirada
+             cayó una cerveza del bonus, `mine` es el estado de antes y el
+             tick la borraría al pasar por encima de `...base`. Quemarse
+             consume un turno de la cerveza recién tomada, no la anula. */
+          ...tickBeer(borrachera),
         }),
       });
       return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, newTurn: siguiente, score };
@@ -492,6 +525,16 @@ export const playCard = mutation({
 
     const hand = dropCard(mine.hand, args.uid);
 
+    /* La cerveza se la toma el que la juega: efecto inmediato sobre uno
+       mismo, sin pasar por las cartas boca abajo. No hay nada que revelar al
+       plantarse cuando el efecto no viaja a ningún lado. */
+    if (chosen.type === CARD.BEER) {
+      await ctx.db.patch(room._id, {
+        players: withSeat(me.seats, me.seat, { ...me.player, hand, ...addBeer(mine) }),
+      });
+      return { applied: "beer" };
+    }
+
     /* Los dos dados no esperan al plantarse: sirven para la tirada de este
        mismo turno, así que se aplica ya y no queda pendiente. */
     if (chosen.type === CARD.DOUBLE) {
@@ -513,6 +556,53 @@ export const playCard = mutation({
     });
 
     return { applied: "pending", card: chosen, pending: mine.pendingCards.length + 1 };
+  },
+});
+
+/* Levantar una carta de la mesa y volver a guardarla en la mano.
+ *
+ * Mientras esté boca abajo no pasó nada todavía: la carta recién existe
+ * para el rival cuando el que la puso se planta. Hasta ese momento retirarla
+ * no le saca información a nadie —el rival ya vio que se puso ALGO— así que
+ * no hace falta cobrarle nada al que se arrepiente.
+ *
+ * No lleva chequeo de tope de mano, y no es un olvido: `countPlayable` ya
+ * cuenta las cartas puestas, así que una que vuelve del fieltro a la mano no
+ * mueve el total. Si entró, siempre hay lugar para que vuelva.
+ *
+ * Los dos dados nunca llegan acá: se aplican en el momento y no quedan
+ * pendientes. Una vez tirados no hay forma de devolverlos.
+ */
+export const takeBackCard = mutation({
+  args: {
+    roomId: v.string(),
+    sessionId: v.string(),
+    uid: v.string(),
+  },
+  async handler(ctx, args) {
+    const room = await findRoom(ctx, args.roomId);
+    if (!room) throw new ConvexError("Room not found");
+    if (room.status !== "playing") throw new ConvexError("Game not active");
+
+    const me = whoIs(room, args.sessionId);
+    if (!me) throw new ConvexError("You are not in this room");
+    if (seatOf(room) !== me.seat) throw new ConvexError("Not your turn");
+
+    const mine = boardOf(me.player);
+
+    const chosen = mine.pendingCards.find((c) => c.uid === args.uid);
+    if (!chosen) throw new ConvexError("Esa carta no está en la mesa");
+
+    await ctx.db.patch(room._id, {
+      players: withSeat(me.seats, me.seat, {
+        ...me.player,
+        hand: [...mine.hand, chosen],
+        pendingCard: null,
+        pendingCards: dropCard(mine.pendingCards, args.uid),
+      }),
+    });
+
+    return { takenBack: chosen, pending: mine.pendingCards.length - 1 };
   },
 });
 
@@ -596,11 +686,17 @@ export const holdScore = mutation({
       current: 0,
       pendingCard: null,
       pendingCards: [],
-      // Plantarse también cierra un turno de maldición.
+      // Plantarse también cierra un turno de maldición y de cerveza.
       curseTurns: Math.max(0, mine.curseTurns - 1),
+      ...tickBeer(mine),
     };
     const rivalAfter = rivalRaw
-      ? { ...rivalRaw, score: rivalScore, hand: rivalHand, curseTurns: rivalCurse }
+      ? {
+          ...rivalRaw,
+          score: rivalScore,
+          hand: rivalHand,
+          curseTurns: rivalCurse,
+        }
       : undefined;
 
     /* Los dos asientos se escriben sobre el MISMO array y en un solo patch.

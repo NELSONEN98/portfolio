@@ -55,6 +55,7 @@ const MENSAJES = {
     e.tipo === CARD.DEFENSE ? "ESCUDOS AL MÁXIMO" : "MAZO LLENO",
     "cartel",
   ],
+  vuelta: (e) => [`Vuelta completa — ${e.nombre} se lleva ${e.puntos}`],
   dosDados: () => ["Dos dados en tu próxima tirada"],
   cartaPuesta: (e) => [
     e.cantidad > 1
@@ -285,6 +286,8 @@ export default function App() {
              quedaron abiertas de la versión anterior. */
           pendingCards: lado.pendingCards ?? (lado.pendingCard ? [lado.pendingCard] : []),
           curseTurns: lado.curseTurns ?? 0,
+          beerTurns: lado.beerTurns ?? 0,
+          beerStacks: lado.beerStacks ?? 0,
           doubleNext: Boolean(lado.doubleNext),
         };
       })
@@ -718,6 +721,19 @@ export default function App() {
     }
   };
 
+  /* Retirar una carta de la mesa. Mismo camino que jugarla, al revés. */
+  const retirarCarta = async (uid) => {
+    if (!online) {
+      juego.takeBackCard(uid);
+      return;
+    }
+    try {
+      await sala.takeBackCard(sala.roomId, uid);
+    } catch (e) {
+      notify(errorText(e), "error");
+    }
+  };
+
   const volverAlMenu = () => {
     juego.setPlaying(false);
     juego.setFinished(false);
@@ -847,6 +863,7 @@ export default function App() {
             onRoll={tirar}
             onHold={plantarse}
             onPlayCard={jugarCarta}
+            onTakeBackCard={retirarCarta}
             onSettleRoll={alFrenar}
             onLlegada={alLlegar}
             retrasoCasilla={ESPERA_CASILLA}

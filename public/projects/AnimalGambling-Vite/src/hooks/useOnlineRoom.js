@@ -171,6 +171,7 @@ export function useOnlineRoom() {
     // Acciones que van al servidor; el estado real vuelve por el sondeo.
     setCharacter: api.setCharacter,
     playCard: api.playCard,
+    takeBackCard: api.takeBackCard,
     rollDice: api.rollDice,
     holdScore: api.holdScore,
   };

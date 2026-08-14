@@ -33,6 +33,7 @@ export default function VersusScreen({
   onRoll,
   onHold,
   onPlayCard,
+  onTakeBackCard,
   onSettleRoll,
   onLlegada,
   retrasoCasilla,
@@ -59,6 +60,16 @@ export default function VersusScreen({
 
      Sólo las tuyas: cuántas defensas tiene el rival es justamente lo que el
      juego esconde hasta que una frena un ataque. */
+  /* La cerveza nubla la mesa del que la tiene encima. `yo` ya es el jugador
+     correcto en los dos modos —en online siempre vos, en local el que está
+     jugando el turno— así que en la pantalla compartida la borrosidad va y
+     viene con el turno, que es lo que corresponde: el castigo es de uno. */
+  const borroso = (yo?.beerTurns ?? 0) > 0;
+  /* Cuántas cervezas encima. Se apilan, así que dos cartas nublan el doble.
+     Va al CSS como número y no como una clase por nivel: el filtro lo
+     multiplica solo y agregar un escalón no obliga a tocar nada acá. */
+  const borrachera = borroso ? Math.max(1, yo?.beerStacks ?? 1) : 0;
+
   const enMano = yo?.hand ?? [];
   const jugables = enMano.filter((c) => c.type !== CARD.DEFENSE);
   const defensas = enMano.filter((c) => c.type === CARD.DEFENSE);
@@ -81,7 +92,8 @@ export default function VersusScreen({
        cuatro jugadores las líneas f3 y f4 no encuentran su `grid-area` y el
        navegador las tira en celdas automáticas, encima de la mesa. */
     <section
-      className={`screen versus-screen active mesa-${players.length}${flip ? " flip" : ""}`}
+      className={`screen versus-screen active mesa-${players.length}${flip ? " flip" : ""}${borroso ? " borroso" : ""}`}
+      style={borroso ? { "--borrachera": borrachera } : undefined}
     >
       {/* Cada peleador con sus cartas en la misma línea: CARTAS · PUNTAJE ·
           PERSONAJE, con el abanico hacia afuera y el dibujo hacia la mesa.
@@ -140,7 +152,15 @@ export default function VersusScreen({
             puedeTirar={puedeActuar}
           />
 
-          <PlayedCard pendientes={pendientes} revelada={revelada} />
+          {/* Retirar sólo lo tuyo y sólo mientras siga boca abajo: durante
+              la revelación las cartas ya están contando lo que hacen y
+              levantarlas ahí sería deshacer algo que el rival ya vio. */}
+          <PlayedCard
+            pendientes={pendientes}
+            revelada={revelada}
+            puedeRetirar={puedeActuar && !revelada}
+            onRetirar={onTakeBackCard}
+          />
 
           {/* Abajo a la izquierda del fieltro, en espejo de las cartas
               jugadas: es de donde sale la carta al caer en bonus, y verlo

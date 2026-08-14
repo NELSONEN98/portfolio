@@ -23,6 +23,12 @@ export const BUST = 1;
    positivo. */
 export const PENALTY_POINTS = 6;
 
+/* Lo que se cobra por dar una vuelta entera al tablero.
+   Chico a propósito: el camino son 40 casillas y una tirada promedia 3.5,
+   así que una vuelta son once turnos largos. Tres puntos premian la
+   constancia sin competir con el robo, que es el que decide partidas. */
+export const LAP_BONUS = 3;
+
 /* Con la maldición encima el dado del rival no pasa de 4: le saca los dos
    mejores resultados sin quitarle el riesgo del 1. Baja de 5 a 4 porque a 5
    la maldición se sentía un impuesto y no un castigo —perdías el 6 y poco
@@ -35,6 +41,39 @@ export const CURSED_MAX_ROLL = 4;
    condena en lugar de ablandarla: es preferible un castigo que se sienta y
    pase a uno tibio que dure. */
 export const CURSE_TURNS = 2;
+
+/* La cerveza dura lo mismo que la maldición, y no es pereza: las dos son
+   condenas que se cuentan en turnos, y que duren distinto obligaría al
+   jugador a llevar dos relojes en la cabeza para dos castigos que se ven
+   parecido desde afuera. */
+export const BEER_TURNS = 2;
+
+/* Las cervezas se APILAN: la segunda no alarga la condena, la empeora. Dos
+   cartas, el doble de borroso.
+   El tope existe porque sin él la cuarta cerveza deja la mesa en blanco, y
+   una carta que directamente impide jugar no es un castigo: es sacar al
+   otro de la partida. A tres ya cuesta muchísimo, y cuesta tres cartas. */
+export const BEER_MAX_STACKS = 3;
+
+/* Una cerveza más encima. Refresca la condena y sube la borrosidad un
+   escalón. La llaman los dos motores en el momento de JUGAR la carta, no al
+   resolverla: la cerveza se aplica sobre el que la pone.
+   Vive acá y no repetida en cada motor por lo de siempre: dos copias de una
+   regla son dos reglas que se van a desincronizar. */
+export function addBeer(beer: { beerTurns: number; beerStacks: number }) {
+  return {
+    beerTurns: BEER_TURNS,
+    beerStacks: Math.min(beer.beerStacks + 1, BEER_MAX_STACKS),
+  };
+}
+
+/* Un turno menos de cerveza. Cuando se agota, la borrosidad se va con ella:
+   si `beerStacks` sobreviviera al contador, la próxima cerveza arrancaría
+   con la intensidad acumulada de la anterior y nadie entendería por qué. */
+export function tickBeer(beer: { beerTurns: number; beerStacks: number }) {
+  const beerTurns = Math.max(0, beer.beerTurns - 1);
+  return { beerTurns, beerStacks: beerTurns === 0 ? 0 : beer.beerStacks };
+}
 
 /* ►► Dos bolsillos, no uno. ◄◄
  *
@@ -62,18 +101,30 @@ export const CARD = {
   DEFENSE: "defense",
   CURSE: "curse",
   DOUBLE: "double",
-  /* ►► El golpe: la única carta que la defensa NO tapa. ◄◄
+  /* El golpe: le saca puntos al rival sin transferirlos.
    *
-   * Vuelve, pero con otra regla. La primera versión sacaba 3 puntos sin
-   * transferir y el escudo la frenaba como a cualquier otra — o sea que
-   * hacía lo mismo que un robo chico pero sin darte los puntos: una carta
-   * estrictamente peor que otra, que nadie tenía motivo para jugar.
+   * La defensa lo tapa como a cualquier otra carta. Tuvo un período en que
+   * no se bloqueaba y rompía el escudo —esa era su razón de existir, abrir
+   * la guardia para que entrara el robo— y se le sacó a pedido.
    *
-   * Ahora no se bloquea: ROMPE el escudo. Si el rival no tiene ninguno,
-   * pega flojo. Eso la vuelve una herramienta con un uso propio —abrir la
-   * guardia— en vez de una versión aguada del robo, y hace explícito el
-   * bucle: golpe para romper, robo para cobrar. */
+   * ►► Queda una deuda de balance abierta. ◄◄
+   * Bloqueable y sin transferir, el golpe de −2 hace menos que un robo de
+   * −3, que además te suma a vos y cuesta lo mismo jugar. O sea que hoy no
+   * hay ninguna situación en la que convenga poner un golpe teniendo un
+   * robo en la mano. Se arregla subiendo PUNCH_POINTS por encima del robo
+   * chico, o devolviéndole algún efecto propio. */
   PUNCH: "punch",
+  /* ►► La cerveza: te la tomás VOS. ◄◄
+   *
+   * No es un ataque: es la única carta que se aplica sobre el que la juega.
+   * Nubla TU mesa por unos turnos — no toca puntos, no toca el dado, no
+   * toca al rival. Lo único que se pierde es información propia.
+   *
+   * Por eso no va boca abajo con las demás: se resuelve en el momento de
+   * jugarla, igual que los dos dados. No hay nada que revelar al plantarse
+   * cuando el efecto no viaja a ningún lado, y una defensa enfrente no
+   * tiene nada que tapar. */
+  BEER: "beer",
 } as const;
 
 export type CardType = (typeof CARD)[keyof typeof CARD];
@@ -117,9 +168,10 @@ export function randomStealValue(rand: () => number): number {
   return STEAL_WEIGHTS[0][0];
 }
 
-/* Lo que saca el golpe cuando NO encuentra escudo que romper. Flojo a
-   propósito: su valor está en abrir la guardia, no en el daño. Si pegara
-   como un robo, romper dejaría de ser el motivo para jugarla. */
+/* Lo que saca el golpe. Este 2 se eligió cuando el golpe no se bloqueaba y
+   su trabajo era romper escudos, no hacer daño — flojo a propósito.
+   Ahora que la defensa lo tapa, el número quedó sin la regla que lo
+   justificaba: ver la deuda anotada en CARD.PUNCH. */
 export const PUNCH_POINTS = 2;
 
 export const CARD_LABEL: Record<CardType, string> = {
@@ -128,6 +180,7 @@ export const CARD_LABEL: Record<CardType, string> = {
   curse: "MALDICIÓN",
   double: "DOS DADOS",
   punch: "GOLPE",
+  beer: "CERVEZA",
 };
 
 /* Qué hace la carta, en una línea.
@@ -151,7 +204,9 @@ export function cardHint(card: Card): string {
     case CARD.DOUBLE:
       return "Tiras con dos dados y se suman los dos";
     case CARD.PUNCH:
-      return `La defensa no lo tapa: le rompe un escudo, o le saca ${PUNCH_POINTS} si no tiene`;
+      return `Le saca ${PUNCH_POINTS} puntos y no te los suma a vos`;
+    case CARD.BEER:
+      return `Te la tomás vos: ${BEER_TURNS} turnos con TU mesa borrosa, y se apilan`;
     default:
       return "";
   }
@@ -301,6 +356,19 @@ export function advance(pos: number, steps: number): number {
   return (pos + steps) % BOARD_SIZE;
 }
 
+/* Si este movimiento cruza la meta.
+ *
+ * Se pregunta ANTES de aplicar `advance`, porque después del módulo la
+ * información se perdió: una ficha en la casilla 3 pudo llegar ahí desde la
+ * 1 o dando la vuelta entera desde la 38, y el resultado es el mismo número.
+ *
+ * `>=` y no `>`: caer justo en la casilla 0 es completar la vuelta, no
+ * quedarse a un paso. Y arrancar la partida parado en la meta no cuenta —
+ * eso es `steps > 0`, no un caso especial. */
+export function passedStart(pos: number, steps: number): boolean {
+  return steps > 0 && pos + steps >= BOARD_SIZE;
+}
+
 /* ============================================
    LA MESA: QUIÉN LE PEGA A QUIÉN
    ============================================ */
@@ -393,12 +461,33 @@ export function startingHand(): Card[] {
  * Dos dados sube apenas, a 9: es la única que no participa del intercambio
  * —no ataca ni defiende— y con el robo tan raro conviene que haya alguna
  * otra forma de empujar el marcador. */
+/* ►► El golpe y la defensa NO se tocan. ◄◄
+ *
+ * Están al 35% cada uno. El empate venía de cuando el golpe rompía escudos
+ * de a uno: si la defensa salía más seguido, la muralla se reponía más
+ * rápido de lo que se podía tirar abajo. Con el golpe ya bloqueable esa
+ * cuenta dejó de aplicar y el 35/35 quedó sin fundamento — se mantiene
+ * porque cambiarlo es una decisión de balance aparte, no un arrastre de
+ * este cambio.
+ *
+ * Toda carta nueva le saca probabilidad a alguien. La cerveza se la saca al
+ * robo (17 → 14) y a los dos dados (9 → 7), que son los que tienen margen.
+ * La maldición queda en su 4%, que ya estaba puesto ahí a mano.
+ *
+ * La cerveza no toca el marcador, así que puede abundar sin desbalancear
+ * nada: sube a 9%. Sale de robar y de dos dados, que es de donde puede
+ * salir. Robar baja a 12 y es el precio real de esto — es la carta que
+ * cobra, y cada punto que se le saca acá se le saca al remate del bucle.
+ *
+ *   GOLPE 35 · DEFENSA 35 · ROBAR 12 · CERVEZA 9 · DOS DADOS 5 · MALDICIÓN 4
+ */
 export function randomBonusCard(rand: () => number, seed: number): Card {
   const roll = rand();
   if (roll < 0.35) return makeCard(CARD.PUNCH, undefined, seed);
   if (roll < 0.7) return makeCard(CARD.DEFENSE, undefined, seed);
-  if (roll < 0.87) return makeCard(CARD.STEAL, randomStealValue(rand), seed);
-  if (roll < 0.96) return makeCard(CARD.DOUBLE, undefined, seed);
+  if (roll < 0.82) return makeCard(CARD.STEAL, randomStealValue(rand), seed);
+  if (roll < 0.87) return makeCard(CARD.DOUBLE, undefined, seed);
+  if (roll < 0.96) return makeCard(CARD.BEER, undefined, seed);
   return makeCard(CARD.CURSE, undefined, seed);
 }
 
@@ -443,6 +532,8 @@ export type PlayerLike = {
   pos: number;
   hand: Card[];
   curseTurns: number;
+  beerTurns: number;
+  beerStacks: number;
 };
 
 /* El puntaje nunca baja de cero: una penitencia con 4 puntos encima deja
@@ -479,6 +570,8 @@ export function hasDefense(hand: Card[]): boolean {
  * robo transfiere y las demás no— ni emite eventos: es una función pura. */
 export function applyCard(
   card: Card,
+  /* Sin nada de cerveza: es la única carta que no le llega al rival, así
+     que su estado de borrachera no entra ni sale de esta función. */
   rival: { score: number; hand: Card[]; curseTurns: number }
 ): {
   score: number;
@@ -486,27 +579,20 @@ export function applyCard(
   curseTurns: number;
   /* La tapó un escudo y no pasó nada. El golpe nunca sale bloqueado. */
   blocked: boolean;
-  /* El golpe encontró escudo y lo rompió. */
-  broke: boolean;
   /* Cuánto le sacó, para que el robo sepa cuánto sumarse. */
   taken: number;
 } {
   const base = { score: rival.score, hand: rival.hand, curseTurns: rival.curseTurns };
 
-  /* El golpe se resuelve ANTES de preguntar por la defensa, y es el único.
-     Preguntarle primero al escudo sería tratarlo como a las demás, y su
-     regla es justamente que el escudo no lo para. */
-  if (card.type === CARD.PUNCH) {
-    if (hasDefense(rival.hand)) {
-      return {
-        ...base,
-        hand: dropFirstOfType(rival.hand, CARD.DEFENSE),
-        blocked: false,
-        broke: true,
-        taken: 0,
-      };
-    }
-    return { ...base, score: applyPunch(rival.score), blocked: false, broke: false, taken: 0 };
+  /* La cerveza no le hace nada a nadie: se la toma el que la juega y se
+     resuelve al ponerla, así que nunca debería llegar hasta acá.
+     Pero "no debería" no alcanza. Una sala online abierta desde antes de
+     este cambio puede tener una cerveza ya boca abajo sobre la mesa, y sin
+     esta salida caería en el chequeo de abajo y le QUEMARÍA UN ESCUDO al
+     rival a cambio de nada — el peor tipo de bug: silencioso, del lado del
+     que ni jugó la carta, y sólo en partidas viejas. */
+  if (card.type === CARD.BEER) {
+    return { ...base, blocked: false, taken: 0 };
   }
 
   /* El resto sí: cada defensa tapa una sola carta, así que contra tres
@@ -517,7 +603,6 @@ export function applyCard(
       ...base,
       hand: dropFirstOfType(rival.hand, CARD.DEFENSE),
       blocked: true,
-      broke: false,
       taken: 0,
     };
   }
@@ -526,14 +611,23 @@ export function applyCard(
     /* El tope se recalcula carta por carta: dos robos seguidos no pueden
        sacar más de lo que el rival tenía. */
     const taken = Math.min(card.value ?? 0, rival.score);
-    return { ...base, score: rival.score - taken, blocked: false, broke: false, taken };
+    return { ...base, score: rival.score - taken, blocked: false, taken };
+  }
+
+  /* El golpe descuenta sin transferir: el rival pierde los puntos y nadie
+     los gana. Va DESPUÉS del chequeo de defensa, como todas las demás —
+     antes vivía arriba, saltándose el escudo, y ésa era justamente su regla
+     especial. */
+  if (card.type === CARD.PUNCH) {
+    return { ...base, score: applyPunch(rival.score), blocked: false, taken: 0 };
   }
 
   if (card.type === CARD.CURSE) {
-    return { ...base, curseTurns: CURSE_TURNS, blocked: false, broke: false, taken: 0 };
+    return { ...base, curseTurns: CURSE_TURNS, blocked: false, taken: 0 };
   }
 
-  return { ...base, blocked: false, broke: false, taken: 0 };
+
+  return { ...base, blocked: false, taken: 0 };
 }
 
 export function countDefense(hand: Card[]): number {

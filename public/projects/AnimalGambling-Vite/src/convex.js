@@ -22,6 +22,9 @@ export const setCharacter = (roomId, playerName, catId) =>
 export const playCard = (roomId, uid) =>
   convex.mutation("rooms:playCard", conSesion({ roomId, uid }));
 
+export const takeBackCard = (roomId, uid) =>
+  convex.mutation("rooms:takeBackCard", conSesion({ roomId, uid }));
+
 export const rollDice = (roomId) =>
   convex.mutation("rooms:rollDice", conSesion({ roomId }));
 

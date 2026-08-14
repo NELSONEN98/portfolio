@@ -3,6 +3,7 @@ import {
   BOARD_COLS as COLS,
   BOARD_ROWS as ROWS,
   BOARD_SIZE,
+  START_SQUARE,
   PENALTY_POINTS,
   SQUARE,
   squareFor,
@@ -51,6 +52,16 @@ const VIAJE_MAX_MS = ms("tablero.viajeMaximo");
 const REBOTE_MS = ms("tablero.aterriza");
 const IMPACTO_MS = ms("tablero.casillaGolpe");
 const PISADA_MS = ms("tablero.pisada");
+const CONFETI_MS = ms("tablero.confeti");
+
+/* Los papelitos, con los colores de las fichas de la casa. Es una lista y
+   no un número al azar para que el reparto de colores sea siempre el mismo:
+   con `Math.random()` en el pintado, cada re-render los cambiaría de color a
+   mitad del vuelo. */
+const CONFETI_PAPELES = [
+  "gold", "red", "bone", "gold", "blue",
+  "red", "gold", "bone", "red", "gold", "blue", "bone",
+];
 
 /* Cuánto dura cada paso de un recorrido de N casillas. Las tiradas cortas
    van al ritmo natural; las largas aceleran para no pasarse del techo. */
@@ -77,6 +88,10 @@ export default function Board({ board, players, mirandoLado = 0, onLlegada, retr
      la estela del recorrido: sin ella, con el paso lento la ficha parecía
      deslizarse por encima del dibujo en vez de ir tocando casillas. */
   const [pisadas, setPisadas] = useState({});
+  /* El confeti de la meta. Es una clave que sube, no un booleano: dos
+     vueltas seguidas tienen que volver a estallar, y sin algo que cambie
+     React reusaría los nodos y la segunda no se vería. */
+  const [confeti, setConfeti] = useState(0);
 
   /* Dónde se DIBUJA cada ficha, que mientras camina no es dónde está en la
      partida: el estado del juego salta a la casilla final de una, y esto
@@ -166,6 +181,18 @@ export default function Board({ board, players, mirandoLado = 0, onLlegada, retr
                sin algo que cambie React reusaría el nodo y la segunda no se
                vería animar. */
             setPisadas((prev) => ({ ...prev, [casilla]: (prev[casilla] ?? 0) + 1 }));
+
+            /* Cruzar la meta. Se detecta acá, en el paso que la pisa, y no
+               a partir de la posición final: el estado del juego salta al
+               destino de una, así que desde afuera no hay forma de saber en
+               qué momento la ficha tocó la casilla 0 — ni si pasó por ella.
+               Acá el recorrido se camina de a una, y el cruce es literal. */
+            if (casilla === START_SQUARE) {
+              setConfeti((n) => n + 1);
+              timers.current[i].push(
+                setTimeout(() => setConfeti(0), CONFETI_MS)
+              );
+            }
             timers.current[i].push(
               setTimeout(() => {
                 setPisadas((prev) => {
@@ -280,15 +307,38 @@ export default function Board({ board, players, mirandoLado = 0, onLlegada, retr
            un principio visible. */
         const esMeta = i === 0;
         const pisada = pisadas[i];
+        /* Las tres esquinas redondeadas del tablero. Cada una se redondea
+           SÓLO por su lado de afuera: con las cuatro esquinas curvas, la
+           casilla se despega del camino y queda como una pastilla suelta en
+           la punta en vez de ser el canto del anillo.
+           La superior izquierda queda a escuadra a propósito: es la casilla
+           0, la meta, y el ángulo vivo marca dónde arranca el recorrido.
+           Sale de col/row y no de índices escritos a mano, así que si el
+           tablero cambia de medida las esquinas se siguen encontrando. */
+        const esquina =
+          row === 1 && col === COLS
+            ? " esq-sd"
+            : row === ROWS && col === COLS
+              ? " esq-id"
+              : row === ROWS && col === 1
+                ? " esq-ii"
+                : "";
         return (
           <span
             key={golpeada ? `${i}-${impacto.key}` : pisada ? `${i}-p${pisada}` : i}
             className={`square ${tipo}${golpeada ? " impacto" : ""}${esMeta ? " meta" : ""}${
               pisada ? " pisada" : ""
-            }`}
+            }${esquina}`}
             style={{ gridColumn: col, gridRow: row }}
           >
             {Icono ? <Icono /> : null}
+            {esMeta && confeti > 0 ? (
+              <span className="confeti" key={confeti} aria-hidden="true">
+                {CONFETI_PAPELES.map((c, n) => (
+                  <i className={`papel ${c}`} key={n} style={{ "--n": n }} />
+                ))}
+              </span>
+            ) : null}
           </span>
         );
       })}

@@ -1537,33 +1537,167 @@ body {
      la primera se pinta sobre las siguientes, y la juntura tiene que ganar
      ahí; la negra igual se sigue viendo porque cae desplazada hacia abajo y
      con más desenfoque, así que asoma por debajo de la pieza. */
+  /* ►► La luz de la pieza, parametrizada. ◄◄
+   *
+   * `--luz` y `--luz-halo` van como componentes RGB sueltos —no como color—
+   * para poder modular la opacidad capa por capa. Cada tipo de casilla las
+   * redefine y TODA la pila las sigue: no hay que repetir ocho sombras por
+   * color, y agregar un tipo nuevo son tres líneas y no un bloque entero.
+   *
+   * Funciona porque las variables se sustituyen en el momento de usarse:
+   * `--relieve` se declara acá una sola vez, pero `var(--luz)` resuelve
+   * contra el valor que tenga el ELEMENTO, así que una casilla que redefine
+   * `--luz` cambia las ocho capas sin volver a escribirlas.
+   *
+   * ►► Y la luz NO es el color del relleno. ◄◄
+   * `--c-blue` tiene una luminancia de 0.026 contra 0.010 del paño: apenas
+   * 2,7 veces el fondo, cuando el dorado está a 46 veces. Un resplandor de
+   * ese azul no ilumina, ensucia. La luz lleva el mismo tono encendido,
+   * igual que un cartel de neón: el tubo apagado no es del color que emite. */
+  --luz: 255, 201, 61;
+  --luz-halo: 228, 167, 0;
+  --aro: var(--c-gold);
+
   --relieve:
-    inset 0 0 0 1px var(--c-gold),
-    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    inset 0 0 0 1px var(--aro),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
     /* Luz POR DENTRO. Es la capa nueva y la que más cambia la lectura: hasta
        acá el dorado era un contorno, o sea una pieza con el borde pintado.
        Un resplandor que entra desde los cuatro cantos hacia el centro la
        convierte en una pieza ENCENDIDA — la misma diferencia que hay entre
        una baldosa con filete y una luz empotrada en el piso. */
-    inset 0 0 0.55rem rgba(255, 201, 61, 0.34),
-    inset 0 -3px 4px rgba(0, 0, 0, 0.45),
-    /* La juntura, más fuerte y un pelo más ancha: 3px→4px de desenfoque y
-       1px→1.5px de expansión. Sigue sin pasarse de la separación de 2px, así
-       que el camino se lee como piezas con la costura encendida y no como
-       una mancha dorada continua. */
-    0 0 4px 1.5px rgba(255, 201, 61, 0.72),
+    inset 0 0 1rem rgba(var(--luz), 0.66),
+    inset 0 -3px 4px rgba(0, 0, 0, 0.34),
+    /* La juntura, ahora al tope de opacidad. Lo que sube es la INTENSIDAD:
+       el desenfoque queda en 5px y la expansión en 1.5px, apenas lo
+       necesario para cruzar la separación de 2px.
+       Es la decisión de todo este bloque: para que brille más hay que
+       encender, no desenfocar. Abriendo el desenfoque acá el camino se
+       empasta en una sola mancha dorada y las piezas dejan de contarse de
+       un vistazo, que es justo lo que la costura tiene que permitir. */
+    0 0 5px 1.5px rgba(var(--luz), 1),
     0 2px 4px rgba(0, 0, 0, 0.6),
     /* Y el halo que cae sobre el fieltro, de 0.6rem a 1rem: es lo que hace
        que la pieza parezca estar iluminando la mesa en vez de sólo brillar. */
-    0 0 1rem rgba(228, 167, 0, 0.5);
+    0 0 1.7rem rgba(var(--luz-halo), 0.85),
+    /* El halo ancho, la capa nueva. Es la que hace el salto de brillo sin
+       tocar la juntura: muy abierto y a media opacidad, así que se suma
+       entre casillas vecinas y enciende el paño alrededor del camino
+       entero, pero al ser tan difuso no borra el filo de ninguna pieza.
+       Subir el desenfoque de la juntura habría dado el mismo brillo y
+       empastado el camino en una sola mancha, que es lo que hay que
+       evitar. */
+    0 0 3.4rem rgba(var(--luz-halo), 0.45);
 
-  border-radius: 0.35rem;
-  background: rgba(6, 16, 11, 0.82);
+  /* A escuadra. El redondeo ya no es de la casilla sino del TABLERO: sólo
+     las tres esquinas del anillo se curvan, y cada una por su lado de
+     afuera. Redondeando todas, el camino se leía como una fila de fichas
+     sueltas en vez de una cinta continua. */
+  border-radius: 0;
+  /* Negro pleno y no el verde translúcido de antes. Con el paño asomando
+     por debajo, cada casilla arrastraba un poco del color de la mesa y la
+     luz de los cantos caía sobre algo que ya tenía tono. Sobre negro, lo
+     único que se ve dentro de la pieza es lo que ella emite. */
+  background: var(--c-black);
   box-shadow: var(--relieve);
 
   display: grid;
   place-items: center;
 }
+
+
+/* ►► El confeti de la meta. ◄◄
+ *
+ * Estalla DENTRO de la casilla y se queda ahí. La capa de partículas que ya
+ * existía (`.particle`) cae 100vh: sirve para una pantalla entera, y metida
+ * en una casilla de 35px los papelitos se irían de la mesa en dos cuadros.
+ * Reusa los colores de la casa, no la animación.
+ *
+ * `overflow: visible` a propósito: los papeles se pasan un poco del borde,
+ * que es lo que hace que se lea como algo que revienta y no como un dibujo
+ * adentro de un cuadro. */
+.confeti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 3;
+}
+
+.confeti .papel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 15%;
+  height: 15%;
+  border-radius: 1px;
+  /* El ángulo sale del índice y no de un azar: con `Math.random()` en el
+     pintado, cada re-render mandaría el mismo papel para otro lado a mitad
+     del vuelo. Doce papeles repartidos en la vuelta entera, con un desfase
+     impar para que no queden en cruz perfecta. */
+  --ang: calc(var(--n) * 30deg + 11deg);
+  /* ►► El porcentaje acá se mide contra EL PAPEL, no contra la casilla. ◄◄
+     Es la trampa de `translate`: los porcentajes se resuelven contra el
+     propio elemento. Como el papel mide el 15% de la casilla, un 200% suyo
+     son 30 puntos de casilla. Con 200–400% los papeles llegan a media
+     casilla y los últimos asoman apenas por el borde, que es lo que hace
+     que se lea como un estallido. */
+  --dist: calc(200% + (var(--n) * 18%));
+  animation: confeti-vuela var(--dur-tablero-confeti) var(--ease-tablero-confeti) backwards;
+  animation-delay: calc(var(--n) * 8ms);
+}
+
+.confeti .papel.gold { background: var(--neon-amber); box-shadow: 0 0 4px var(--neon-amber-glow); }
+.confeti .papel.red  { background: var(--blood);      box-shadow: 0 0 4px var(--blood); }
+.confeti .papel.bone { background: var(--bone);       box-shadow: 0 0 4px var(--bone); }
+.confeti .papel.blue { background: var(--cyan);       box-shadow: 0 0 4px var(--cyan); }
+
+/* Sale del centro, se va girando hacia afuera y se apaga antes de llegar
+   al final del recorrido: así no se ve ninguno desaparecer de golpe. */
+@keyframes confeti-vuela {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.4);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(60deg) scale(1);
+  }
+  /* Centrar, girar el marco hasta el ángulo del papel, avanzar hacia
+     afuera, y recién ahí girar el papel sobre sí mismo. En ese orden: si el
+     giro propio fuera antes del avance, torcería la dirección de salida y
+     los papeles no se repartirían parejo. */
+  100% {
+    transform:
+      translate(-50%, -50%)
+      rotate(var(--ang))
+      translate(var(--dist))
+      rotate(540deg)
+      scale(0.35);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confeti { display: none; }
+}
+
+/* ►► Las tres esquinas del tablero. ◄◄
+ *
+ * El redondeo es del ANILLO, no de la pieza: cada esquina se curva sólo por
+ * su canto exterior, así que las cuatro casillas siguen encajando entre sí
+ * y lo que queda redondeado es la silueta del camino.
+ *
+ * La superior izquierda no está y no es un olvido: ahí vive la casilla 0, la
+ * meta. El ángulo vivo es lo que marca dónde arranca el recorrido en un
+ * camino que da la vuelta y no tiene final.
+ *
+ * En porcentaje por lo mismo que todo lo demás del tablero: la celda es un
+ * `1fr` que escala con la mesa, y un radio fijo se vería gordo en pantalla
+ * chica y apenas insinuado en grande. */
+.square.esq-sd { border-top-right-radius: 45%; }
+.square.esq-id { border-bottom-right-radius: 45%; }
+.square.esq-ii { border-bottom-left-radius: 45%; }
 
 /* La salida, a cuadros de bandera. Es de donde arrancan las fichas y por
    donde vuelven a pasar en cada vuelta, así que el recorrido necesita un
@@ -1571,10 +1705,21 @@ body {
 
    El damero sale de un gradiente cónico repetido y no de cuadraditos
    sueltos: son cuatro celdas y no vale sumar nodos al DOM por eso. */
+/* Sin aro: el filete dorado le partía el damero por la mitad de la primera
+   fila de cuadros y lo hacía leer como un cuadro más, torcido. Los cuadros
+   ya dicen dónde empieza el camino mejor que cualquier borde.
+   La luz sí queda, y en blanco: es la única pieza que no es del color de
+   nada, y teñirla de dorado la devolvía al montón. */
 .square.meta {
+  /* Contexto de posicionamiento para el confeti. Va sólo acá y no en
+     `.square`: es la única casilla que lo necesita. */
+  position: relative;
+  --luz: 255, 255, 255;
+  --luz-halo: 235, 235, 235;
+  --aro: transparent;
   background-image: repeating-conic-gradient(#f2f2f2 0% 25%, #111 0% 50%);
   background-size: 50% 50%;
-  box-shadow: var(--relieve), 0 0 0.6rem rgba(255, 255, 255, 0.4);
+  box-shadow: var(--relieve);
 }
 /* Sobre los cuadros no entra ningún ícono: acá manda la meta. */
 .square.meta svg { display: none; }
@@ -1593,11 +1738,15 @@ body {
    tamaño un símbolo no se distingue. */
 .square.penalty {
   background: var(--c-red);
-  box-shadow: var(--relieve), 0 0 0.6rem rgba(199, 0, 0, 0.75);
+  --luz: 255, 140, 110;
+  --luz-halo: 240, 70, 45;
+  --aro: #ff9d85;
 }
 .square.bonus {
   background: var(--c-blue);
-  box-shadow: var(--relieve), 0 0 0.6rem rgba(7, 36, 117, 0.9);
+  --luz: 140, 180, 255;
+  --luz-halo: 80, 130, 255;
+  --aro: #a8c2ff;
 }
 /* El bonus dado vuelta por la maldición. Morado y no rojo: el rojo es la
    penitencia, que existe en el tablero de los dos y siempre; ésta la puso
@@ -1607,7 +1756,12 @@ body {
    casilla se explica sola. */
 .square.turnloss {
   background: var(--c-purple);
-  box-shadow: var(--relieve), 0 0 0.7rem rgba(91, 45, 142, 0.95);
+  /* Sigue al bonus y a la penitencia: si esta quedara alumbrando dorado
+     mientras las otras dos alumbran lo suyo, se leería como una casilla
+     neutra pintada de morado en vez de una que hace algo. */
+  --luz: 205, 155, 255;
+  --luz-halo: 165, 95, 240;
+  --aro: #d6b3ff;
 }
 
 /* ---- caer en una casilla ----
@@ -2237,9 +2391,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .card-cast .card,
   .fighter.impacto-robo .fighter-frame,
-  .fighter.impacto-maldicion .fighter-frame,
+    .fighter.impacto-maldicion .fighter-frame,
   .fighter.impacto-robo .f-score,
-  .fighter.impacto-maldicion .f-score { animation: none; }
+    .fighter.impacto-maldicion .f-score { animation: none; }
   .card-cast.vuela .card,
   .card-cast.bloqueada .card { opacity: 0; }
 }
@@ -2627,6 +2781,11 @@ body {
    destello que se ve al recibirlo, asi que la carta y su consecuencia se
    leen como la misma cosa. */
 .card.punch   { background: var(--c-red); color: #fff; }
+/* El bronce de la paleta original —uno de los cuatro fondos de los gatos—.
+   Contra blanco da 4.54:1, que pasa AA. Los otros marrones que hay son los
+   de la madera del marco: tan oscuros que la carta se leería negra y
+   chocaría con ROBAR. */
+.card.beer    { background: var(--c-bronze); color: #fff; }
 /* Dos dados pasa a dorado: el azul quedó reservado para las casillas de
    bonus y repetirlo acá los mezclaba. */
 .card.double  { background: var(--c-gold); color: var(--c-black); }
@@ -2790,6 +2949,7 @@ body {
 .pc-front.defense { background: var(--c-green); }
 .pc-front.curse   { background: var(--c-purple); }
 .pc-front.punch   { background: var(--c-red); }
+.pc-front.beer    { background: var(--c-bronze); }
 .pc-front.double  { background: var(--c-gold); color: var(--c-black); }
 
 /* Bloqueada por la defensa del rival: se ve igual pero apagada y tachada,
@@ -4073,8 +4233,20 @@ body {
   pointer-events: all;
 }
 
+/* El alto es lo que hacía que las reglas se salieran de la pantalla: sin
+   tope, el modal medía lo que midiera el contenido y el sobrante quedaba
+   cortado por el overflow hidden, sin barra y sin forma de llegar.
+   Ahora el modal es una columna con techo, y lo único que estira es el
+   cuerpo. Encabezado, pestañas y pie quedan siempre visibles.
+   El dvh va después del vh a propósito: en móvil la barra del navegador
+   entra y sale, y vh mide la pantalla sin ella. El navegador que no lo
+   entienda se queda con la línea de arriba. */
 .rules-modal {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+  max-height: 88dvh;
   width: min(62rem, 90vw);
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.75)),
@@ -4105,19 +4277,13 @@ body {
   box-shadow: 0 0 1.2rem var(--neon-amber);
 }
 
+/* Sin borde inferior: antes separaba el título del contenido, pero ahora
+   abajo vienen las pestañas y quedaban dos líneas casi pegadas. */
 .rules-header {
   position: relative;
-  padding: 2.4rem 3rem 2rem;
-  border-bottom: 1px dashed rgba(245, 185, 66, 0.25);
+  padding: 2.4rem 3rem 1.6rem;
   text-align: center;
-}
-.rules-tag {
-  font-family: var(--display);
-  font-size: 1.1rem;
-  color: var(--bone-dim);
-  letter-spacing: 0.5rem;
-  text-transform: uppercase;
-  margin-bottom: 0.6rem;
+  flex: none;
 }
 .rules-title {
   font-family: var(--display);
@@ -4153,11 +4319,178 @@ body {
   box-shadow: 0 0 1.2rem rgba(199, 54, 95, 0.4);
 }
 
+/* Las secciones. Sin esto la única forma de llegar a las cartas era
+   scrollear siete reglas, y quien abre las reglas en medio de una partida
+   viene por UNA cosa. */
+.rules-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 1.2rem 3rem 0;
+  flex: none;
+}
+
+.rules-tab {
+  font-family: var(--display);
+  font-size: 1rem;
+  letter-spacing: 0.14rem;
+  color: var(--bone-dim);
+  background: transparent;
+  border: 1px solid rgba(232, 225, 204, 0.16);
+  border-bottom: none;
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 0.7rem 1.3rem;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.rules-tab:hover {
+  color: var(--bone);
+  background: rgba(245, 185, 66, 0.05);
+}
+
+.rules-tab.activa {
+  color: var(--neon-amber);
+  border-color: rgba(245, 185, 66, 0.45);
+  background: rgba(245, 185, 66, 0.09);
+  text-shadow: 0 0 0.7rem var(--neon-amber-glow);
+}
+
+/* El único que estira y el único que scrollea. `min-height: 0` no es
+   adorno: sin eso un hijo de flex no baja de su alto de contenido y el
+   overflow no llega a activarse nunca — vuelve el bug entero. */
 .rules-body {
   padding: 2rem 3rem;
   display: flex;
   flex-direction: column;
   gap: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border-top: 1px solid rgba(245, 185, 66, 0.25);
+  overscroll-behavior: contain;
+}
+
+.rules-body::-webkit-scrollbar {
+  width: 0.7rem;
+}
+.rules-body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.35);
+}
+.rules-body::-webkit-scrollbar-thumb {
+  background: rgba(245, 185, 66, 0.3);
+  border-radius: 0.4rem;
+}
+.rules-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 185, 66, 0.5);
+}
+
+/* La regla del 1 y el acumulado. Va con tratamiento propio porque es la
+   tensión sobre la que se apoya el juego entero, y en la lista se leía con
+   el mismo peso que "el camino da la vuelta". */
+.rule-hero {
+  border: 1px solid rgba(199, 54, 95, 0.45);
+  border-radius: 0.8rem;
+  background:
+    linear-gradient(180deg, rgba(199, 54, 95, 0.12), rgba(199, 54, 95, 0.03));
+  box-shadow:
+    0 0 2rem rgba(199, 54, 95, 0.18),
+    inset 0 0 2rem rgba(0, 0, 0, 0.4);
+  padding: 1.6rem 1.8rem 1.8rem;
+  margin-bottom: 1.6rem;
+}
+
+.rule-hero-tag {
+  font-family: var(--display);
+  font-size: 0.95rem;
+  letter-spacing: 0.3rem;
+  color: var(--blood);
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 1.4rem;
+}
+
+.rule-hero-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.8rem;
+}
+
+.rule-hero-cara {
+  flex: none;
+  width: 6.4rem;
+  height: 6.4rem;
+}
+
+.rule-hero-cara svg {
+  width: 100%;
+  height: 100%;
+}
+/* El contorno del dado en hueso y el punto lleno en rojo: el 1 tiene que
+   leerse como una amenaza y no como un número más. */
+.rule-hero-cara rect {
+  fill: rgba(0, 0, 0, 0.35);
+  stroke: var(--bone);
+  stroke-width: 5;
+}
+.rule-hero-cara circle {
+  fill: var(--blood);
+}
+
+.rule-hero-texto {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--bone-dim);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.rule-hero-texto b {
+  color: var(--blood);
+  font-weight: 400;
+}
+.rule-hero-texto i {
+  font-style: normal;
+  color: var(--bone);
+}
+
+.rule-hero-linea {
+  font-size: 1.45rem;
+  color: var(--bone);
+  line-height: 1.35;
+}
+
+@media (max-width: 640px) {
+  .rules-tabs {
+    padding: 1rem 1.4rem 0;
+  }
+  .rules-tab {
+    font-size: 0.85rem;
+    padding: 0.6rem 0.9rem;
+    letter-spacing: 0.08rem;
+  }
+  .rules-body {
+    padding: 1.4rem 1.4rem;
+  }
+  /* El fondo del hover sale por los costados con un margen negativo que
+     está calzado al padding del cuerpo. Acá el padding es menor, y sin
+     recalcularlo el bloque se pasa de largo — y como el cuerpo scrollea en
+     vertical, el eje horizontal también deja de ser `visible` y aparece una
+     barra de scroll lateral. */
+  .rules-rule:hover {
+    margin: 0 -1.4rem;
+    padding-left: 1.4rem;
+    padding-right: 1.4rem;
+  }
+  /* En una columna angosta el dado al costado le deja al texto un canal de
+     pocas palabras por renglón, que es donde la lectura se rompe. */
+  .rule-hero-body {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.2rem;
+    text-align: center;
+  }
 }
 
 .rules-rule {
@@ -4275,12 +4608,15 @@ body {
 
 /* La casilla de muestra: mismo color e ícono que en el tablero, en un
    tamaño donde el dibujo se lea. */
+/* A escuadra, igual que en el tablero: la muestra tiene que ser la pieza
+   que se va a reconocer jugando, no una parecida. Y penitencia y bonus
+   nunca caen en una esquina del anillo, así que ésta es su forma real. */
 .rule-chip {
   position: static;
   flex: none;
   width: 3.4rem;
   height: 3.4rem;
-  border-radius: 0.5rem;
+  border-radius: 0;
 }
 
 /* La carta de muestra reusa .card por el color y el ícono, pero sin nada
@@ -4304,6 +4640,7 @@ body {
 .rules-rule.win:hover .rule-num { color: rgba(245, 185, 66, 0.4); }
 
 .rules-footer {
+  flex: none;
   padding: 1.6rem 3rem 2.4rem;
   border-top: 1px dashed rgba(245, 185, 66, 0.2);
   display: flex;
@@ -4311,25 +4648,6 @@ body {
   align-items: center;
   gap: 1.4rem;
 }
-.rules-chips-deco {
-  display: flex;
-  gap: 0.8rem;
-  align-items: center;
-}
-.rules-chips-deco .chip {
-  width: 2rem;
-  height: 2rem;
-  animation: none;
-  opacity: 0.7;
-}
-.rules-overlay.open .rules-chips-deco .chip {
-  animation: chip-in var(--dur-ambiente-ficha-entra-reglas) var(--ease-ambiente-ficha-entra-reglas) backwards;
-}
-.rules-chips-deco .chip:nth-child(1) { animation-delay: 0.15s; }
-.rules-chips-deco .chip:nth-child(2) { animation-delay: 0.22s; }
-.rules-chips-deco .chip:nth-child(3) { animation-delay: 0.29s; }
-.rules-chips-deco .chip:nth-child(4) { animation-delay: 0.36s; }
-.rules-chips-deco .chip:nth-child(5) { animation-delay: 0.43s; }
 .rules-footer-text {
   font-family: var(--display);
   font-size: 1rem;
@@ -4731,6 +5049,83 @@ body {
 .title-start:focus-visible {
   outline: 2px solid var(--c-gold);
   outline-offset: 0.6rem;
+}
+
+/* Retirar una carta de la mesa. Mientras esté boca abajo no pasó nada, así
+   que arrepentirse sale gratis — pero la posibilidad tiene que verse, o el
+   que puso una carta por error no descubre nunca que puede levantarla. */
+.played-card.retirable {
+  cursor: pointer;
+}
+.played-card.retirable:hover .pc-inner,
+.played-card.retirable:focus-visible .pc-inner {
+  transform: translateY(-0.5rem);
+  box-shadow: 0 0.8rem 1.6rem rgba(0, 0, 0, 0.5);
+}
+.played-card.retirable:focus-visible {
+  outline: 2px solid var(--neon-amber);
+  outline-offset: 3px;
+}
+/* La flecha aparece recién al pasar por encima: fija sobre cada carta
+   ensuciaría la fila, que es lo que hay que poder contar de un vistazo. */
+.played-card.retirable::after {
+  content: "B6";
+  position: absolute;
+  top: -0.7rem;
+  right: -0.7rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--neon-amber);
+  color: #000;
+  font-family: var(--display);
+  font-size: 1rem;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.15s, transform 0.15s;
+  pointer-events: none;
+}
+.played-card.retirable:hover::after,
+.played-card.retirable:focus-visible::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ============================================
+   CERVEZA: LA MESA BORROSA
+   ============================================ */
+/* ►► Se nubla la MESA, no la pantalla. ◄►
+ *
+ * El tablero y el dado son la información con la que se decide si seguir
+ * tirando: sin leerlos bien, el jugador tiene que ir de memoria, que es
+ * exactamente el castigo.
+ *
+ * Los puntajes, las cartas y los botones quedan nítidos a propósito.
+ * Nublando todo, el que la recibe deja de saber de quién es el turno y
+ * cuánto lleva acumulado — y eso ya no es un castigo divertido, es no
+ * poder jugar. Se le saca información de juego, no la orientación.
+ *
+ * 3px y no más: tiene que costar leer el camino, no ser imposible. */
+.versus-screen.borroso .pool-table {
+  /* El tinte va en el mismo filtro y no en un pseudo-elemento porque
+     `.pool-table::before` y `::after` ya son las luces del marco: meterse
+     ahí apagaría la marquesina.
+     El sepia sobre el paño verde da el tono cerveza sin agregar ni un
+     elemento, y de paso es la señal permanente de que hay una encima —sin
+     algo que se vea distinto, el jugador que se distrajo un segundo no
+     sabe si es el efecto o su monitor. */
+  /* `--borrachera` es cuántas cervezas tiene encima: una multiplica, dos
+     nublan el doble. La cuenta va acá y no en clases sueltas por nivel —
+     agregar un escalón no obliga a escribir una regla nueva. El sepia sube
+     mucho más despacio: llevarlo también al doble deja la mesa naranja
+     fluorescente y se pierde de qué color era cada casilla. */
+  filter:
+    blur(calc(3px * var(--borrachera, 1)))
+    sepia(calc(0.4 + 0.1 * (var(--borrachera, 1) - 1)))
+    saturate(1.15);
+  transition: filter 700ms ease-out;
 }
 
 /* ============================================

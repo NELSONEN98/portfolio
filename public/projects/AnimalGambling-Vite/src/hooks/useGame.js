@@ -7,6 +7,8 @@ import {
   SQUARE,
   squareFor,
   advance,
+  passedStart,
+  LAP_BONUS,
   startingHand,
   randomBonusCard,
   resolveRoll,
@@ -15,6 +17,8 @@ import {
   nextSeat,
   cappedScore,
   applyCard,
+  tickBeer,
+  addBeer,
   dropCard,
   makeBoard,
 } from "../../convex/rules";
@@ -39,6 +43,8 @@ export function newPlayer(char) {
     hand: startingHand(),
     pendingCards: [],
     curseTurns: 0,
+    beerTurns: 0,
+    beerStacks: 0,
     doubleNext: false,
   };
 }
@@ -105,6 +111,7 @@ export function useGame() {
     const casilla = squareFor(tablero, p.pos ?? 0, (p.curseTurns ?? 0) > 0);
     const hechos = [];
     let { score, hand } = p;
+    let borrachera = { beerTurns: p.beerTurns ?? 0, beerStacks: p.beerStacks ?? 0 };
 
     if (casilla === SQUARE.PENALTY) {
       score = applyPenalty(score);
@@ -119,7 +126,21 @@ export function useGame() {
          mira el de la mano. Preguntando antes habría que adivinar cuál de
          los dos bolsillos va a hacer falta. */
       const ganada = randomBonusCard(rand, Date.now());
-      if (hasRoomFor(ganada, hand ?? [], p.pendingCards ?? [])) {
+
+      if (ganada.type === CARD.BEER) {
+        /* ►► La cerveza no entra a la mano: te la tomás ahí mismo. ◄◄
+         *
+         * Es la única carta que se consume al recibirla, y por eso es la
+         * única que no ocupa lugar ni se puede guardar. Como jugable era una
+         * carta muerta —sólo te perjudica a vos, así que nadie la iba a
+         * poner nunca— y encima te robaba uno de los cinco espacios del
+         * bolsillo, o sea que salir en el bonus era peor que no salir nada.
+         *
+         * Resuelta acá, la casilla de bonus pasa a tener riesgo de verdad:
+         * caer en ella deja de ser gratis. */
+        borrachera = addBeer(borrachera);
+        hechos.push(evento("bonus", { nombre: p.char.name, carta: ganada }));
+      } else if (hasRoomFor(ganada, hand ?? [], p.pendingCards ?? [])) {
         hand = [...(hand ?? []), ganada];
         /* La carta viaja con el hecho: la interfaz la muestra grande antes
            de que llegue al abanico, y comparando manos no podría separar la
@@ -133,7 +154,7 @@ export function useGame() {
       }
     }
 
-    return { jugador: { ...p, score, hand }, hechos };
+    return { jugador: { ...p, score, hand, ...borrachera }, hechos };
   }, []);
 
   /* Tira y devuelve todo lo que hay que mostrar. No toca los dados ni el
@@ -164,14 +185,30 @@ export function useGame() {
            puntaje sigue su regla —el 1 no suma— pero el tablero es
            posición física y tiene que coincidir con lo que se ve. */
         const pasos = tirada.dice.reduce((a, b) => a + b, 0);
-        const destino = advance(p.pos ?? 0, pasos);
+        const desde = p.pos ?? 0;
+        const destino = advance(desde, pasos);
+
+        /* La vuelta se pregunta ANTES de que `advance` aplique el módulo:
+           después, la casilla 3 no sabe si vino de la 1 o de la 38.
+           Va al marcador y no al acumulado del turno, simétrico con la
+           penitencia: son los dos efectos del CAMINO, y lo que da el camino
+           no se pierde al quemarse. */
+        const vuelta = passedStart(desde, pasos);
 
         const siguiente = [...prev];
-        siguiente[active] = { ...p, pos: destino, doubleNext: false };
+        siguiente[active] = {
+          ...p,
+          pos: destino,
+          score: vuelta ? p.score + LAP_BONUS : p.score,
+          doubleNext: false,
+        };
+        if (vuelta) {
+          emit(evento("vuelta", { nombre: p.char.name, puntos: LAP_BONUS }));
+        }
         return siguiente;
       });
     },
-    [active]
+    [active, emit]
   );
 
   /* Fase dos: lo que valió la tirada.
@@ -205,6 +242,10 @@ export function useGame() {
             hand: [...(p.hand ?? []), ...devueltas],
             pendingCards: [],
             curseTurns: Math.max(0, (p.curseTurns ?? 0) - 1),
+            ...tickBeer({
+              beerTurns: p.beerTurns ?? 0,
+              beerStacks: p.beerStacks ?? 0,
+            }),
           };
           return siguiente;
         }
@@ -258,7 +299,21 @@ export function useGame() {
         const siguiente = [...prev];
         const hand = dropCard(p.hand, uid);
 
-        if (carta.type === CARD.DOUBLE) {
+        if (carta.type === CARD.BEER) {
+          /* Se la toma el que la juega. Va por el mismo camino que los dos
+             dados —efecto inmediato sobre uno mismo— y no por el de las
+             cartas boca abajo: no hay nada que revelar al plantarse cuando
+             el efecto no viaja a ningún lado. */
+          siguiente[active] = {
+            ...p,
+            hand,
+            ...addBeer({
+              beerTurns: p.beerTurns ?? 0,
+              beerStacks: p.beerStacks ?? 0,
+            }),
+          };
+          emit(evento("cerveza"));
+        } else if (carta.type === CARD.DOUBLE) {
           /* Vale para la tirada de este mismo turno, así que se aplica ya y
              no queda esperando al plantarse. */
           siguiente[active] = { ...p, hand, doubleNext: true };
@@ -268,6 +323,33 @@ export function useGame() {
           siguiente[active] = { ...p, hand, pendingCards };
           emit(evento("cartaPuesta", { cantidad: pendingCards.length }));
         }
+        return siguiente;
+      });
+    },
+    [active, emit]
+  );
+
+  /* Levantar una carta del fieltro y volver a guardarla en la mano.
+   *
+   * Mientras esté boca abajo no pasó nada: para el rival la carta recién
+   * existe cuando el que la puso se planta, así que arrepentirse no le saca
+   * información a nadie y no hace falta cobrarle nada.
+   *
+   * Sin chequeo de tope, y no es un olvido: `countPlayable` ya cuenta las
+   * puestas, o sea que una que vuelve a la mano no mueve el total. Si entró,
+   * hay lugar para que vuelva. */
+  const takeBackCard = useCallback(
+    (uid) => {
+      setPlayers((prev) => {
+        const p = prev[active];
+        if (!p) return prev;
+        const carta = (p.pendingCards ?? []).find((c) => c.uid === uid);
+        if (!carta) return prev;
+
+        const siguiente = [...prev];
+        const pendingCards = dropCard(p.pendingCards ?? [], uid);
+        siguiente[active] = { ...p, hand: [...(p.hand ?? []), carta], pendingCards };
+        emit(evento("cartaRetirada", { cantidad: pendingCards.length }));
         return siguiente;
       });
     },
@@ -339,6 +421,10 @@ export function useGame() {
         current: 0,
         pendingCards: [],
         curseTurns: Math.max(0, (prev[active].curseTurns ?? 0) - 1),
+        ...tickBeer({
+          beerTurns: prev[active].beerTurns ?? 0,
+          beerStacks: prev[active].beerStacks ?? 0,
+        }),
       };
       if (prev[otro]) {
         siguiente[otro] = {
@@ -363,7 +449,7 @@ export function useGame() {
   return {
     board, players, active, playing, finished, rolling, goal, events, miLado, hayPartida,
     setPlayers, setActive, setBoard, setPlaying, setFinished, setRolling, setGoal, setMiLado,
-    start, roll, settleRoll, sumarPuntos, resolverCasilla, endTurn, playCard, hold, winner,
+    start, roll, settleRoll, sumarPuntos, resolverCasilla, endTurn, playCard, takeBackCard, hold, winner,
     emit, consumeEvents,
   };
 }
