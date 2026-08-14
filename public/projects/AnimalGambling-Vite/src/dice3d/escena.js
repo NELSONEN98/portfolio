@@ -56,6 +56,24 @@ const LADO = 2.5;
  * falta al agrandar la mesa. */
 const VISTA = 7.66;
 
+/* ─── La bomba de humo ───────────────────────────────────────────────────
+ * Tapa la aparición y la desaparición del segundo dado. Sin ella el cubo
+ * se materializaba de la nada en el medio de la mesa, que es el único
+ * momento de toda la escena donde algo pasa sin explicación física.
+ *
+ * Son sprites y no geometría: una bocanada es humo, no un objeto: no tiene
+ * silueta que valga la pena modelar, y un puñado de planos que siempre
+ * miran a la cámara da el volumen a un costo que ni se nota. */
+const HUMO_BOCANADAS = 11;
+const HUMO_VIDA_MS = 620;
+/* Cuánto se abre la nube. En lados de cubo, para que siga al dado si algún
+   día cambia de tamaño.
+   Medido contra el encuadre: a 1.15 la nube ocupaba el 79% del alto visible
+   y tapaba la mesa entera dos veces por cada carta de dos dados. A 0.8 queda
+   en ~60% —sigue siendo una bomba, deja ver dónde está jugando—. Éste es el
+   número a tocar si se quiere más o menos aparatosa. */
+const HUMO_RADIO = LADO * 0.8;
+
 /* Cuánto se meten las paredes respecto del borde visible, para que un cubo
    apoyado contra el muro no quede cortado por la mitad. */
 const MARGEN = LADO * 0.55;
@@ -452,6 +470,31 @@ export function crearEscena(canvas) {
   let raf = 0;
   let vivo = true;
 
+  /* Las bocanadas vivas. Mientras haya una, el bucle no se puede dormir. */
+  let humo = [];
+  let humoMs = 0;
+
+  /* Una sola textura para todas: un degradado radial que se desvanece hasta
+     transparente en el borde. Dibujarla en un canvas y no traerla como PNG
+     evita un archivo más para algo que son ocho líneas, y de paso no hay
+     nada que se cargue tarde.
+     `colorSpace` va sí o sí: sin eso el humo sale apagado, el mismo error
+     que tenían las caras del dado. */
+  const texturaHumo = (() => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 128;
+    const g = c.getContext("2d");
+    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, "rgba(255, 255, 255, 0.6)");
+    grad.addColorStop(0.4, "rgba(226, 228, 235, 0.3)");
+    grad.addColorStop(1, "rgba(200, 204, 215, 0)");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  })();
+
   /* El cubo que el jugador tiene agarrado, si hay alguno. */
   let agarrado = null;
 
@@ -477,8 +520,88 @@ export function crearEscena(canvas) {
     );
   }
 
+  /* Una bocanada en un punto de la mesa. */
+  function soltarHumo(x, y, z) {
+    for (let i = 0; i < HUMO_BOCANADAS; i++) {
+      const material = new THREE.SpriteMaterial({
+        map: texturaHumo,
+        transparent: true,
+        /* No escribe en el buffer de profundidad: si lo hiciera, la bocanada
+           de adelante recortaría a la de atrás y en vez de una nube se
+           verían discos pegados. */
+        depthWrite: false,
+        opacity: 0,
+      });
+      const sprite = new THREE.Sprite(material);
+      sprite.position.set(x, y, z);
+      scene.add(sprite);
+
+      /* Cada una sale hacia un lado distinto, en semiesfera: hacia arriba y
+         hacia los costados, nunca hacia abajo, que es donde está la mesa. */
+      const ang = Math.random() * Math.PI * 2;
+      const alto = 0.25 + Math.random() * 0.75;
+      const radio = Math.sqrt(1 - alto * alto);
+      humo.push({
+        sprite,
+        material,
+        t: 0,
+        /* Vidas distintas: si todas se apagaran juntas, la nube
+           desaparecería de golpe como si le cortaran la luz. */
+        vida: HUMO_VIDA_MS * (0.7 + Math.random() * 0.6),
+        x, y, z,
+        dx: Math.cos(ang) * radio * HUMO_RADIO * (0.5 + Math.random() * 0.9),
+        dy: alto * HUMO_RADIO * (0.4 + Math.random() * 0.7),
+        dz: Math.sin(ang) * radio * HUMO_RADIO * (0.5 + Math.random() * 0.9),
+        s0: LADO * 0.3,
+        s1: LADO * (0.75 + Math.random() * 0.5),
+        op: 0.55 + Math.random() * 0.35,
+        giro: (Math.random() - 0.5) * 1.6,
+      });
+    }
+    arrancarBucle();
+  }
+
+  function actualizarHumo(dt) {
+    for (let i = humo.length - 1; i >= 0; i--) {
+      const p = humo[i];
+      p.t += dt;
+      const k = p.t / p.vida;
+
+      if (k >= 1) {
+        scene.remove(p.sprite);
+        /* El material es de cada bocanada —lleva su propia opacidad— así que
+           se tira una por una. La textura NO: es compartida y vive hasta que
+           se destruye la escena. */
+        p.material.dispose();
+        humo.splice(i, 1);
+        continue;
+      }
+
+      /* Se abre rápido y va frenando, como algo que se expande contra el
+         aire en vez de viajar. */
+      const e = 1 - Math.pow(1 - k, 2.2);
+      p.sprite.position.set(p.x + p.dx * e, p.y + p.dy * e, p.z + p.dz * e);
+      const escala = p.s0 + (p.s1 - p.s0) * e;
+      p.sprite.scale.set(escala, escala, escala);
+      /* Al cuadrado: se desvanece despacio al principio y se apaga rápido al
+         final. Lineal deja un velo gris flotando que se nota. */
+      p.material.opacity = p.op * (1 - k) * (1 - k);
+      p.material.rotation = p.giro * e;
+    }
+  }
+
   function setCantidad(n) {
     if (dados.length === n) return;
+
+    const previo = dados.length;
+
+    /* Los que se van sueltan humo DONDE ESTÁN, no donde arrancaron: el
+       segundo dado desaparece desde el rincón al que rodó, y la bocanada
+       tiene que taparlo ahí. */
+    for (let i = n; i < previo; i++) {
+      const q = dados[i].mesh.position;
+      soltarHumo(q.x, q.y, q.z);
+    }
 
     for (const d of dados) {
       scene.remove(d.mesh);
@@ -503,10 +626,16 @@ export function crearEscena(canvas) {
       mesh.castShadow = true;
       scene.add(mesh);
 
+      /* La bocanada del que aparece, en el punto exacto donde se materializa
+         y no un cuadro después: sin esto se lo ve aparecer y el humo llega
+         tarde a taparlo. */
+      const x = (i - (n - 1) / 2) * LADO * 1.6;
+      if (i >= previo) soltarHumo(x, LADO * 0.5, 0);
+
       const body = new CANNON.Body({
         mass: 5,
         shape: forma,
-        position: new CANNON.Vec3((i - (n - 1) / 2) * LADO * 1.6, LADO * 0.5, 0),
+        position: new CANNON.Vec3(x, LADO * 0.5, 0),
         sleepSpeedLimit: 0.4,
         angularDamping: 0.1,
       });
@@ -598,8 +727,17 @@ export function crearEscena(canvas) {
 
   function arrancarBucle() {
     if (raf) return;
+    humoMs = performance.now();
     const paso = () => {
       if (!vivo) return;
+
+      /* El delta real y no un valor fijo por cuadro: en una pantalla de
+         120Hz o con la pestaña volviendo de segundo plano, un paso fijo
+         hace que la nube dure el doble o salte entera. */
+      const ahora = performance.now();
+      const dt = Math.min(64, ahora - humoMs);
+      humoMs = ahora;
+      if (humo.length) actualizarHumo(dt);
 
       if (estado === "rodando") {
         world.fixedStep();
@@ -623,8 +761,11 @@ export function crearEscena(canvas) {
       pintar();
 
       /* El bucle se apaga cuando no hay nada moviéndose. Dejarlo girando
-         come batería durante todo el turno del rival. */
-      if (estado === "quieto") {
+         come batería durante todo el turno del rival.
+         El humo cuenta como movimiento: los dados pueden estar quietos y la
+         nube a medio disipar, y sin esta condición se congelaba en el aire
+         hasta la próxima tirada. */
+      if (estado === "quieto" && !humo.length) {
         raf = 0;
         return;
       }
@@ -792,6 +933,12 @@ export function crearEscena(canvas) {
         m.dispose();
       });
     }
+    for (const p of humo) {
+      scene.remove(p.sprite);
+      p.material.dispose();
+    }
+    humo = [];
+    texturaHumo.dispose();
     geometria.dispose();
     renderer.dispose();
   }
