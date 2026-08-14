@@ -57,6 +57,15 @@
   --chip-black: #1a1a1a;
 
   --display: "Bungee", sans-serif;
+  /* El código de sala se dicta por voz y se copia a mano, y Bungee es una
+     tipografía de despliegue: trazos gruesos, poca distancia entre formas
+     parecidas y pensada para leerse de reojo, no carácter por carácter.
+     Una monoespaciada del sistema le da ancho fijo a cada símbolo, que es
+     justo lo que hace legible una cadena sin palabras.
+     El alfabeto ya excluye I, O, 0 y 1 (convex/rooms.ts), así que con la
+     fuente neutra no queda ninguna ambigüedad. */
+  --codigo: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas,
+    monospace;
 }
 
 * {
@@ -295,11 +304,87 @@ body {
 }
 
 .room-code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.room-code-label {
   font-family: var(--display);
-  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-size: 1.1rem;
+  color: var(--bone-dim);
+  letter-spacing: 0.25em;
+}
+
+.room-code-box {
+  display: flex;
+  align-items: stretch;
+  gap: 0.6rem;
+}
+
+.room-code-value,
+.room-code-copy {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.8rem;
   color: #fff;
-  letter-spacing: 0.3em;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.room-code-value:hover,
+.room-code-copy:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.room-code-value {
+  font-family: var(--codigo);
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-weight: 700;
+  letter-spacing: 0.28em;
   text-shadow: 0 0 1.6rem rgba(255, 255, 255, 0.4);
+  /* El tracking le cuelga un espacio a la derecha del último carácter, así
+     que el texto queda corrido hacia la izquierda dentro de su caja. El
+     padding asimétrico devuelve el bloque al centro óptico. */
+  padding: 0.7rem 0.8rem 0.7rem calc(0.8rem + 0.28em);
+}
+
+.room-code-copy {
+  display: grid;
+  place-items: center;
+  width: 3.6rem;
+  flex: none;
+}
+
+.room-code-copy svg {
+  width: 1.7rem;
+  height: 1.7rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.room-code-copy.ok {
+  color: var(--c-gold);
+  border-color: var(--c-gold);
+}
+
+/* La altura mínima reserva el renglón: el texto cambia al copiar y sin
+   esto el bloque entero daría un salto justo cuando el ojo está mirando. */
+.room-code-hint {
+  font-family: var(--display);
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  color: var(--bone-dim);
+  min-height: 1.3em;
+}
+
+.room-code-hint.ok {
+  color: var(--c-gold);
 }
 
 .room-waiting p {
