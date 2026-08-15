@@ -3,12 +3,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useGame, newPlayer } from "./hooks/useGame";
 import { useRouter } from "./hooks/useRouter";
 import { useToasts, errorText } from "./hooks/useToasts";
+import { useAlerta } from "./hooks/useAlerta";
 import { useOnlineRoom } from "./hooks/useOnlineRoom";
 import { ROSTER, charFromCatId, warmRosterFrames } from "./roster";
 
 import Preloader from "./components/Preloader";
 import Toasts from "./components/Toasts";
 import RulesModal from "./components/RulesModal";
+import Alerta from "./components/Alerta";
 import CardGained from "./components/CardGained";
 import CardCast, { COLOR_IMPACTO } from "./components/CardCast";
 
@@ -29,16 +31,19 @@ const IMPACTO_MS = ms("peleador.golpeMarco") + 50;
 /* El respiro entre los puntos del dado y lo que dice la casilla. */
 const ESPERA_CASILLA = ms("tablero.esperaCasilla");
 
-/* Cuánto queda en pantalla el cartel de turno perdido. Sale del mismo
-   catálogo que la animación que lo dibuja: con dos números escritos por
-   separado, el nodo se desmontaba antes de que el destello terminara y el
-   cartel se cortaba en seco. */
-const QUEMADO_MS = ms("dado.quemado");
-
 /* Traduce los hechos que emite el motor a los avisos que ve el jugador.
    El hook dice qué pasó; acá se decide cómo se cuenta. Esa separación es
    lo que permite que en React Native el mismo hecho dispare una vibración
    en lugar de un cartel. */
+/* Qué bolsillo se llenó. Son dos topes distintos —cinco jugables y tres
+   escudos— y decir "mazo lleno" cuando lo que sobra son escudos manda al
+   jugador a hacer lugar donde ya lo había.
+   Vive suelto y no adentro de la tabla porque lo necesitan los dos modos: en
+   local el hecho viene del motor, y en online se arma con lo que informa el
+   servidor. Un texto escrito dos veces es un texto que se desincroniza. */
+const TEXTO_LLENO = (tipo) =>
+  tipo === CARD.DEFENSE ? "ESCUDOS LLENOS" : "MAZO LLENO";
+
 const MENSAJES = {
   penitencia: (e) => [`Penitencia — ${e.nombre} pierde ${e.puntos}`, "error"],
   /* Sin aviso cuando la carta se muestra sola: dos anuncios de lo mismo se
@@ -51,10 +56,7 @@ const MENSAJES = {
      Dos bolsillos, dos textos: los escudos y las cartas jugables se llenan
      por separado, y decir "mazo lleno" cuando lo que sobra son escudos
      mandaría a hacer lugar donde ya lo había. */
-  bonusLleno: (e) => [
-    e.tipo === CARD.DEFENSE ? "ESCUDOS AL MÁXIMO" : "MAZO LLENO",
-    "cartel",
-  ],
+  bonusLleno: (e) => [TEXTO_LLENO(e.tipo), "cartel"],
   vuelta: (e) => [`Vuelta completa — ${e.nombre} se lleva ${e.puntos}`],
   dosDados: () => ["Dos dados en tu próxima tirada"],
   cartaPuesta: (e) => [
@@ -73,6 +75,7 @@ export default function App() {
   const juego = useGame();
   const sala = useOnlineRoom();
   const { toasts, notify, dismiss } = useToasts();
+  const { alerta, anunciar } = useAlerta();
 
   /* Los setters de useState y los refs son estables por contrato de React;
      el objeto que los envuelve no lo es, porque useGame lo arma de nuevo en
@@ -108,21 +111,6 @@ export default function App() {
   const [impacto, setImpacto] = useState(null);
   /* Se pidió la tirada al servidor y todavía no volvió. */
   const [pidiendoTirada, setPidiendoTirada] = useState(false);
-  /* El cartel grande del medio de la pantalla, con su texto.
-   *
-   * Era `quemado`, un booleano con la frase escrita en el JSX — o sea un
-   * cartel que sólo sabía decir una cosa. Ahora guarda QUÉ decir, así el
-   * mismo nodo, la misma animación y el mismo temporizador sirven para
-   * cualquier anuncio que tenga que frenar la pantalla. Duplicarlo para el
-   * segundo mensaje habría sido duplicar también las tres cosas.
-   *
-   * La clave cambia en cada aviso: dos iguales seguidos tienen que reiniciar
-   * la animación, y sin algo que cambie React reusaría el nodo y el segundo
-   * no se vería. */
-  const [aviso, setAviso] = useState(null);
-  const anunciar = useCallback((texto) => {
-    setAviso({ texto, key: Math.random() });
-  }, []);
 
   /* La carta que el servidor ya entregó pero que todavía no se mostró:
      espera a que la ficha frene para aparecer. */
@@ -136,6 +124,28 @@ export default function App() {
      sumadas y la ficha caminaba de golpe un número que no se correspondía
      con ningún dado. */
   const posDelServidor = useRef(null);
+
+  /* Lo que el bonus entregó.
+   *
+   * La cerveza no pasa por la animación que baja la carta al abanico, y no
+   * es un detalle: esa carta NUNCA llega a la mano —se toma al recibirla—
+   * así que verla aterrizar en el abanico sería el juego mintiendo sobre su
+   * propia regla. En su lugar va el cartel, que es lo que de verdad pasó.
+   *
+   * Vive acá y no en los dos sitios que entregan cartas —el motor local y
+   * la respuesta del servidor— porque son dos caminos para el mismo hecho, y
+   * repartir la excepción entre los dos es cómo se desincronizan. */
+  const entregarCarta = useCallback(
+    (carta) => {
+      if (!carta) return;
+      if (carta.type === CARD.BEER) {
+        anunciar("¡LA CASA INVITA!", "buena");
+        return;
+      }
+      setCartaGanada(carta);
+    },
+    [anunciar]
+  );
 
   /* Tiñe a un peleador del color de lo que acaba de pasarle y lo deja
      volver solo. El mismo destello sirve para una carta que le llegó y para
@@ -224,7 +234,7 @@ export default function App() {
           key: Math.random(),
         });
       }
-      if (e.tipo === "bonus" && e.carta) setCartaGanada(e.carta);
+      if (e.tipo === "bonus" && e.carta) entregarCarta(e.carta);
       /* El destello rojo de la penitencia NO se dispara acá aunque el hecho
          pase por este efecto: en online el motor local no resuelve casillas
          —lo hace el servidor— así que este evento nunca llegaría y el golpe
@@ -233,16 +243,11 @@ export default function App() {
       if (e.tipo === "ganado") setFinished(true);
     });
     consumeEvents();
-  }, [eventos, consumeEvents, setFinished, notify, anunciar]);
+  }, [eventos, consumeEvents, setFinished, notify, anunciar, entregarCarta]);
 
   /* El cartel de turno perdido se va solo. Se desmonta en vez de quedarse
      invisible: mientras existe es un nodo fijo tapando la pantalla entera,
      y aunque no reciba toques es una capa de más en cada pintado. */
-  useEffect(() => {
-    if (!aviso) return;
-    const t = setTimeout(() => setAviso(null), QUEMADO_MS);
-    return () => clearTimeout(t);
-  }, [aviso]);
 
   // La carta revelada se muestra un rato y se va sola.
   useEffect(() => {
@@ -485,7 +490,7 @@ export default function App() {
          nunca llega hasta acá — así que se deduce de la respuesta, que trae
          dónde caíste y qué entregó. Sin esto, el jugador en línea perdía
          una carta sin que nada se lo dijera. */
-      else if (r.landed === SQUARE.BONUS) anunciar("MAZO LLENO");
+      else if (r.landed === SQUARE.BONUS) anunciar(TEXTO_LLENO(r.lostCard));
       /* En online el servidor no cierra el turno solo: avisa que caíste en
          una casilla maldita y el plantarse lo manda el cliente con la misma
          mutación del botón, para que las cartas puestas se revelen igual
@@ -578,7 +583,7 @@ export default function App() {
         if (castiga || carta) {
           setTimeout(() => {
             if (castiga) golpear(lado, "robo");
-            if (carta) setCartaGanada(carta);
+            if (carta) entregarCarta(carta);
           }, ESPERA_CASILLA);
         }
         /* El control vuelve cuando la ficha llegó, no cuando frenó el dado:
@@ -617,6 +622,7 @@ export default function App() {
     [
       online, juego.active, juego.miLado,
       sumarPuntos, resolverCasilla, endTurn, setRolling, golpear, forzarPlante,
+      entregarCarta,
     ]
   );
 
@@ -911,11 +917,7 @@ export default function App() {
           así que en la práctica el juego nunca avisó de una quemada.
           Acá afuera, junto al resto de los anuncios a pantalla completa,
           además sobrevive a que la pantalla cambie debajo. */}
-      {aviso && (
-        <div key={aviso.key} className="snake-eyes-warning show" role="status">
-          {aviso.texto}
-        </div>
-      )}
+      <Alerta alerta={alerta} />
 
       <CardGained carta={cartaGanada} onDone={() => setCartaGanada(null)} />
       <RulesModal abierta={reglasAbiertas} onClose={() => setReglasAbiertas(false)} />
