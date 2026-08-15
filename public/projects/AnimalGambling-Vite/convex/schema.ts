@@ -31,6 +31,15 @@ const player = v.object({
   // Turnos que le quedan con la mesa borrosa. Opcional como el resto: las
   // salas abiertas de antes no lo traen y tienen que seguir validando.
   beerTurns: v.optional(v.number()),
+  // Cuántas cervezas encima: se apilan y multiplican la borrosidad.
+  //
+  // Este campo faltaba acá mientras el código ya lo escribía, y eso rompía
+  // createRoom entero: Convex valida CADA escritura contra el schema y
+  // rechaza el documento que trae un campo sin declarar. No lo agarra el
+  // build ni un typecheck —no es un error de tipos, es una validación en
+  // tiempo de ejecución— y sólo aparece al crear una sala de verdad.
+  // Al sumar un campo al estado del jugador hay que tocar los DOS lugares.
+  beerStacks: v.optional(v.number()),
   // Vale para la próxima tirada y se consume ahí mismo.
   doubleNext: v.optional(v.boolean()),
 });
