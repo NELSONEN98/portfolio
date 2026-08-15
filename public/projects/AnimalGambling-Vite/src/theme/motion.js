@@ -89,9 +89,37 @@ export const MOTION = {
       ms: 1400,
       ease: EASE.salida,
       keyframes: "warn-flash",
-      el: ".snake-eyes-warning.show",
-      nota: "El cartel de TE QUEMASTE. Largo a propósito: es la peor noticia del juego.",
+      el: ".alerta",
+      nota: "El cartel grande del medio: TE QUEMASTE, MAZO LLENO, LA CASA INVITA. Largo a propósito, porque frena el turno. Lo consume también useAlerta para saber cuánto dejarlo en pantalla.",
     },
+  },
+
+  /* ─── LA APERTURA ────────────────────────────────────────────────────
+     La partida no arranca de golpe: primero se dice a qué se juega, después
+     se reparte, y recién al final aparece el dado. Cada paso explica el
+     siguiente, y el orden es el de una mesa de verdad.
+     Corre UNA vez por partida y no se puede saltar, así que la suma de
+     estos tiempos es lo que el jugador espera antes de tocar nada: con dos
+     jugadores son ~2.1s, con cuatro ~2.8s. */
+  apertura: {
+    /* El cartel de la meta, solo en pantalla antes de que se reparta. Es lo
+       único que hay que saber para jugar, así que se dice primero y sin
+       nada más compitiendo. */
+    reglas: { ms: 900, el: ".pool-goal" },
+    carta: {
+      ms: 420,
+      ease: EASE.salida,
+      keyframes: "reparte",
+      el: ".reparto .carta-repartida",
+      nota: "Lo que tarda UNA carta en ir del mazo a su jugador.",
+    },
+    /* El retraso de una carta a la siguiente. Es lo que hace que se lea como
+       un reparto y no como que todas aparecen de golpe. */
+    escalon: { ms: 110, el: "Reparto.jsx" },
+    /* El respiro entre la última carta y el dado. Corto: es una coma, no un
+       punto — sin nada de pausa el humo del dado tapa la carta que todavía
+       está llegando. */
+    respiro: { ms: 260, el: "useApertura.js" },
   },
 
   // ─── CARTAS: EN LA MANO ──────────────────────────────────────────────

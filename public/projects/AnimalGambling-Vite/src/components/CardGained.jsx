@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CardFace } from "./Hand";
 import { ms } from "../theme";
+import { medir } from "../medir";
 
 /* La carta que entrega una casilla de bonus: aparece grande en el medio,
  * se deja ver, y después baja hasta el abanico.
@@ -15,29 +16,6 @@ import { ms } from "../theme";
  */
 const LECTURA_MS = ms("cartaGanada.lectura");
 const VIAJE_MS = ms("cartaGanada.viaja");
-
-/* Dónde está el mazo respecto al centro de la pantalla, para que la carta
-   salga exactamente de ahí.
- *
- * Se mide en vez de calcularse: la mesa se dimensiona con `dvh` y `rem` a
- * la vez, así que su posición en pantalla no se puede expresar en `vmin`
- * sin quedar cerca pero mal, y peor, quedar mal de forma distinta en cada
- * pantalla. Medido, el origen es correcto siempre y sobrevive a cualquier
- * cambio del tablero.
- *
- * Devuelve null si no encuentra el mazo, y en ese caso la animación cae en
- * los valores de respaldo del CSS: que la carta salga de un lugar
- * aproximado es mucho mejor que no mostrarla. */
-function medir(selector) {
-  const el = document.querySelector(selector);
-  if (!el) return null;
-  const r = el.getBoundingClientRect();
-  if (!r.width) return null;
-  return {
-    x: Math.round(r.left + r.width / 2 - window.innerWidth / 2),
-    y: Math.round(r.top + r.height / 2 - window.innerHeight / 2),
-  };
-}
 
 export default function CardGained({ carta, onDone }) {
   const [fase, setFase] = useState("entra");
