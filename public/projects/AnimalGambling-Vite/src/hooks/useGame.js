@@ -40,7 +40,7 @@ export function newPlayer(char) {
     score: 0,
     current: 0,
     pos: 0,
-    hand: startingHand(),
+    hand: startingHand(rand),
     pendingCards: [],
     curseTurns: 0,
     beerTurns: 0,

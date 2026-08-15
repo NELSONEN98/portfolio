@@ -131,7 +131,7 @@ function freshPlayer(sessionId: string) {
     score: 0,
     current: 0,
     pos: 0,
-    hand: startingHand(),
+    hand: startingHand(rand),
     pendingCard: null,
     pendingCards: [],
     curseTurns: 0,
@@ -391,6 +391,12 @@ export const rollDice = mutation({
        muestra grande antes de guardarla, y comparando manos no podría
        distinguir la ganada de una devuelta al quemarse. */
     let gainedCard: Card | null = null;
+    /* Qué tipo de carta se perdió por falta de lugar, si se perdió alguna.
+       El cliente no lo puede deducir: sabe que cayó en bonus y que no vino
+       carta, pero no cuál de los dos bolsillos estaba lleno — y "mazo lleno"
+       cuando lo que sobra son escudos manda a hacer lugar donde ya lo había.
+       El servidor sí lo sabe: acaba de sortearla. */
+    let lostCard: string | null = null;
     /* La borrachera arranca en lo que ya tenía y sólo la mueve la cerveza
        del bonus. Se declara acá para que el patch de abajo la escriba una
        sola vez, salga o no salga la carta. */
@@ -428,6 +434,8 @@ export const rollDice = mutation({
       } else if (hasRoomFor(sorteada, hand, mine.pendingCards)) {
         gainedCard = sorteada;
         hand = [...hand, gainedCard];
+      } else {
+        lostCard = sorteada.type;
       }
     }
 
@@ -442,6 +450,7 @@ export const rollDice = mutation({
         isBust: outcome.isBust,
         pos,
         landed,
+        lostCard,
         cardsReturned: outcome.isBust ? mine.pendingCards.length : 0,
       },
       timestamp: Date.now(),
@@ -486,7 +495,7 @@ export const rollDice = mutation({
           ...tickBeer(borrachera),
         }),
       });
-      return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, newTurn: siguiente, score };
+      return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, lostCard, newTurn: siguiente, score };
     }
 
     const newCurrent = me.player.current + outcome.gained;
@@ -494,7 +503,7 @@ export const rollDice = mutation({
       players: withSeat(me.seats, me.seat, { ...base, current: newCurrent }),
     });
 
-    return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, newCurrent, score };
+    return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, lostCard, newCurrent, score };
   },
 });
 

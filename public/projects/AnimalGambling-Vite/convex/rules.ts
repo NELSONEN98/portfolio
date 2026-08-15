@@ -423,12 +423,62 @@ export function makeCard(type: CardType, value: number | undefined, seed: number
    siempre la misma iguala el arranque —nadie empieza con mejor mano— y
    pone las tres mecánicas en juego desde el primer turno. Los robos
    grandes hay que salir a buscarlos a las casillas de bonus. */
-export function startingHand(): Card[] {
-  return [
-    makeCard(CARD.STEAL, STEAL_VALUES[0], 0),
-    makeCard(CARD.DEFENSE, undefined, 1),
-    makeCard(CARD.CURSE, undefined, 2),
-  ];
+/* Cuántas cartas se reparten al empezar. Sale como constante porque la
+   pantalla la necesita para saber cuántas cartas animar en la apertura, y
+   contarlas llamando a `startingHand` significaba repartir una mano de
+   verdad —con su azar— sólo para medirla. */
+export const STARTING_CARDS = 3;
+
+/* La mano de arranque, sorteada.
+ *
+ * Era fija —un robo, una defensa y una maldición— y eso hacía que las
+ * primeras jugadas de toda partida fueran las mismas. Ahora sale del MISMO
+ * reparto que las casillas de bonus, así que el balance de las cartas se
+ * ajusta en un solo lugar y la apertura lo hereda.
+ *
+ * ►► Dos reglas encima del sorteo, y ninguna es de gusto. ◄◄
+ *
+ * La cerveza no puede tocar una mano: se toma al recibirla y no ocupa
+ * lugar, así que repartida al principio dejaría al jugador borracho antes
+ * de la primera tirada — un castigo que nadie se ganó.
+ *
+ * Y al menos una carta tiene que ser jugable. Con la defensa al 35% del
+ * mazo, tres defensas seguidas salen una de cada veintitrés manos, y esa
+ * mano no se puede jugar: la defensa se gasta sola cuando te atacan, así
+ * que el jugador arrancaría sin una sola decisión disponible.
+ *
+ * Los intentos van con tope. Un `while` sin techo a merced de una función
+ * de azar ajena es un cuelgue esperando; si se agota, se fuerza la carta y
+ * la partida sigue.
+ */
+export function startingHand(rand: () => number): Card[] {
+  const sacar = (semilla: number): Card => {
+    for (let intento = 0; intento < 20; intento++) {
+      const carta = randomBonusCard(rand, semilla);
+      if (carta.type !== CARD.BEER) return carta;
+    }
+    return makeCard(CARD.PUNCH, undefined, semilla);
+  };
+
+  const mano: Card[] = [];
+  for (let i = 0; i < STARTING_CARDS; i++) mano.push(sacar(i));
+
+  /* Si salieron todas defensas, la última se cambia por algo que se pueda
+     poner sobre la mesa. */
+  if (mano.every((c) => c.type === CARD.DEFENSE)) {
+    for (let intento = 0; intento < 20; intento++) {
+      const carta = sacar(STARTING_CARDS - 1);
+      if (carta.type !== CARD.DEFENSE) {
+        mano[STARTING_CARDS - 1] = carta;
+        break;
+      }
+      if (intento === 19) {
+        mano[STARTING_CARDS - 1] = makeCard(CARD.PUNCH, undefined, STARTING_CARDS - 1);
+      }
+    }
+  }
+
+  return mano;
 }
 
 /* Lo que entrega una casilla de bonus.

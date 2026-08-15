@@ -13,7 +13,7 @@ import {
   PUNCH_POINTS,
   STEAL_VALUES,
   SQUARE,
-  startingHand,
+  STARTING_CARDS,
 } from "../../convex/rules";
 import { SQUARE_ICON } from "./icons";
 import { CardFace } from "./Hand";
@@ -123,15 +123,6 @@ export default function RulesModal({ abierta, onClose }) {
   const robos = STEAL_VALUES.map((v) => `−${v}`).join(", ");
   const mayor = STEAL_VALUES[STEAL_VALUES.length - 1];
   const menor = STEAL_VALUES[0];
-
-  /* La mano de arranque se lee de la regla en vez de describirse a mano. */
-  const conteo = startingHand().reduce((acc, c) => {
-    acc[c.type] = (acc[c.type] ?? 0) + 1;
-    return acc;
-  }, {});
-  const manoInicial = Object.entries(conteo)
-    .map(([tipo, n]) => `${n} de ${CARD_LABEL[tipo].toLowerCase()}`)
-    .join(", ");
 
   return (
     <div
@@ -329,7 +320,8 @@ export default function RulesModal({ abierta, onClose }) {
                 </div>
               }
             >
-              Empiezas con {manoInicial}. Sólo puedes jugarlas en tu turno, y
+              Empiezas con <b>{STARTING_CARDS} cartas al azar</b>, del mismo
+              mazo que reparten los bonus. Sólo puedes jugarlas en tu turno, y
               puedes poner <b>varias en el mismo turno</b>: quedan{" "}
               <b>boca abajo</b> sobre la mesa y se revelan recién cuando te
               plantas. Cada defensa del rival tapa una sola, así que
