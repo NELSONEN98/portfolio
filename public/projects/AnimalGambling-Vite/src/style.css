@@ -56,6 +56,14 @@
   --chip-gold: #f5b942;
   --chip-black: #1a1a1a;
 
+  /* El ancho de una carta de la mano.
+     Vive acá y no en `.card` —donde estaba— porque las custom properties
+     sólo bajan: declarado en la carta, su propio contenedor no podía
+     leerlo, y un intento anterior de reservarle el lugar al abanico murió
+     por eso con un `calc` inválido que el navegador descartaba entero.
+     Desde la raíz lo leen la carta, el abanico vacío y el reparto. */
+  --carta-ancho: clamp(7.6rem, 17.9vmin, 11.85rem);
+
   --display: "Bungee", sans-serif;
   /* El código de sala se dicta por voz y se copia a mano, y Bungee es una
      tipografía de despliegue: trazos gruesos, poca distancia entre formas
@@ -1280,11 +1288,27 @@ body {
   top: 50%;
 
   font-family: var(--display);
-  font-size: clamp(1.6rem, 4vmin, 2.8rem);
+  /* Sube de un techo de 28px a 44px. Es lo único que cuenta cuánto te sacó
+     una carta, y aparece un segundo y medio mientras el marcador baja: si no
+     se lee de un vistazo, no se lee.
+     Medido contra la línea del peleador —donde vive— ocupa entre el 21 y el
+     30% de su alto según la pantalla, así que entra con aire de sobra. */
+  font-size: clamp(2.4rem, 6vmin, 4.4rem);
   line-height: 1;
   white-space: nowrap;
   color: var(--c-red);
-  text-shadow: 0 0 1.2rem rgba(199, 0, 0, 0.8);
+  /* El contorno negro no estaba, y hace falta ahora más que antes: el número
+     cae sobre el dibujo del gato, que tiene sus propios colores, y a este
+     tamaño el halo rojo solo no lo despega del fondo.
+     Cuatro sombras sin desenfoque, una por diagonal — `text-shadow` no tiene
+     spread, así que un contorno se dibuja así y no con un cuarto valor. */
+  text-shadow:
+    1px 1px 0 #000,
+    -1px 1px 0 #000,
+    1px -1px 0 #000,
+    -1px -1px 0 #000,
+    0 2px 4px rgba(0, 0, 0, 0.85),
+    0 0 1.2rem rgba(199, 0, 0, 0.8);
 
   opacity: 0;
   pointer-events: none;
@@ -1379,6 +1403,11 @@ body {
   width: min(100%, max(120px, calc(var(--tabla-alto) * 12 / 10)));
   padding: clamp(0.7rem, 1.8vmin, 1.6rem);
   border-radius: clamp(1rem, 2.4vmin, 1.8rem);
+  /* El color de las bombillas del marco. Vive acá para que la maldición
+     pueda reemplazarlo desde arriba sin tocar las reglas que las dibujan. */
+  --bombilla: var(--c-gold);
+  --bombilla-halo: 228, 167, 0;
+
   background: linear-gradient(145deg, #5a2e18, #2a120a 42%, #4a2414 72%, #1c0c06);
   box-shadow:
     0 1.6rem 3.2rem rgba(0, 0, 0, 0.6),
@@ -1567,7 +1596,7 @@ body {
       rgba(0, 0, 0, 0.34) 52%,
       rgba(0, 0, 0, 0.68) 100%
     ),
-    url("board/board.png");
+    url("board/board3.png");
   background-size: cover, cover;
   background-position: center, center;
 
@@ -1783,6 +1812,46 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .confeti { display: none; }
+}
+
+/* ►► LA MALDICIÓN TIÑE LA MESA. ◄◄
+ *
+ * Mientras la condena dura, la instalación eléctrica entera se pone morada:
+ * las bombillas del marco y la luz de TODAS las casillas.
+ *
+ * Que sean todas y no sólo las convertidas es el punto. La maldición ya
+ * cambia los bonus por casillas que te cortan el turno; si además el resto
+ * del camino sigue dorado como siempre, se lee como que fallaron dos
+ * casillas. Con la mesa entera del color de la carta, se lee como lo que
+ * es: el tablero está en tu contra hasta que se te pase.
+ *
+ * Es el mismo morado de la carta de maldición y de las casillas que ella
+ * convierte, así que la causa y el efecto comparten color y no hay que
+ * explicar nada.
+ *
+ * La clase va en la pantalla y no en el tablero porque las bombillas viven
+ * en el marco de la mesa, que es hermano del camino: desde adentro no se
+ * llega a las dos cosas.
+ *
+ * Gana por especificidad a `.square.penalty` y compañía —(0,2,1) contra
+ * (0,2,0)— que es justo lo que hace falta: durante la maldición ningún tipo
+ * de casilla conserva su color propio. */
+.versus-screen.maldito .pool-table {
+  --bombilla: #b57cf5;
+  --bombilla-halo: 150, 80, 235;
+}
+
+.versus-screen.maldito .square {
+  --luz: 205, 155, 255;
+  --luz-halo: 165, 95, 240;
+  --aro: #d6b3ff;
+}
+
+/* El cambio se desliza en vez de saltar: la maldición entra y sale sola al
+   cumplirse los turnos, y un corte seco se leería como un parpadeo del
+   juego y no como el efecto de una carta. */
+.square {
+  transition: box-shadow 420ms ease;
 }
 
 /* ►► Las tres esquinas del tablero. ◄◄
@@ -2048,6 +2117,15 @@ body {
    quedaba encima del peleador de la izquierda fuera de quién fuera el
    turno; en la línea no le saca alto a la mesa y se ve de quién son las
    cartas sin tener que deducirlo. */
+/* Durante la apertura el abanico existe pero sin cartas, y un flex vacío
+   mide cero — el reparto no tendría a dónde apuntar y las cartas volarían al
+   centro de la línea, o sea encima del personaje y del puntaje.
+   Reservarle el lugar lo vuelve medible sin dibujar nada. */
+.hand-fan:empty {
+  width: var(--carta-ancho);
+  aspect-ratio: 5 / 7;
+}
+
 .hand-fan {
   position: relative;
   z-index: 60;
@@ -2411,15 +2489,35 @@ body {
   position: absolute;
   z-index: 7;
   font-family: var(--display);
-  /* Más chico que el del marcador: acá compite con las casillas, y a la
-     medida de aquel tapaba media fila del tablero. */
-  font-size: clamp(1rem, 2.8vmin, 1.8rem);
+  /* Del tamaño de una casilla, aproximadamente: a 1080p son 36px sobre una
+     celda de 35.8. Antes tenía techo en 18px —la mitad— y con el camino ya
+     encendido en dorado la cifra se perdía.
+     Tapa un poco el tablero, sí, pero sube y se va en menos de un segundo:
+     el momento en que estorba es exactamente el momento en que hay que
+     leerla. */
+  font-size: clamp(1.8rem, 5.4vmin, 3.6rem);
   line-height: 1;
   white-space: nowrap;
   color: var(--c-red);
-  /* El contorno negro es lo que lo despega del fieltro y del rojo de la
-     propia casilla, que si no se comen la cifra. */
-  text-shadow: 0 0 0.7rem rgba(199, 0, 0, 0.95), 0 0 0 2px #000, 0 2px 3px rgba(0, 0, 0, 0.9);
+  /* ►► Acá había una declaración inválida y nadie lo notó. ◄◄
+   *
+   * Decía `0 0 0 2px #000` en el medio de la lista, buscando un contorno.
+   * Pero `text-shadow` acepta DOS o TRES longitudes —desplazamiento y
+   * desenfoque— y no tiene spread como `box-shadow`. Con cuatro, el valor
+   * es un error de sintaxis, y un error en una lista separada por comas
+   * invalida la declaración ENTERA: el número venía sin contorno y sin
+   * halo, plano sobre el tablero. Justo lo contrario de lo que el
+   * comentario aseguraba.
+   *
+   * El contorno se hace con cuatro sombras sin desenfoque, una por
+   * diagonal. Es la forma que funciona en todos lados. */
+  text-shadow:
+    1px 1px 0 #000,
+    -1px 1px 0 #000,
+    1px -1px 0 #000,
+    -1px -1px 0 #000,
+    0 2px 4px rgba(0, 0, 0, 0.9),
+    0 0 1rem rgba(199, 0, 0, 0.95);
   pointer-events: none;
   animation: casilla-hit-float var(--dur-tablero-penitencia-numero)
     var(--ease-tablero-penitencia-numero) forwards;
@@ -2788,7 +2886,7 @@ body {
      hacia afuera sin empujar nada— pero no para el ANCHO: ahí la carta sí
      avanza sobre el fieltro, y con cinco en la mano el abanico terminaba
      apoyado encima de la mesa. */
-  --card-w: clamp(7.6rem, 17.9vmin, 11.85rem);
+  --card-w: var(--carta-ancho);
   width: var(--card-w);
   aspect-ratio: 5 / 7;
   border: none;
@@ -3095,11 +3193,13 @@ body {
   pointer-events: none;
   z-index: 2;
 
+  /* El color sale de `--bombilla` y no de `--c-gold` directo: así la
+     maldición lo cambia en un solo lugar y las cuatro tiras lo siguen. */
   background-image:
-    radial-gradient(circle, var(--c-gold) 0 32%, transparent 36%),
-    radial-gradient(circle, var(--c-gold) 0 32%, transparent 36%),
-    radial-gradient(circle, var(--c-gold) 0 32%, transparent 36%),
-    radial-gradient(circle, var(--c-gold) 0 32%, transparent 36%);
+    radial-gradient(circle, var(--bombilla) 0 32%, transparent 36%),
+    radial-gradient(circle, var(--bombilla) 0 32%, transparent 36%),
+    radial-gradient(circle, var(--bombilla) 0 32%, transparent 36%),
+    radial-gradient(circle, var(--bombilla) 0 32%, transparent 36%);
   background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
   background-size:
     var(--bulb-gap) var(--bulb),
@@ -3107,7 +3207,7 @@ body {
     var(--bulb) var(--bulb-gap),
     var(--bulb) var(--bulb-gap);
 
-  filter: drop-shadow(0 0 0.35rem rgba(228, 167, 0, 0.9));
+  filter: drop-shadow(0 0 0.35rem rgba(var(--bombilla-halo), 0.9));
   animation: bulbs-on var(--dur-ambiente-luces) steps(1, end) infinite;
   /* El titileo va a cambiar `filter`, que es de las propiedades caras de
      animar. Con `steps(1, end)` hay sólo dos estados y ningún cuadro
@@ -3946,7 +4046,11 @@ body {
  *
  * Grande de verdad: es el único momento del turno en que no hay nada que
  * decidir, así que puede ocupar la pantalla sin pelearle a nada. */
-.snake-eyes-warning {
+/* El nombre viejo era `.snake-eyes-warning`: nació cuando el cartel sólo
+   sabía decir "te quemaste". Ahora anuncia cualquier cosa que frene el
+   turno, y un selector que menciona los ojos de víbora en un cartel que
+   dice "la casa invita" es una mentira esperando a confundir a alguien. */
+.alerta {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -3962,10 +4066,13 @@ body {
      píxeles evita que en un monitor grande se coma la pantalla. */
   font-size: clamp(18px, 7.5vw, 64px);
   color: #fff;
+  /* La sombra negra le devuelve el borde sin teñir un píxel de la letra; el
+     halo de color detrás dice de qué clase de noticia se trata sin tocar el
+     color del texto, que se queda blanco para leerse sobre lo que sea. */
   text-shadow:
     0 0 0.6rem rgba(0, 0, 0, 0.95),
     0 0.4rem 1.2rem rgba(0, 0, 0, 0.8),
-    0 0 2.6rem rgba(199, 54, 95, 0.85);
+    0 0 2.6rem rgba(var(--alerta-halo), 0.85);
   letter-spacing: 0.12em;
   text-align: center;
   opacity: 0;
@@ -3975,7 +4082,17 @@ body {
   z-index: 400;
   white-space: nowrap;
 }
-.snake-eyes-warning.show {
+/* Mala noticia: el rojo sangre de la quemada. Es el tono por defecto.
+   Buena: el dorado de las luces de la mesa — el mismo con el que brilla el
+   camino, así que una buena noticia se lee como algo que la mesa te da. */
+.alerta.mala  { --alerta-halo: 199, 54, 95; }
+.alerta.buena { --alerta-halo: 228, 167, 0; }
+
+/* La animación va sin clase `.show`: el elemento sólo existe mientras dura
+   el aviso, así que montarlo YA es la señal de que hay algo que mostrar.
+   Antes hacía falta esa clase y nadie la ponía — el cartel de quemada nunca
+   llegó a verse en toda la vida del juego por eso. */
+.alerta {
   animation: warn-flash var(--dur-dado-quemado) var(--ease-dado-quemado);
 }
 @keyframes warn-flash {
@@ -5229,6 +5346,77 @@ body {
     sepia(calc(0.4 + 0.1 * (var(--borrachera, 1) - 1)))
     saturate(1.15);
   transition: filter 700ms ease-out;
+}
+
+/* ============================================
+   EL REPARTO DE LA APERTURA
+   ============================================ */
+/* Las cartas saliendo del mazo hacia cada jugador al abrir la partida.
+ *
+ * Van boca abajo, con el mismo signo de pregunta del mazo: lo que se cuenta
+ * es el reparto, no qué tocó.
+ *
+ * Cada carta lleva su origen y su destino en variables que escribe el
+ * componente midiendo el DOM. En el CSS sólo está el CAMINO — de un punto
+ * al otro— porque los puntos dependen de dónde cayó cada peleador en la
+ * grilla, y eso el CSS no lo puede saber sin repetir la cuenta del layout. */
+.reparto {
+  position: fixed;
+  inset: 0;
+  z-index: 380;
+  pointer-events: none;
+}
+
+.carta-repartida {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Del tamaño de una carta de la mano: son las MISMAS cartas que van a
+     quedar en el abanico, y repartir miniaturas que después crecen rompe la
+     ilusión de que es una sola carta viajando. */
+  width: var(--carta-ancho);
+  aspect-ratio: 5 / 7;
+  border-radius: 1rem;
+  background: linear-gradient(150deg, #2a120a, #5a2e18 45%, #1c0c06);
+  border: 1px solid rgba(228, 167, 0, 0.55);
+  box-shadow: 0 0.6rem 1.4rem rgba(0, 0, 0, 0.7);
+
+  display: grid;
+  place-items: center;
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 6vmin, 4rem);
+  color: rgba(228, 167, 0, 0.75);
+
+  /* `backwards` es lo que las mantiene invisibles durante su retraso: sin
+     eso, las doce cartas aparecen apiladas en el mazo desde el cuadro cero
+     y recién después salen de a una. */
+  animation: reparte var(--dur-apertura-carta) var(--ease-apertura-carta) backwards;
+}
+
+/* Sale del mazo, cruza la mesa y se apaga al llegar. No aterriza visible: la
+   carta de verdad es la del abanico, que entra justo cuando ésta se apaga.
+   Si quedara opaca al final se verían dos cartas en el mismo lugar. */
+@keyframes reparte {
+  0% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--de-x, 0px)), calc(-50% + var(--de-y, 0px)))
+      scale(0.5) rotate(-8deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--a-x, 0px)), calc(-50% + var(--a-y, 0px)))
+      scale(1) rotate(6deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reparto { display: none; }
 }
 
 /* ============================================
