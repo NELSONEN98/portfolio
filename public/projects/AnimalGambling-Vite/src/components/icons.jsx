@@ -59,20 +59,30 @@ export const TwoDiceIcon = () => (
 );
 
 /* El signo de pregunta del bonus. Va como <text> y no como path: un "?"
-   dibujado a mano a 24px se convierte en un garabato, y el glifo de la
-   tipografía del juego ya está cargado y resuelto para cualquier tamaño.
+   dibujado a mano a 24px se convierte en un garabato, y un glifo de fuente
+   ya está resuelto para cualquier tamaño.
    Sin `fill` propio — lo hereda de `.square svg`, igual que el resto.
    Es además el mismo signo que lleva el mazo de bonus sobre el fieltro: la
-   casilla y el montón del que sale la carta ahora dicen lo mismo. */
+   casilla y el montón del que sale la carta dicen lo mismo.
+
+   ►► En `--glifo` y no en `--display`. ◄◄
+   Estaba en Bungee, que es la tipografía del juego, y a tamaño de casilla
+   el signo no se reconocía: Bungee cierra el ojo del "?" hasta volverlo una
+   mancha, y separado del resto de una palabra no queda nada que ayude a
+   identificarlo. Una grotesca en negrita mantiene el gancho abierto y bien
+   despegado del punto. El porqué largo está en `--glifo`, en el CSS.
+
+   Y va más grande: 18 sobre 24 dejaba casi un tercio del recuadro vacío
+   arriba, altura que el signo puede usar sin tocar el borde de la casilla. */
 export const QuestionIcon = () => (
   <Svg>
     <text
       x="12"
-      y="18"
+      y="18.5"
       textAnchor="middle"
-      fontSize="18"
-      fontFamily="var(--display), sans-serif"
-      fontWeight="700"
+      fontSize="22"
+      fontFamily="var(--glifo)"
+      fontWeight="800"
     >
       ?
     </text>

@@ -65,6 +65,18 @@
   --carta-ancho: clamp(7.6rem, 17.9vmin, 11.85rem);
 
   --display: "Bungee", sans-serif;
+  /* Para los SIGNOS sueltos, no para texto.
+   *
+   * Es el mismo diagnóstico que ya está escrito abajo para `--codigo`:
+   * Bungee es de despliegue, con trazos gruesos y contraformas mínimas.
+   * Una palabra en Bungee se reconoce por su silueta entera aunque cada
+   * letra esté apretada; un carácter SOLO no tiene esa ayuda. El "?" de las
+   * casillas de bonus era el caso claro: a tamaño de casilla, el ojo del
+   * signo se cierra y queda una mancha con punto abajo.
+   * Una grotesca de sistema en negrita tiene el ojo abierto y el gancho
+   * separado del punto, que es exactamente lo que hace legible al signo. */
+  --glifo: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
   /* El código de sala se dicta por voz y se copia a mano, y Bungee es una
      tipografía de despliegue: trazos gruesos, poca distancia entre formas
      parecidas y pensada para leerse de reojo, no carácter por carácter.
@@ -535,7 +547,13 @@ body {
 }
 
 .select-footer .btn-nav {
-  min-width: 15rem;
+  /* Los dos botones de esta pantalla son el remate de la decisión: mandan
+     más peso que un botón de navegación cualquiera, por eso pisan el
+     tamaño base de .btn-nav en vez de agrandarlo para todo el juego. */
+  min-width: 20rem;
+  font-size: 1.7rem;
+  padding: 1.4rem 2.6rem;
+  border-radius: 1.5rem;
 }
 
 /* ============================================
@@ -1288,12 +1306,14 @@ body {
   top: 50%;
 
   font-family: var(--display);
-  /* Sube de un techo de 28px a 44px. Es lo único que cuenta cuánto te sacó
-     una carta, y aparece un segundo y medio mientras el marcador baja: si no
-     se lee de un vistazo, no se lee.
-     Medido contra la línea del peleador —donde vive— ocupa entre el 21 y el
-     30% de su alto según la pantalla, así que entra con aire de sobra. */
-  font-size: clamp(2.4rem, 6vmin, 4.4rem);
+  /* Sube otra vez: de un techo de 44px a 76px. Es lo único que cuenta cuánto
+     te sacó una carta, y aparece un segundo y medio mientras el marcador
+     baja: si no se lee de un vistazo, no se lee — y a 44px seguía siendo un
+     número chico al lado del marcador, que es justo el que NO dice cuánto.
+     Medido contra la línea del peleador —donde vive— pasa de ocupar el
+     21-30% de su alto a rondar el 40-50%. Entra, y es el punto: la cifra que
+     explica el golpe tiene que competir con el marcador, no susurrarle. */
+  font-size: clamp(4rem, 10.5vmin, 7.6rem);
   line-height: 1;
   white-space: nowrap;
   color: var(--c-red);
@@ -1808,6 +1828,41 @@ body {
       scale(0.35);
     opacity: 0;
   }
+}
+
+/* ---- el mismo confeti, pero sobre el personaje ----
+ *
+ * La casilla dice DÓNDE se dio la vuelta; con dos fichas encima de la meta
+ * eso no alcanza para saber de QUIÉN fue ni a qué marcador le entran los
+ * tres puntos. Este estalla sobre el gato que la completó, al lado del
+ * número que está por subir.
+ *
+ * ►► Los papeles se achican, y no es un capricho de escala. ◄◄
+ *
+ * Todas las medidas del confeti son porcentajes: el papel mide un 15% de su
+ * contenedor y viaja un múltiplo de SU PROPIO ancho. En una casilla de 35px
+ * eso da papelitos de 5px; dentro del marco del peleador —que es veinte
+ * veces más grande— los mismos porcentajes darían confeti del tamaño de
+ * cartas.
+ *
+ * Y el recorrido se ajusta con ellos: `--dist` se mide contra el papel, así
+ * que al achicar el papel hay que subir el porcentaje para conservar la
+ * distancia real. Con estos números el más lejano llega al 45% del ancho
+ * del marco desde el centro —o sea que se apaga ANTES del borde—, y eso
+ * importa acá más que en la casilla: `.fighter-frame` lleva
+ * `overflow: hidden` para que el dibujo del gato no se derrame, así que un
+ * papel que quisiera salirse no se saldría, se cortaría contra la pared. */
+.confeti.festejo {
+  /* Por encima del dibujo y del rótulo con el nombre. */
+  z-index: 4;
+}
+.confeti.festejo .papel {
+  width: 5%;
+  /* Cuadrados. Con `height` en porcentaje serían rectángulos: el 5% del alto
+     y el 5% del ancho no miden lo mismo en un marco de 5/6. */
+  height: auto;
+  aspect-ratio: 1;
+  --dist: calc(500% + (var(--n) * 36%));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2489,13 +2544,14 @@ body {
   position: absolute;
   z-index: 7;
   font-family: var(--display);
-  /* Del tamaño de una casilla, aproximadamente: a 1080p son 36px sobre una
-     celda de 35.8. Antes tenía techo en 18px —la mitad— y con el camino ya
-     encendido en dorado la cifra se perdía.
-     Tapa un poco el tablero, sí, pero sube y se va en menos de un segundo:
-     el momento en que estorba es exactamente el momento en que hay que
-     leerla. */
-  font-size: clamp(1.8rem, 5.4vmin, 3.6rem);
+  /* Casi el doble de una casilla: a 1080p son 64px sobre una celda de 35.8.
+     Venía del tamaño de la celda —36px— buscando no taparla, y ése era el
+     criterio equivocado: la cifra no es parte del tablero, es lo que hay que
+     leer ANTES de volver a mirarlo.
+     Tapa el tablero, sí, y más que antes. Pero sube y se va en menos de un
+     segundo: el momento en que estorba es exactamente el momento en que no
+     hay nada más que mirar. */
+  font-size: clamp(3.2rem, 9.6vmin, 6.4rem);
   line-height: 1;
   white-space: nowrap;
   color: var(--c-red);
@@ -2665,10 +2721,14 @@ body {
   display: grid;
   place-items: center;
 
-  font-family: var(--display);
+  /* El mismo signo que la casilla, así que la misma tipografía: son la
+     casilla y el montón del que sale la carta diciendo lo mismo, y con dos
+     fuentes distintas dejarían de parecer lo mismo. */
+  font-family: var(--glifo);
+  font-weight: 800;
   /* Relativo al ancho de la carta, no fijo: el mazo se achica en pantallas
      bajas y el signo tiene que achicarse con él. */
-  font-size: calc(var(--carta-mesa-w) * 0.3);
+  font-size: calc(var(--carta-mesa-w) * 0.36);
   line-height: 1;
   color: var(--c-blue);
 }
@@ -2966,10 +3026,16 @@ body {
   height: calc(var(--card-w) * 0.68);
 }
 
-/* El número dentro del rótulo, no debajo: se lee "ROBAR −15" de un saque.
-   Va más grande que la palabra porque es el dato que cambia entre una
-   carta y otra —la palabra es siempre la misma—. */
-.card-steal-num {
+/* El número dentro del rótulo, no debajo: se lee "GOLPE −2" de un saque.
+   Va más grande que la palabra porque es el dato que se compara contra las
+   otras cartas de ataque; la palabra es siempre la misma.
+
+   Se llamaba `.card-steal-num` y era CSS muerto: lo usaba el robo cuando
+   mostraba "ROBAR −15", y quedó huérfano al pasar el robo a dibujo grande
+   más cifra. El golpe necesita exactamente esta forma —rótulo fijo, número
+   fijo, un solo renglón—, así que se recicla con el nombre genérico en vez
+   de escribir una regla nueva al lado de una que ya no usaba nadie. */
+.card-kind-num {
   font-weight: 400;
   font-size: 1.5em;
   vertical-align: -0.06em;

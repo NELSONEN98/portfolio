@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useGame, newPlayer } from "./hooks/useGame";
+import { useGame, newPlayer, newPlayers } from "./hooks/useGame";
 import { useRouter } from "./hooks/useRouter";
 import { useToasts, errorText } from "./hooks/useToasts";
 import { useAlerta } from "./hooks/useAlerta";
@@ -43,6 +43,24 @@ const ESPERA_CASILLA = ms("tablero.esperaCasilla");
    servidor. Un texto escrito dos veces es un texto que se desincroniza. */
 const TEXTO_LLENO = (tipo) =>
   tipo === CARD.DEFENSE ? "ESCUDOS LLENOS" : "MAZO LLENO";
+
+/* El grito del golpe.
+ *
+ * El golpe era el único ataque sin voz: el robo se anuncia solo porque el
+ * marcador del rival se mueve dos veces —le baja a él y te sube a vos— y la
+ * maldición deja el dado marcado varios turnos. El golpe saca dos puntos y
+ * se termina ahí, así que sin un aviso propio el momento pasaba en silencio.
+ *
+ * Sale de una lista y no de un texto fijo porque es el aviso que más se
+ * repite en una partida: la misma palabra cinco veces deja de leerse.
+ * `ultimo` evita que salga dos veces seguida la misma, que es cuando la
+ * repetición más se nota. */
+const GRITOS_GOLPE = ["¡AUCH!", "¡KAPOW!", "¡PUM!", "¡ZAS!", "¡CRACK!"];
+
+function gritoDeGolpe(ultimo) {
+  const otros = GRITOS_GOLPE.filter((g) => g !== ultimo);
+  return otros[Math.floor(Math.random() * otros.length)];
+}
 
 const MENSAJES = {
   penitencia: (e) => [`Penitencia — ${e.nombre} pierde ${e.puntos}`, "error"],
@@ -104,11 +122,40 @@ export default function App() {
   /* La carta que acabás de ganar, mientras dura su entrega. Sólo se llena
      para el jugador que la recibió: al rival no se le muestra. */
   const [cartaGanada, setCartaGanada] = useState(null);
+  /* Cuál fue el último grito de golpe. En una referencia y no en estado: no
+     se dibuja, así que guardarlo con `useState` sería un pintado de más por
+     cada golpe y encima llegaría tarde al efecto que lo lee. */
+  const ultimoGrito = useRef(null);
+
   /* La carta que está viajando hacia el rival, y el golpe que deja al
      llegar. Van separados porque el destello arranca cuando la carta
      aterriza, no cuando sale. */
   const [lanzada, setLanzada] = useState(null);
   const [impacto, setImpacto] = useState(null);
+
+  /* Mostrar una carta que se revela: el cartel, el sello del medio y el
+     vuelo hacia el que la recibe.
+     Vive en un solo lugar porque se dispara desde TRES: el motor local lo
+     cuenta con un hecho, y el online lo arma a mano dos veces —cuando te
+     plantás vos y cuando se planta el rival—, porque ahí la autoridad es el
+     servidor y no hay hechos que consumir. El grito del golpe nació
+     escrito sólo en el primero y por eso no sonaba en online: repartido en
+     tres copias, el próximo detalle se va a olvidar en dos. */
+  const mostrarRevelacion = useCallback(
+    (carta, bloqueada, destino) => {
+      /* El grito sólo si el golpe ENTRÓ. Uno que la defensa tapó ya tiene su
+         propio relato —la carta partiéndose y el sello de BLOQUEADO— y un
+         "¡KAPOW!" encima contaría que pegó cuando no pegó. */
+      if (carta?.type === CARD.PUNCH && !bloqueada) {
+        const grito = gritoDeGolpe(ultimoGrito.current);
+        ultimoGrito.current = grito;
+        anunciar(grito);
+      }
+      setRevelada({ carta, bloqueada });
+      setLanzada({ carta, bloqueada, destino, key: Math.random() });
+    },
+    [anunciar]
+  );
   /* Se pidió la tirada al servidor y todavía no volvió. */
   const [pidiendoTirada, setPidiendoTirada] = useState(false);
 
@@ -226,13 +273,7 @@ export default function App() {
         else notify(texto, canal);
       }
       if (e.tipo === "cartaRevelada") {
-        setRevelada({ carta: e.carta, bloqueada: e.bloqueada });
-        setLanzada({
-          carta: e.carta,
-          bloqueada: e.bloqueada,
-          destino: e.destino,
-          key: Math.random(),
-        });
+        mostrarRevelacion(e.carta, e.bloqueada, e.destino);
       }
       if (e.tipo === "bonus" && e.carta) entregarCarta(e.carta);
       /* El destello rojo de la penitencia NO se dispara acá aunque el hecho
@@ -243,7 +284,10 @@ export default function App() {
       if (e.tipo === "ganado") setFinished(true);
     });
     consumeEvents();
-  }, [eventos, consumeEvents, setFinished, notify, anunciar, entregarCarta]);
+  }, [
+    eventos, consumeEvents, setFinished, notify, anunciar, entregarCarta,
+    mostrarRevelacion,
+  ]);
 
   /* El cartel de turno perdido se va solo. Se desmonta en vez de quedarse
      invisible: mientras existe es un nodo fijo tapando la pantalla entera,
@@ -335,20 +379,12 @@ export default function App() {
       (ev.payload?.resolved ?? []).forEach((r, i) => {
         // De a una y con pausa: juntas no se sabría cuál hizo qué.
         const carta = { type: r.type, value: r.value };
-        setTimeout(() => {
-          setRevelada({ carta, bloqueada: r.blocked });
-          /* Esta novedad es del rival plantándose, así que la carta viene
-             para vos: el golpe va en tu lado, no en el suyo. */
-          setLanzada({
-            carta,
-            bloqueada: r.blocked,
-            destino: sala.miLado,
-            key: Math.random(),
-          });
-        }, i * 1500);
+        /* Esta novedad es del rival plantándose, así que la carta viene
+           para vos: el golpe va en tu lado, no en el suyo. */
+        setTimeout(() => mostrarRevelacion(carta, r.blocked, sala.miLado), i * 1500);
       });
     }
-  }, [sala]);
+  }, [sala, mostrarRevelacion]);
 
   /* Elegir gato, para una mesa de cualquier tamaño.
    *
@@ -383,7 +419,7 @@ export default function App() {
          quedó vacío reparte gatos consecutivos: es la misma red que había
          antes para el segundo jugador, ahora para todos. */
       juego.start(
-        elegidos.map((idx, i) => newPlayer(ROSTER[idx ?? (p1 + i) % ROSTER.length]))
+        newPlayers(elegidos.map((idx, i) => ROSTER[idx ?? (p1 + i) % ROSTER.length]))
       );
       go("game");
       return;
@@ -636,16 +672,11 @@ export default function App() {
       const r = await sala.holdScore(sala.roomId);
       (r.resolved ?? []).forEach((x, i) => {
         const carta = { type: x.type, value: x.value };
-        setTimeout(() => {
-          setRevelada({ carta, bloqueada: x.blocked });
-          /* Acá te plantaste vos, así que la carta va contra el rival. */
-          setLanzada({
-            carta,
-            bloqueada: x.blocked,
-            destino: sala.miLado === 0 ? 1 : 0,
-            key: Math.random(),
-          });
-        }, i * 1500);
+        /* Acá te plantaste vos, así que la carta va contra el rival. */
+        setTimeout(
+          () => mostrarRevelacion(carta, x.blocked, sala.miLado === 0 ? 1 : 0),
+          i * 1500
+        );
       });
     } catch (e) {
       notify(errorText(e), "error");

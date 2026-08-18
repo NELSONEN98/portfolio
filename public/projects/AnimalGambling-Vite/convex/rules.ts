@@ -24,9 +24,30 @@ export const BUST = 1;
 export const PENALTY_POINTS = 6;
 
 /* Lo que se cobra por dar una vuelta entera al tablero.
-   Chico a propósito: el camino son 40 casillas y una tirada promedia 3.5,
-   así que una vuelta son once turnos largos. Tres puntos premian la
-   constancia sin competir con el robo, que es el que decide partidas. */
+ *
+ * ►► Este número parece chico y NO lo es. ◄◄
+ *
+ * El comentario que estaba acá decía que una vuelta son "once turnos
+ * largos", y de ahí salía que tres puntos eran un premio menor a la
+ * constancia. La cuenta estaba mal por un factor de tres: 40 casillas sobre
+ * 3.5 de promedio son once TIRADAS, no once turnos, y un turno son casi
+ * cuatro tiradas. Una vuelta cae cada tres turnos y medio.
+ *
+ * Medido sobre partidas completas —dado real, tablero real, plantándose a
+ * los 20— salen 3.7 vueltas por partida: once puntos sobre un objetivo de
+ * cien. El once por ciento del marcador entra por el camino.
+ *
+ * Subirlo hace dos cosas y las dos son malas. Acorta la partida, y sobre
+ * todo le pasa el peso de la decisión al reloj: a diez puntos la vuelta,
+ * casi el treinta por ciento del marcador sale de caminar, o sea de nada
+ * que el jugador haya elegido. Plantarse o seguir es el juego; todo lo que
+ * se paga por avanzar solo le come terreno a esa decisión.
+ *
+ * Hay un efecto de borde que conviene conocer antes de tocar nada: la ficha
+ * camina en TODA tirada, incluida la que te quema, y la vuelta se cobra en
+ * la fase de movimiento —ver `passedStart` y su uso—. O sea que quemarse
+ * igual te acerca al bonus. Es el único premio consuelo del juego, y sube
+ * junto con este número. */
 export const LAP_BONUS = 3;
 
 /* Con la maldición encima el dado del rival no pasa de 4: le saca los dos
@@ -429,6 +450,10 @@ export function makeCard(type: CardType, value: number | undefined, seed: number
    verdad —con su azar— sólo para medirla. */
 export const STARTING_CARDS = 3;
 
+/* Los tipos que pueden entrar a una mano, en el orden en que se usan de
+   respaldo. Sin la cerveza, que no ocupa lugar en el abanico. */
+const REPARTIBLES: CardType[] = [CARD.PUNCH, CARD.DEFENSE, CARD.STEAL, CARD.DOUBLE, CARD.CURSE];
+
 /* La mano de arranque, sorteada.
  *
  * Era fija —un robo, una defensa y una maldición— y eso hacía que las
@@ -442,43 +467,87 @@ export const STARTING_CARDS = 3;
  * lugar, así que repartida al principio dejaría al jugador borracho antes
  * de la primera tirada — un castigo que nadie se ganó.
  *
- * Y al menos una carta tiene que ser jugable. Con la defensa al 35% del
- * mazo, tres defensas seguidas salen una de cada veintitrés manos, y esa
- * mano no se puede jugar: la defensa se gasta sola cuando te atacan, así
- * que el jugador arrancaría sin una sola decisión disponible.
+ * Y no se repite el tipo de carta. Sortear tres veces del mazo de bonus da
+ * un azar impecable y una apertura que se siente siempre igual: con golpe y
+ * defensa al 35% cada uno, el 43% de las partidas arrancaba con una mano de
+ * puro golpe/defensa, y una de cada cinco era exactamente
+ * defensa+defensa+golpe. Aleatorio y variado no son lo mismo. Tres tipos
+ * distintos ponen tres mecánicas sobre la mesa desde el primer turno, que es
+ * lo que la apertura tiene que enseñar.
+ *
+ * Esta regla también reemplaza a la vieja de "al menos una carta jugable":
+ * con una sola defensa por mano, la mano de tres defensas —que no se podía
+ * jugar, porque la defensa se gasta sola cuando te atacan— dejó de existir.
  *
  * Los intentos van con tope. Un `while` sin techo a merced de una función
- * de azar ajena es un cuelgue esperando; si se agota, se fuerza la carta y
- * la partida sigue.
+ * de azar ajena es un cuelgue esperando; si se agota, se fuerza un tipo que
+ * falte y la partida sigue.
  */
 export function startingHand(rand: () => number): Card[] {
-  const sacar = (semilla: number): Card => {
-    for (let intento = 0; intento < 20; intento++) {
+  const mano: Card[] = [];
+  const repetido = new Set<CardType>();
+
+  /* El sorteo sigue saliendo de `randomBonusCard`: el balance de las cartas
+     se toca en un solo lugar y la apertura lo hereda. Acá sólo se descarta
+     lo que no puede entrar. */
+  const sacar = (semilla: number): Card | null => {
+    for (let intento = 0; intento < 40; intento++) {
       const carta = randomBonusCard(rand, semilla);
-      if (carta.type !== CARD.BEER) return carta;
+      if (carta.type === CARD.BEER) continue;
+      if (repetido.has(carta.type)) continue;
+      return carta;
     }
-    return makeCard(CARD.PUNCH, undefined, semilla);
+    return null;
   };
 
-  const mano: Card[] = [];
-  for (let i = 0; i < STARTING_CARDS; i++) mano.push(sacar(i));
+  /* El peor caso real deja libres robo, dos dados y maldición —un 21% del
+     mazo—, así que agotar los cuarenta intentos es una rareza de una en
+     dieciséis mil. Igual tiene salida: se toma el primer tipo que falte. */
+  const forzar = (semilla: number): Card => {
+    const tipo = REPARTIBLES.find((t) => !repetido.has(t)) ?? CARD.PUNCH;
+    return tipo === CARD.STEAL
+      ? makeCard(CARD.STEAL, randomStealValue(rand), semilla)
+      : makeCard(tipo, undefined, semilla);
+  };
 
-  /* Si salieron todas defensas, la última se cambia por algo que se pueda
-     poner sobre la mesa. */
-  if (mano.every((c) => c.type === CARD.DEFENSE)) {
-    for (let intento = 0; intento < 20; intento++) {
-      const carta = sacar(STARTING_CARDS - 1);
-      if (carta.type !== CARD.DEFENSE) {
-        mano[STARTING_CARDS - 1] = carta;
-        break;
-      }
-      if (intento === 19) {
-        mano[STARTING_CARDS - 1] = makeCard(CARD.PUNCH, undefined, STARTING_CARDS - 1);
-      }
-    }
+  for (let i = 0; i < STARTING_CARDS; i++) {
+    const carta = sacar(i) ?? forzar(i);
+    repetido.add(carta.type);
+    mano.push(carta);
   }
 
   return mano;
+}
+
+/* La misma mano, para otro asiento.
+ *
+ * ►► Por qué el reparto es ESPEJADO. ◄◄
+ *
+ * La mano de arranque es el único azar del juego que llega antes de la
+ * primera decisión. Los dados los enfrentan los dos por igual y hay que
+ * elegir cuándo plantarse; la carta del bonus depende de en qué casilla
+ * caíste, o sea de hasta dónde empujaste la tirada. Eso es varianza que el
+ * jugador se ganó. La mano inicial no: nadie tiró, nadie eligió.
+ *
+ * Y no era poca. Medida en puntos duros —lo que efectivamente mueve el
+ * marcador— una mano de arranque vale entre 0 y 14 sobre un objetivo de
+ * 100, y sorteando por separado el 58% de las partidas empezaba con una
+ * brecha de 6 puntos o más. Un 14% del objetivo regalado antes del primer
+ * dado, y encima invisible, porque las manos están ocultas: el que la
+ * recibía ni se enteraba.
+ *
+ * Sorteando UNA mano y copiándola se conservan las dos cosas que importan:
+ * cada partida abre distinto —que es lo que se ganó al dejar la mano fija—
+ * y adentro de la partida nadie arranca arriba.
+ *
+ * Los uid se vuelven a estampar por asiento. Las cartas son las mismas, la
+ * identidad no: hoy ninguna lista mezcla cartas de dos jugadores, pero
+ * `uid` es la clave con la que se juega y se levanta una carta, y dos
+ * jugadores con `punch-0` en la mano es una colisión esperando la primera
+ * pantalla que los junte.
+ */
+export function mirrorHand(mano: Card[], asiento: number): Card[] {
+  return mano.map((c, i) => makeCard(c.type, c.value, asiento * STARTING_CARDS + i));
 }
 
 /* Lo que entrega una casilla de bonus.

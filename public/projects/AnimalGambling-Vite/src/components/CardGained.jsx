@@ -2,6 +2,28 @@ import { useEffect, useRef, useState } from "react";
 import { CardFace } from "./Hand";
 import { ms } from "../theme";
 import { medir } from "../medir";
+import { CARD } from "../../convex/rules";
+
+/* Adónde aterriza la carta que acabás de ganar.
+ *
+ * ►► La defensa no va al abanico. Nunca fue. ◄◄
+ *
+ * Las defensas se filtran del abanico y se dibujan como escuditos en la
+ * línea del peleador (ver `jugables` / `defensas` en VersusScreen), porque
+ * no se juegan: se gastan solas cuando te atacan. Pero la entrega las
+ * mandaba igual al abanico, así que la carta viajaba hasta un lugar donde
+ * no aparecía nunca y el escudo se encendía en la otra punta sin que nada
+ * lo conectara con lo que se acababa de ver.
+ *
+ * El respaldo importa y no es decorativo: `.f-defensas` sólo existe en el
+ * DOM cuando tenés al menos una defensa. Para la PRIMERA la fila todavía no
+ * está pintada en el momento de medir, y ahí el abanico —que está pegado,
+ * en la misma línea— deja la carta cerca en vez de tirarla al centro. */
+function destinoDe(carta) {
+  return carta.type === CARD.DEFENSE
+    ? medir(".f-defensas") ?? medir(".hand-fan")
+    : medir(".hand-fan");
+}
 
 /* La carta que entrega una casilla de bonus: aparece grande en el medio,
  * se deja ver, y después baja hasta el abanico.
@@ -40,7 +62,7 @@ export default function CardGained({ carta, onDone }) {
     /* Se mide en cada entrega y no una sola vez: entre una y otra pudo
        girarse el teléfono o cambiar el tamaño de la ventana. */
     setOrigen(medir(".bonus-deck"));
-    setDestino(medir(".hand-fan"));
+    setDestino(destinoDe(carta));
     setFase("entra");
 
     const a = setTimeout(() => setFase("viaja"), LECTURA_MS);

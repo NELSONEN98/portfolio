@@ -10,6 +10,7 @@ import {
   passedStart,
   LAP_BONUS,
   startingHand,
+  mirrorHand,
   randomBonusCard,
   resolveRoll,
   applyPenalty,
@@ -34,19 +35,38 @@ import {
 
 const rand = () => Math.random();
 
-export function newPlayer(char) {
+/* La mano llega de afuera y por defecto viene vacía.
+ *
+ * Antes se repartía acá adentro, y ese detalle era justamente el problema:
+ * llamando una vez por jugador, cada uno sacaba una mano distinta. El
+ * reparto subió un piso —a `newPlayers`— para que sea UNO solo y se copie.
+ *
+ * Vacía por defecto porque el otro que la usa es el sondeo del modo online,
+ * que arma un jugador de base y le pisa la mano con la del servidor: ahí
+ * repartir sería sortear cartas para tirarlas a la basura. */
+export function newPlayer(char, hand = []) {
   return {
     char,
     score: 0,
     current: 0,
     pos: 0,
-    hand: startingHand(rand),
+    hand,
     pendingCards: [],
     curseTurns: 0,
     beerTurns: 0,
     beerStacks: 0,
     doubleNext: false,
   };
+}
+
+/* La mesa entera, con UNA sola mano repartida y copiada a todos.
+ *
+ * El porqué del espejo está en `mirrorHand`, en las reglas. Acá interesa
+ * que el sorteo ocurra una vez y afuera del bucle: es el modo local, así
+ * que este es el equivalente de lo que `createRoom` hace en el servidor. */
+export function newPlayers(chars) {
+  const mano = startingHand(rand);
+  return chars.map((char, asiento) => newPlayer(char, mirrorHand(mano, asiento)));
 }
 
 /* Los efectos que la interfaz tiene que mostrar salen como una lista de

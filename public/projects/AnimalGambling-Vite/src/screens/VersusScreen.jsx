@@ -1,3 +1,5 @@
+import { useCallback, useRef, useState } from "react";
+
 import Board from "../components/Board";
 import BonusDeck from "../components/BonusDeck";
 import Dice from "../components/Dice";
@@ -7,6 +9,11 @@ import PlayedCard from "../components/PlayedCard";
 import { DadoIcon, HaltIcon } from "../components/icons";
 import Reparto from "../components/Reparto";
 import { useApertura } from "../hooks/useApertura";
+import { ms } from "../theme";
+
+/* Lo mismo que dura el confeti de la casilla: es el mismo hecho contado en
+   dos lugares y tienen que apagarse juntos. */
+const CONFETI_MS = ms("tablero.confeti");
 import { CARD, STARTING_CARDS } from "../../convex/rules";
 
 /* La mesa.
@@ -80,6 +87,29 @@ export default function VersusScreen({
   const borrachera = borroso ? Math.max(1, yo?.beerStacks ?? 1) : 0;
 
   const enMano = yo?.hand ?? [];
+  /* Quién está festejando una vuelta y con qué clave.
+   *
+   * Vive acá porque es el padre común: el TABLERO es el que sabe cuándo la
+   * ficha pisó la meta —camina el recorrido de a un paso, y en los dos
+   * modos— y el PELEADOR es el que tiene que festejar. Ninguno de los dos
+   * puede avisarle al otro.
+   *
+   * Guarda una clave que sube por jugador y no un booleano: dos vueltas
+   * seguidas tienen que volver a estallar, y sin algo que cambie React reusa
+   * los nodos y la segunda no se ve. Es el mismo recurso que ya usa el
+   * confeti de la casilla. */
+  const [festejos, setFestejos] = useState({});
+  const limpiar = useRef({});
+
+  const alDarVuelta = useCallback((lado) => {
+    setFestejos((prev) => ({ ...prev, [lado]: (prev[lado] ?? 0) + 1 }));
+    clearTimeout(limpiar.current[lado]);
+    limpiar.current[lado] = setTimeout(
+      () => setFestejos((prev) => ({ ...prev, [lado]: 0 })),
+      CONFETI_MS
+    );
+  }, []);
+
   const jugables = enMano.filter((c) => c.type !== CARD.DEFENSE);
   const defensas = enMano.filter((c) => c.type === CARD.DEFENSE);
 
@@ -147,6 +177,7 @@ export default function VersusScreen({
             mostrarMano={online && i !== miLado}
             impacto={impacto?.lado === i ? impacto.tipo : null}
             defensas={ladoMano === i ? defensas : null}
+            festejo={festejos[i] ?? 0}
           />
         </div>
       ))}
@@ -161,6 +192,7 @@ export default function VersusScreen({
                vos, en local el que está jugando el turno. */
             mirandoLado={ladoMano}
             onLlegada={onLlegada}
+            onVuelta={alDarVuelta}
             retrasoCasilla={retrasoCasilla}
           />
 

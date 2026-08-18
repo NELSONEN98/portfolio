@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CARD, CARD_LABEL, cardHint } from "../../convex/rules";
+import { CARD, CARD_LABEL, PUNCH_POINTS, cardHint } from "../../convex/rules";
 import { CARD_ICON } from "./icons";
 import { GESTO, ms } from "../theme";
 
@@ -27,6 +27,29 @@ export function CardFace({ carta }) {
     );
   }
   const Icono = CARD_ICON[carta.type];
+
+  /* El golpe dice cuánto saca, igual que el robo — pero sin soltar el
+     rótulo.
+     Es el otro ataque del mazo, y hasta ahora era el único que no ponía su
+     número: en la mano se leía "GOLPE" al lado de "−3" y "−6", y para saber
+     cuál pegaba más fuerte había que acordarse. Con la cifra puesta, los
+     tres ataques se comparan de un vistazo.
+     Conserva la palabra porque su número NO cambia entre cartas: el robo la
+     soltó porque con dos denominaciones el dato que importa es la cifra, y
+     acá el golpe es siempre el mismo. Va en línea y no debajo para no
+     apilar un tercer renglón en una carta que ya lleva dibujo y rótulo. */
+  if (carta.type === CARD.PUNCH) {
+    return (
+      <>
+        <span className="card-icon">{Icono ? <Icono /> : null}</span>
+        <span className="card-kind">
+          {CARD_LABEL[CARD.PUNCH]}
+          <span className="card-kind-num">−{PUNCH_POINTS}</span>
+        </span>
+      </>
+    );
+  }
+
   return (
     <>
       <span className="card-icon">{Icono ? <Icono /> : null}</span>

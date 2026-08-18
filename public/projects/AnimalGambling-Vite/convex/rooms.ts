@@ -17,6 +17,7 @@ import {
   passedStart,
   LAP_BONUS,
   startingHand,
+  mirrorHand,
   randomBonusCard,
   resolveRoll,
   applyPenalty,
@@ -123,7 +124,10 @@ function boardOf(p: any) {
 
 const rand = () => Math.random();
 
-function freshPlayer(sessionId: string) {
+/* La mano entra por parámetro y no se sortea acá adentro: el reparto de la
+   sala es UNO solo y se copia a cada asiento. El porqué está en
+   `mirrorHand`, en las reglas. */
+function freshPlayer(sessionId: string, hand: Card[]) {
   return {
     sessionId,
     name: null,
@@ -131,7 +135,7 @@ function freshPlayer(sessionId: string) {
     score: 0,
     current: 0,
     pos: 0,
-    hand: startingHand(rand),
+    hand,
     pendingCard: null,
     pendingCards: [],
     curseTurns: 0,
@@ -153,17 +157,22 @@ export const createRoom = mutation({
       roomId = makeRoomId();
     }
 
+    const openingHand = startingHand(rand);
+
     await ctx.db.insert("rooms", {
       roomId,
       /* La mesa arranca con un solo asiento ocupado: el del que creó. Los
          demás se agregan con `joinRoom`, en el orden en que llegan — y ese
          orden es el de la ronda y el de los ataques, así que entrar primero
          no es lo mismo que entrar último. */
-      players: [freshPlayer(args.sessionId)],
+      players: [freshPlayer(args.sessionId, mirrorHand(openingHand, 0))],
       seat: 0,
       status: "waiting",
       // Un tablero distinto por partida.
       board: makeBoard(rand),
+      /* Se sortea acá, con la sala, y no cuando entra cada uno: es lo que
+         hace que todos abran con las mismas cartas. */
+      openingHand,
       createdAt: Date.now(),
       expiresAt: Date.now() + ROOM_TTL_MS,
     });
@@ -223,7 +232,16 @@ export const joinRoom = mutation({
        La sala pasa a `playing` en cuanto hay dos, pero SIGUE aceptando gente
        hasta el tope: con cuatro sillas, esperar a que se llenen todas para
        arrancar dejaría colgada cualquier partida de tres. */
-    const conElNuevo = [...seats, freshPlayer(args.sessionId)];
+    /* La mano guardada en la sala, no la que tenga puesta el asiento 0: acá
+       se puede entrar con la partida ya empezada, y para entonces la mano
+       del primero tiene cartas jugadas y ganadas. Las salas abiertas antes
+       de que esto existiera no la traen, y ahí se reparte suelto — con la
+       desigualdad de siempre, que es mejor que no dejarlas entrar. */
+    const openingHand = (room.openingHand as Card[] | undefined) ?? startingHand(rand);
+    const conElNuevo = [
+      ...seats,
+      freshPlayer(args.sessionId, mirrorHand(openingHand, seats.length)),
+    ];
     await ctx.db.patch(room._id, {
       players: conElNuevo,
       status: conElNuevo.length >= MIN_PLAYERS ? "playing" : "waiting",

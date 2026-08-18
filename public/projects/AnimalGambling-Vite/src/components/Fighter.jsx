@@ -1,6 +1,7 @@
 import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
 import RivalHand from "./RivalHand";
 import { HeartShieldIcon } from "./icons";
+import { CONFETI_PAPELES } from "./confeti";
 
 /* Un peleador: el dibujo, el nombre y sus dos números.
  *
@@ -18,6 +19,11 @@ export default function Fighter({
   mostrarMano,
   impacto,
   defensas,
+  /* La clave del festejo de vuelta, o 0 si no hay ninguno. Es un número que
+     sube y no un booleano: dos vueltas seguidas tienen que volver a
+     estallar, y sin algo que cambie React reusa los nodos y la segunda no
+     se ve. Mismo recurso que usa el confeti de la casilla. */
+  festejo = 0,
 }) {
   const score = useAnimatedNumber(jugador?.score ?? 0);
   const current = useAnimatedNumber(jugador?.current ?? 0);
@@ -45,6 +51,18 @@ export default function Fighter({
       <div className="fighter-frame">
         <div className="fighter-art boil" data-cat={jugador.char.id} />
         <div className="f-name">{jugador.char.name}</div>
+        {/* El confeti de la vuelta, encima del dibujo. Va acá adentro y no
+            en la línea entera para que reviente sobre el gato —que es el
+            que dio la vuelta— y no en un rincón cualquiera del renglón.
+            Reusa `.confeti` de la casilla: los mismos papeles y la misma
+            animación, porque es el mismo hecho contado en el otro lugar. */}
+        {festejo > 0 ? (
+          <span className="confeti festejo" key={festejo} aria-hidden="true">
+            {CONFETI_PAPELES.map((c, n) => (
+              <i className={`papel ${c}`} key={n} style={{ "--n": n }} />
+            ))}
+          </span>
+        ) : null}
       </div>
 
       <div className="fighter-readout">

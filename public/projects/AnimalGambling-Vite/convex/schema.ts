@@ -78,6 +78,17 @@ export default defineSchema({
        que ver las mismas casillas en los mismos lugares. Optional porque
        las salas anteriores al tablero no lo tienen. */
     board: v.optional(v.array(v.string())),
+    /* La mano de arranque de la sala, sorteada una vez y copiada a todos.
+       Viaja con la sala por la misma razón que `board`: es una tirada que
+       tiene que salir igual para los que se sienten a esta mesa.
+
+       Guardarla —en vez de copiarle la mano al primer asiento cuando entra
+       alguien— es lo único que funciona con esta sala, que sigue aceptando
+       gente DESPUÉS de arrancar: para el tercero que llega, la mano del
+       asiento 0 ya no es la de arranque, tiene cartas jugadas y ganadas.
+       Optional porque las salas abiertas antes de esto no la tienen; ahí se
+       reparte suelto, como se hacía. */
+    openingHand: v.optional(v.array(card)),
     /* Quién ganó, dicho por el backend. Deducirlo comparando puntajes del
        lado del cliente falla justo en el abandono, donde el que se queda
        puede tener menos.

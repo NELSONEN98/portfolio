@@ -321,8 +321,11 @@ export default function RulesModal({ abierta, onClose }) {
               }
             >
               Empiezas con <b>{STARTING_CARDS} cartas al azar</b>, del mismo
-              mazo que reparten los bonus. Sólo puedes jugarlas en tu turno, y
-              puedes poner <b>varias en el mismo turno</b>: quedan{" "}
+              mazo que reparten los bonus, y <b>nunca dos iguales</b>. Todos
+              arrancan con <b>la misma mano</b>: cambia en cada partida, pero
+              nadie empieza con ventaja — y en el primer turno sabes
+              exactamente qué tiene el rival. Sólo puedes jugarlas en tu
+              turno, y puedes poner <b>varias en el mismo turno</b>: quedan{" "}
               <b>boca abajo</b> sobre la mesa y se revelan recién cuando te
               plantas. Cada defensa del rival tapa una sola, así que
               acumular sirve. Mientras sigan boca abajo puedes{" "}

@@ -10,6 +10,7 @@ import {
 } from "../../convex/rules";
 import { ms } from "../theme";
 import { SQUARE_ICON } from "./icons";
+import { CONFETI_PAPELES } from "./confeti";
 
 /* El camino es el borde de una grilla de COLS×ROWS, y ese tamaño no es
    arbitrario: el borde de una grilla tiene 2C + 2F − 4 celdas, que es
@@ -54,15 +55,6 @@ const IMPACTO_MS = ms("tablero.casillaGolpe");
 const PISADA_MS = ms("tablero.pisada");
 const CONFETI_MS = ms("tablero.confeti");
 
-/* Los papelitos, con los colores de las fichas de la casa. Es una lista y
-   no un número al azar para que el reparto de colores sea siempre el mismo:
-   con `Math.random()` en el pintado, cada re-render los cambiaría de color a
-   mitad del vuelo. */
-const CONFETI_PAPELES = [
-  "gold", "red", "bone", "gold", "blue",
-  "red", "gold", "bone", "red", "gold", "blue", "bone",
-];
-
 /* Cuánto dura cada paso de un recorrido de N casillas. Las tiradas cortas
    van al ritmo natural; las largas aceleran para no pasarse del techo. */
 function pasoDe(pasos) {
@@ -77,7 +69,19 @@ function pasoDe(pasos) {
    Sin dibujarla, la maldición sería una trampa escondida —caer en lo que
    parece un premio y perder el turno— y eso no es dificultad, es que el
    juego mienta. */
-export default function Board({ board, players, mirandoLado = 0, onLlegada, retrasoCasilla = 0 }) {
+export default function Board({
+  board,
+  players,
+  mirandoLado = 0,
+  onLlegada,
+  /* Quién acaba de completar una vuelta, avisado en el paso que pisa la
+     meta. Lo cuenta el TABLERO y no el motor por la misma razón que la
+     penitencia: en online las casillas las resuelve el servidor y el hecho
+     nunca llega al cliente, pero la ficha camina igual en los dos modos.
+     Acá el cruce es literal y se ve en local y en online. */
+  onVuelta,
+  retrasoCasilla = 0,
+}) {
   const maldito = (players[mirandoLado]?.curseTurns ?? 0) > 0;
   /* Dónde y de qué tipo fue el último impacto. Sólo las casillas que hacen
      algo se anuncian: encender también las vacías volvería el aviso ruido
@@ -111,6 +115,22 @@ export default function Board({ board, players, mirandoLado = 0, onLlegada, retr
   /* Una lista por jugador: al llegar una posición nueva se cancela lo que
      quedaba pendiente de esa ficha sin tocar el recorrido de la otra. */
   const timers = useRef([[], []]);
+
+  /* `onVuelta` en una referencia y fuera de las dependencias del efecto que
+     camina la ficha. Llega como función nueva en cada pintado del padre, y
+     el padre se repinta con cada sondeo de la sala: como dependencia,
+     cancelaría sus propios temporizadores y la ficha se quedaría clavada a
+     mitad del recorrido. Es la misma trampa que ya está documentada en
+     CardGained con `onDone`. */
+  const onVueltaRef = useRef(onVuelta);
+  /* La copia se hace en un efecto y no en el cuerpo del componente. Escribir
+     un ref durante el pintado es lo que hace `CardGained` con `onDone`, y es
+     justamente lo que el linter marca ahí: React puede descartar un render a
+     medio hacer, y esa escritura ya habría pasado. En un efecto corre
+     después del commit, que es cuando el valor es real. */
+  useEffect(() => {
+    onVueltaRef.current = onVuelta;
+  }, [onVuelta]);
 
   useEffect(() => () => timers.current.forEach((l) => l?.forEach(clearTimeout)), []);
 
@@ -189,6 +209,10 @@ export default function Board({ board, players, mirandoLado = 0, onLlegada, retr
                Acá el recorrido se camina de a una, y el cruce es literal. */
             if (casilla === START_SQUARE) {
               setConfeti((n) => n + 1);
+              /* Y el festejo del que la dio. La casilla dice DÓNDE pasó, que
+                 con dos fichas encima no alcanza para saber de quién fue la
+                 vuelta ni a qué marcador le van a entrar los tres puntos. */
+              onVueltaRef.current?.(i);
               timers.current[i].push(
                 setTimeout(() => setConfeti(0), CONFETI_MS)
               );
