@@ -787,6 +787,9 @@ body {
   align-items: center;
   gap: clamp(1rem, 3vw, 2.4rem);
   min-width: 0;
+
+  /* El tamaño del marcador, del que cuelga el de la cifra del cambio. */
+  --marcador: calc(var(--fighter-h) * 0.72);
 }
 /* La línea de cada jugador: sus cartas y él, en el mismo renglón.
    El orden es CARTAS · PUNTAJE · PERSONAJE, y es el MISMO para los dos —no
@@ -1254,8 +1257,12 @@ body {
   /* Igual que el marco: sale del alto de la línea. Con `line-height: 0.85`
      el número ocupa 0.61 de la línea y le deja sitio al acumulado y a las
      defensas debajo, así que el marcador entero entra en su renglón sin
-     depender de con cuántas cifras se esté jugando. */
-  font-size: calc(var(--fighter-h) * 0.72);
+     depender de con cuántas cifras se esté jugando.
+
+     Sale de `--marcador` y no del cálculo escrito acá porque la cifra del
+     cambio tiene que medir su 80% EXACTO: con el número copiado en los dos
+     lados, tocar uno rompe la proporción sin que nada avise. */
+  font-size: var(--marcador);
   line-height: 0.85;
   /* Siempre en el color del lado, esté o no en turno: es la forma de saber
      cuál de los dos números es el tuyo sin leer el nombre. */
@@ -1287,10 +1294,6 @@ body {
   display: inline-block;
   transform-origin: center;
 }
-.bump {
-  animation: num-bump var(--dur-numero-sube) var(--ease-numero-sube);
-}
-
 /* El golpe va a la izquierda del marcador, fuera del flujo: si ocupara
    lugar, el número grande se correría cada vez que aparece. */
 .score-row {
@@ -1306,16 +1309,19 @@ body {
   top: 50%;
 
   font-family: var(--display);
-  /* Sube otra vez: de un techo de 44px a 76px. Es lo único que cuenta cuánto
-     te sacó una carta, y aparece un segundo y medio mientras el marcador
-     baja: si no se lee de un vistazo, no se lee — y a 44px seguía siendo un
-     número chico al lado del marcador, que es justo el que NO dice cuánto.
-     Medido contra la línea del peleador —donde vive— pasa de ocupar el
-     21-30% de su alto a rondar el 40-50%. Entra, y es el punto: la cifra que
-     explica el golpe tiene que competir con el marcador, no susurrarle. */
-  font-size: clamp(4rem, 10.5vmin, 7.6rem);
+  /* El 56% del marcador, atado a su misma variable.
+     Antes era un `clamp` propio contra la ventana, o sea una medida que no
+     sabía nada del número al que acompaña: en una pantalla podía quedar
+     más grande que el marcador y en otra la mitad. Como ahora se funde con
+     él, la relación entre los dos ES el efecto — tiene que ser la misma en
+     todas las pantallas.
+     Bajó un 30% desde aquel 0.8: a ese tamaño la cifra competía de igual a
+     igual con el marcador y la fusión se leía como dos números chocando en
+     vez de uno entrando en el otro. El que manda es el marcador. */
+  font-size: calc(var(--marcador) * 0.56);
   line-height: 1;
   white-space: nowrap;
+  /* El color lo pone el signo: rojo lo que se va, dorado lo que entra. */
   color: var(--c-red);
   /* El contorno negro no estaba, y hace falta ahora más que antes: el número
      cae sobre el dibujo del gato, que tiene sus propios colores, y a este
@@ -1328,23 +1334,49 @@ body {
     1px -1px 0 #000,
     -1px -1px 0 #000,
     0 2px 4px rgba(0, 0, 0, 0.85),
-    0 0 1.2rem rgba(199, 0, 0, 0.8);
+    0 0 1.2rem var(--hit-halo, rgba(199, 0, 0, 0.8));
 
   opacity: 0;
   pointer-events: none;
 }
 
+/* Lo que se va, en el rojo de la sangre. Lo que entra, en el dorado de la
+   mesa — el mismo con el que brilla el camino, así que una buena noticia se
+   lee como algo que la mesa te da. Es el mismo par que usa el cartel del
+   medio, y ésa es la idea: dos avisos distintos del mismo hecho no pueden
+   estar pintados con criterios distintos. */
+.f-hit.menos { color: var(--c-red);  --hit-halo: rgba(199, 0, 0, 0.8); }
+.f-hit.mas   { color: var(--c-gold); --hit-halo: rgba(228, 167, 0, 0.85); }
+
 .f-hit.show {
-  animation: hit-float var(--dur-numero-perdido) var(--ease-numero-perdido);
+  animation: hit-fusion var(--dur-numero-cambio) var(--ease-numero-cambio) both;
 }
 
-/* Sube y se desvanece: el movimiento hacia arriba lo despega del número
-   que está contando abajo, para que se lean como dos cosas. */
-@keyframes hit-float {
-  0%   { opacity: 0; transform: translateY(0.6rem) scale(0.7); }
-  18%  { opacity: 1; transform: translateY(-0.2rem) scale(1.12); }
-  55%  { opacity: 1; transform: translateY(-0.9rem) scale(1); }
-  100% { opacity: 0; transform: translateY(-2rem) scale(0.95); }
+/* ►► Entra, se deja leer, y se mete DENTRO del marcador. ◄◄
+ *
+ * Antes subía y se desvanecía por su cuenta: dos números moviéndose en el
+ * mismo rincón sin relación visible, y había que deducir que uno explicaba
+ * al otro. Ahora la cifra viaja hacia el marcador y se apaga encima de él,
+ * mientras el marcador se expande para recibirla. La causa y el efecto
+ * quedan atados por el movimiento y no por la memoria del que mira.
+ *
+ * El `translateY(-50%)` va en TODOS los fotogramas y no en la regla base:
+ * `transform` es una sola propiedad, así que el primer keyframe que la
+ * declare pisa lo que hubiera afuera y la cifra se descolgaría media altura
+ * apenas arranca la animación.
+ *
+ * El viaje va en `em` —o sea, relativo a la propia cifra— y no en `rem`:
+ * `--marcador` cambia con el alto de la línea, y una distancia fija en
+ * píxeles se quedaría corta en una pantalla grande y se pasaría de largo en
+ * una chica. En `em` el recorrido escala junto con los dos números.
+ *
+ * El 60% es donde se toca con el pico del marcador: ver `marcador-crece`. */
+@keyframes hit-fusion {
+  0%   { opacity: 0; transform: translate(-0.7em, -50%) scale(0.75); }
+  14%  { opacity: 1; transform: translate(-0.25em, -50%) scale(1.1); }
+  30%  { opacity: 1; transform: translate(0, -50%) scale(1); }
+  60%  { opacity: 1; transform: translate(0.55em, -50%) scale(0.85); }
+  100% { opacity: 0; transform: translate(1.5em, -50%) scale(0.3); }
 }
 
 /* El −N sale a la izquierda del marcador, que es su lado libre: a la
@@ -1353,7 +1385,7 @@ body {
    estaban en espejo— porque ahora los dos están dispuestos igual. */
 
 @media (prefers-reduced-motion: reduce) {
-  .f-hit.show { animation: hit-float var(--dur-numero-perdido) steps(1, end); }
+  .f-hit.show { animation: hit-fusion var(--dur-numero-cambio) steps(1, end) both; }
 }
 
 /* Mientras el número baja va en rojo: penitencia y robo se distinguen de
@@ -1363,22 +1395,75 @@ body {
   color: var(--c-red) !important;
   text-shadow: 0 0 1.6rem rgba(199, 0, 0, 0.75) !important;
 }
-.f-score.down {
+
+/* ►► El marcador acusa el impacto en el momento exacto en que lo recibe. ◄◄
+ *
+ * Las dos animaciones duran lo mismo que `hit-fusion` y arrancan con ella,
+ * pero no hacen nada hasta el 45%: ése es el tramo en que la cifra todavía
+ * está entrando y dejándose leer. El pico cae en el 60-70%, que es donde la
+ * cifra le llega encima. Reaccionar antes sería acusar un golpe que todavía
+ * no llegó, y es lo que rompía la ilusión con la versión vieja, donde el
+ * número se sacudía apenas empezaba a contar.
+ *
+ * Los dos EXPANDEN, y ahí está el truco: el que sube se queda grande un
+ * instante antes de volver —creció—; el que baja se pasa de largo y cae por
+ * debajo de su tamaño antes de recuperarse —encajó el golpe—. Es el mismo
+ * gesto de inflarse contando dos cosas opuestas, que es más legible que
+ * agrandar uno y achicar el otro: el movimiento llama la atención igual en
+ * los dos casos y el signo, el color y la caída final dicen cuál fue. */
+.f-score.sube {
+  animation: marcador-crece var(--dur-numero-absorbe) var(--ease-numero-absorbe);
+}
+.f-score.baja {
+  animation: marcador-merma var(--dur-numero-absorbe) var(--ease-numero-absorbe);
+}
+
+@keyframes marcador-crece {
+  0%,  45% { transform: scale(1); }
+  62%      { transform: scale(1.18); }
+  78%      { transform: scale(1.1); }
+  100%     { transform: scale(1); }
+}
+
+/* Se infla y después se hunde: el bajón por debajo de 1 es lo que se lee
+   como "le sacaron", y llega DESPUÉS del pico para que se sienta como una
+   consecuencia del impacto y no como el impacto mismo. */
+@keyframes marcador-merma {
+  0%,  45% { transform: scale(1) translateY(0); }
+  62%      { transform: scale(1.16) translateY(0); }
+  80%      { transform: scale(0.9) translateY(0.14em); }
+  100%     { transform: scale(1) translateY(0); }
+}
+
+/* El acumulado acusa su propia caída.
+ *
+ * Es el número que se pierde al quemarse: los puntos del turno nunca
+ * llegaron al marcador, así que la cifra de cambio —que explica movimientos
+ * DEL MARCADOR— no tiene nada que decir ahí, y anunciar un −N al lado de un
+ * puntaje que no se movió sería mentir sobre qué pasó.
+ * Lo cuenta el acumulado, que es de donde salieron. El rojo ya lo tenía; le
+ * faltaba el gesto — sin él, con el número cayendo a cero de golpe, quien no
+ * estaba mirando ese rincón no se enteraba de cuánto había en juego.
+ *
+ * `num-drop` quedó huérfano al reescribir el marcador y el catálogo de
+ * tiempos ya lo declaraba viviendo acá: esta regla es la que vuelve cierto
+ * lo que `numero.baja` dice en motion.js. */
+.f-current span.down {
   animation: num-drop var(--dur-numero-baja) var(--ease-numero-baja);
 }
+
 @keyframes num-drop {
   0%   { transform: translateY(0) scale(1); }
   40%  { transform: translateY(0.5rem) scale(0.92); }
   100% { transform: translateY(0) scale(1); }
 }
-@keyframes num-bump {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(1.14); }
-  100% { transform: scale(1); }
-}
+
 
 @media (prefers-reduced-motion: reduce) {
-  .bump { animation: none; }
+  /* El marcador se queda quieto: el número igual cambia y el color igual
+     avisa, que es la información. Lo que se apaga es el gesto. */
+  .f-score.sube,
+  .f-score.baja { animation: none; }
 }
 .fighter.active .f-current {
   color: var(--bone);
@@ -1542,6 +1627,18 @@ body {
   grid-template-columns: repeat(12, 1fr);
   grid-template-rows: repeat(10, 1fr);
   gap: 2px;
+
+  /* ►► El tablero es el contenedor que las casillas consultan. ◄◄
+   *
+   * Va acá y NO en `.square`, y esa distinción es la que hace que funcione:
+   * un elemento no puede consultarse a sí mismo. Declarándolo en la celda,
+   * la celda queda como contenedor de sus HIJOS y sus propias medidas en
+   * `cq` siguen resolviendo contra el ancestro más cercano —o contra el
+   * viewport si no hay ninguno—. Puesto así, un aro de "17.5%" daba 189px
+   * sobre una casilla de 81: el 17.5% de la ventana.
+   * Desde la grilla, la casilla se deduce dividiendo por las filas y las
+   * columnas, que es exactamente como está construida. */
+  container-type: size;
 }
 
 /* ►► La sombra que el anillo de casillas proyecta hacia adentro. ◄◄
@@ -1711,7 +1808,15 @@ body {
   --aro: var(--c-gold);
 
   --relieve:
-    inset 0 0 0 1px var(--aro),
+    /* ►► El aro, medido en la CELDA y no en píxeles. ◄◄
+       Es el filo de la pieza. A un píxel era una línea: se leía como un
+       contorno dibujado encima y no como el canto de algo con espesor.
+       Ahora cierra un 35% de la casilla —`--aro-grosor` por lado— y el
+       dorado pasa a ser la pieza, con el negro como hueco en el medio.
+       Va en `inset` y no en un `border` porque un borde real se comería
+       parte de la celda y correría el ícono; la sombra interior lo pinta
+       por dentro sin tocar la caja. */
+    inset 0 0 0 var(--aro-grosor) var(--aro),
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
     /* Luz POR DENTRO. Es la capa nueva y la que más cambia la lectura: hasta
        acá el dorado era un contorno, o sea una pieza con el borde pintado.
@@ -1745,6 +1850,24 @@ body {
      las tres esquinas del anillo se curvan, y cada una por su lado de
      afuera. Redondeando todas, el camino se leía como una fila de fichas
      sueltas en vez de una cinta continua. */
+  /* ►► El grosor del aro sale de la CASILLA, no de la ventana. ◄◄
+   *
+   * Un valor en píxeles se vería gordo en una pantalla y como una línea en
+   * otra; la celda cambia de tamaño con la mesa y el aro tiene que
+   * acompañarla.
+   *
+   * Se mide contra el tablero —que es quien declara `container-type`— y se
+   * divide por las columnas y las filas para llegar a UNA casilla. Se toma
+   * el menor de los dos: la celda es casi cuadrada pero no exactamente, y
+   * con el lado largo el aro se pasaría por el corto.
+   *
+   * Un 17.5% POR LADO cierra el 35% pedido y deja el 65% del centro
+   * abierto. Va en una variable para que cada tipo de casilla pueda pisarlo
+   * —el bonus lo hace— sin volver a escribir las ocho capas del relieve. */
+  --aro-grosor: calc(
+    min(100cqw / var(--board-cols), 100cqh / var(--board-rows)) * 0.175
+  );
+
   border-radius: 0;
   /* Negro pleno y no el verde translúcido de antes. Con el paño asomando
      por debajo, cada casilla arrastraba un poco del color de la mesa y la
@@ -1875,7 +1998,7 @@ body {
  * las bombillas del marco y la luz de TODAS las casillas.
  *
  * Que sean todas y no sólo las convertidas es el punto. La maldición ya
- * cambia los bonus por casillas que te cortan el turno; si además el resto
+ * cambia los bonus por penitencias; si además el resto
  * del camino sigue dorado como siempre, se lee como que fallaron dos
  * casillas. Con la mesa entera del color de la carta, se lee como lo que
  * es: el tablero está en tu contra hasta que se te pase.
@@ -1963,17 +2086,27 @@ body {
 
 /* Los dos tipos que hacen algo se leen por color, no por ícono: a este
    tamaño un símbolo no se distingue. */
+/* ►► Las dos casillas que HACEN algo conservan el filo fino. ◄◄
+ *
+ * El aro grueso es para las vacías: sin ícono ni color propio, el dorado es
+ * lo único que tienen y es lo que arma la cinta del camino.
+ * Éstas se identifican por su color pleno más el dibujo encima, y cerrarles
+ * el 35% deja el rojo y el azul reducidos a un cuadradito en el medio: la
+ * casilla que castiga y la que premia se leerían igual de cerradas que el
+ * suelo. Acá el borde tiene que dejar ver la pieza, no comérsela. */
 .square.penalty {
   background: var(--c-red);
   --luz: 255, 140, 110;
   --luz-halo: 240, 70, 45;
   --aro: #ff9d85;
+  --aro-grosor: 3px;
 }
 .square.bonus {
   background: var(--c-blue);
   --luz: 140, 180, 255;
   --luz-halo: 80, 130, 255;
   --aro: #a8c2ff;
+  --aro-grosor: 3px;
 }
 /* El bonus dado vuelta por la maldición. Morado y no rojo: el rojo es la
    penitencia, que existe en el tablero de los dos y siempre; ésta la puso
@@ -2532,69 +2665,6 @@ body {
    La reemplazó la rotura de más arriba: frenarse y desaparecer se parecía
    demasiado a que la carta simplemente no hubiera salido. */
 
-/* ---- lo que costó caer en rojo ----
-   El −N sale de la casilla misma y sube. El marcador ya muestra su propio
-   −N, pero está en el borde de la pantalla: sin este, hay que atar dos
-   cosas que pasan a la vez en puntas opuestas para entender que una causó
-   la otra.
-
-   Va por encima de las fichas para que no lo tape la que acaba de caer,
-   que es justo la que está parada ahí. */
-.casilla-hit {
-  position: absolute;
-  z-index: 7;
-  font-family: var(--display);
-  /* Casi el doble de una casilla: a 1080p son 64px sobre una celda de 35.8.
-     Venía del tamaño de la celda —36px— buscando no taparla, y ése era el
-     criterio equivocado: la cifra no es parte del tablero, es lo que hay que
-     leer ANTES de volver a mirarlo.
-     Tapa el tablero, sí, y más que antes. Pero sube y se va en menos de un
-     segundo: el momento en que estorba es exactamente el momento en que no
-     hay nada más que mirar. */
-  font-size: clamp(3.2rem, 9.6vmin, 6.4rem);
-  line-height: 1;
-  white-space: nowrap;
-  color: var(--c-red);
-  /* ►► Acá había una declaración inválida y nadie lo notó. ◄◄
-   *
-   * Decía `0 0 0 2px #000` en el medio de la lista, buscando un contorno.
-   * Pero `text-shadow` acepta DOS o TRES longitudes —desplazamiento y
-   * desenfoque— y no tiene spread como `box-shadow`. Con cuatro, el valor
-   * es un error de sintaxis, y un error en una lista separada por comas
-   * invalida la declaración ENTERA: el número venía sin contorno y sin
-   * halo, plano sobre el tablero. Justo lo contrario de lo que el
-   * comentario aseguraba.
-   *
-   * El contorno se hace con cuatro sombras sin desenfoque, una por
-   * diagonal. Es la forma que funciona en todos lados. */
-  text-shadow:
-    1px 1px 0 #000,
-    -1px 1px 0 #000,
-    1px -1px 0 #000,
-    -1px -1px 0 #000,
-    0 2px 4px rgba(0, 0, 0, 0.9),
-    0 0 1rem rgba(199, 0, 0, 0.95);
-  pointer-events: none;
-  animation: casilla-hit-float var(--dur-tablero-penitencia-numero)
-    var(--ease-tablero-penitencia-numero) forwards;
-}
-
-/* El translate va dentro del keyframe y no en una regla aparte: declarado
-   afuera, la animación lo pisaría y el número saldría corrido media
-   casilla. */
-@keyframes casilla-hit-float {
-  0%   { opacity: 0; transform: translate(-50%, -30%) scale(0.6); }
-  18%  { opacity: 1; transform: translate(-50%, -95%) scale(1.15); }
-  60%  { opacity: 1; transform: translate(-50%, -145%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -235%) scale(0.9); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .casilla-hit {
-    animation: casilla-hit-float var(--dur-tablero-penitencia-numero) steps(1, end) forwards;
-  }
-}
-
 /* ---- el golpe en el rival ----
    El marco y el puntaje toman el color de la carta que llegó. Sale de
    --side, la misma variable de la que ya salen los dos, así que no pueden
@@ -2627,8 +2697,20 @@ body {
   35%  { background-color: var(--side); filter: brightness(1.15); }
   100% { filter: brightness(1); }
 }
-.fighter.impacto-robo .f-score,
-.fighter.impacto-maldicion .f-score {
+/* ►► El destello suelta el número cuando el número ya se está moviendo. ◄◄
+ *
+ * `golpe-numero` y `marcador-merma` animan los dos el `transform` del mismo
+ * elemento, así que sólo puede correr uno: ganaba éste —tres clases y más
+ * abajo en la hoja— y la fusión de la cifra con el marcador no se veía
+ * NUNCA en un robo o un golpe, justo los dos casos donde más importa.
+ *
+ * La exclusión se declara acá y no subiéndole especificidad a la otra
+ * regla porque así queda escrito de qué lado está la decisión: el marcador
+ * es de quien lo hace cambiar. La maldición no toca el puntaje, así que
+ * ahí no hay `.sube` ni `.baja` y este destello se queda con el número,
+ * que es su único aviso. */
+.fighter.impacto-robo .f-score:not(.sube):not(.baja),
+.fighter.impacto-maldicion .f-score:not(.sube):not(.baja) {
   animation: golpe-numero var(--dur-peleador-golpe-numero) var(--ease-peleador-golpe-numero);
 }
 
@@ -3369,6 +3451,7 @@ body {
   --board-cols: 12;
   --board-rows: 10;
 
+
   /* Cuánto se mete el camino respecto del filo del fieltro. Queda como
      variable —aunque hoy la lea sólo `.board-track`— porque es la medida
      que ubica el borde del hueco, y cualquier cosa que quiera apoyarse ahí
@@ -3880,7 +3963,11 @@ body {
      nadie. */
   .versus-screen { --fighter-h: max(9rem, min(30dvh, 22vw)); }
   .fighter-frame { height: calc(var(--fighter-h) * 0.52); }
-  .f-score { font-size: calc(var(--fighter-h) * 0.4); }
+  /* Redefine la VARIABLE y no el `font-size`. Escribiendo el tamaño acá se
+     saltaba `--marcador`, y la cifra del cambio —que cuelga de ella— seguía
+     midiendo su 80% de OTRO número: medida en pantalla daba 144% del
+     marcador en vez de 80%. Tocando la variable, los dos se mueven juntos. */
+  .fighter { --marcador: calc(var(--fighter-h) * 0.4); }
   /* El mismo 20% que arriba: 0.09 → 0.108. */
   .f-current { font-size: calc(var(--fighter-h) * 0.108); }
 }
@@ -5453,10 +5540,24 @@ body {
   font-size: clamp(2.4rem, 6vmin, 4rem);
   color: rgba(228, 167, 0, 0.75);
 
-  /* `backwards` es lo que las mantiene invisibles durante su retraso: sin
-     eso, las doce cartas aparecen apiladas en el mazo desde el cuadro cero
-     y recién después salen de a una. */
-  animation: reparte var(--dur-apertura-carta) var(--ease-apertura-carta) backwards;
+  /* ►► `both`, y las DOS mitades hacen falta. ◄◄
+   *
+   * `backwards` las mantiene invisibles durante su retraso: sin eso, las
+   * doce cartas aparecen apiladas en el mazo desde el cuadro cero y recién
+   * después salen de a una.
+   *
+   * `forwards` conserva el último fotograma al terminar, y su ausencia era
+   * un bug que se veía en cada partida. Acabada la animación, la carta
+   * volvía a su estilo BASE —`top:50%`, `left:50%`, sin `transform` y con
+   * la opacidad por defecto en 1— o sea que reaparecía entera en el medio
+   * de la pantalla y se quedaba ahí hasta que el reparto se desmontaba.
+   * Con seis cartas eran cinco apiladas en el centro durante medio segundo.
+   *
+   * El `opacity: 0` del 100% ya estaba escrito y el comentario de abajo ya
+   * daba por hecho que la carta se apagaba al llegar. Sin `forwards` ese
+   * fotograma se descarta, así que la regla decía una cosa y el navegador
+   * hacía otra. */
+  animation: reparte var(--dur-apertura-carta) var(--ease-apertura-carta) both;
 }
 
 /* Sale del mazo, cruza la mesa y se apaga al llegar. No aterriza visible: la

@@ -294,13 +294,6 @@ export const MOTION = {
        del tope del conteo (numero.conteoMax) para que el número ya haya
        frenado cuando aparece la carta o el castigo. */
     esperaCasilla: { ms: 520, el: "App.jsx · alLlegar" },
-    penitenciaNumero: {
-      ms: 1500,
-      ease: EASE.salida,
-      keyframes: "casilla-hit-float",
-      el: ".casilla-hit",
-      nota: "El −N que sale de la casilla roja. Dura lo mismo que el −N del marcador (numero.perdido) a propósito: son el mismo dato dicho en dos lugares, y con tiempos distintos parecerían dos cosas.",
-    },
   },
 
   // ─── PELEADOR ────────────────────────────────────────────────────────
@@ -343,14 +336,31 @@ export const MOTION = {
 
   // ─── NÚMEROS ─────────────────────────────────────────────────────────
   numero: {
-    sube: { ms: 380, ease: EASE.salida, keyframes: "num-bump", el: ".bump" },
-    baja: { ms: 380, ease: EASE.salida, keyframes: "num-drop", el: ".f-score.down" },
-    perdido: {
-      ms: 1500,
+    baja: { ms: 380, ease: EASE.salida, keyframes: "num-drop", el: ".f-current span.down" },
+    /* ►► La cifra del cambio y el marcador son UNA animación en dos piezas. ◄◄
+     *
+     * Duran lo mismo y arrancan juntas a propósito: la cifra viaja hacia el
+     * marcador y el marcador acusa el golpe justo cuando la alcanza. Con
+     * duraciones distintas se separan y se leen como dos avisos, que es lo
+     * que pasaba antes — el −N flotaba por su lado y el número se sacudía
+     * por el suyo.
+     *
+     * Bajó de 1500 a 1100: 1500 era el tiempo de una cifra que se quedaba
+     * quieta y había que leer. Ésta se lee mientras se mueve, y sostenerla
+     * más la volvía lenta. */
+    cambio: {
+      ms: 1100,
       ease: EASE.salida,
-      keyframes: "hit-float",
+      keyframes: "hit-fusion",
       el: ".f-hit.show",
-      nota: "El −N rojo que flota. Dura mucho más que el conteo porque es la explicación de por qué bajó.",
+      nota: "El ±N que sale al lado del marcador y se funde con él.",
+    },
+    absorbe: {
+      ms: 1100,
+      ease: EASE.salida,
+      keyframes: "marcador-crece / marcador-merma",
+      el: ".f-score.sube, .f-score.baja",
+      nota: "Lo que hace el marcador mientras la cifra le llega encima. Misma duración que `cambio`: es la otra mitad del mismo gesto.",
     },
     /* El conteo del número grande. No es CSS: lo hace useAnimatedNumber
        con requestAnimationFrame, porque el valor es dato, no estilo. La

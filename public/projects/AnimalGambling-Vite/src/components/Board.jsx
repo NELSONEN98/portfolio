@@ -4,7 +4,6 @@ import {
   BOARD_ROWS as ROWS,
   BOARD_SIZE,
   START_SQUARE,
-  PENALTY_POINTS,
   SQUARE,
   squareFor,
 } from "../../convex/rules";
@@ -261,7 +260,6 @@ export default function Board({
          los dos comparten pantalla, y el aviso que sale de acá es el que
          ordena el turno del jugador que acaba de caer. */
       const tipo = squareFor(board, fin, (p.curseTurns ?? 0) > 0);
-      const castiga = tipo === SQUARE.PENALTY;
 
       /* El aviso de que la ficha frenó. Es el que ordena el turno: el
          tablero es el único que sabe cuándo terminó el recorrido —depende
@@ -280,10 +278,6 @@ export default function Board({
               pos: fin,
               tipo,
               key: Date.now(),
-              /* Cuánto costó caer ahí. Sale de las reglas y no de un número
-                 escrito acá: el que descuenta de verdad es el motor, y dos
-                 fuentes distintas se desincronizan calladas. */
-              puntos: castiga ? PENALTY_POINTS : 0,
             });
             /* Espera lo mismo que la pantalla antes de resolver la casilla:
                el −6 y el destello del peleador cuentan lo mismo, y salidos
@@ -377,20 +371,13 @@ export default function Board({
         />
       )}
 
-      {/* Cuánto se perdió, dicho en la casilla donde pasó. El marcador ya
-          muestra su propio −N, pero está lejos del tablero: sin este, hay
-          que atar dos cosas que ocurren a la vez en puntas opuestas de la
-          pantalla para entender que una causó la otra. */}
-      {impacto?.puntos > 0 && (
-        <span
-          key={`hit-${impacto.key}`}
-          className="casilla-hit"
-          style={cellCenter(impacto.pos)}
-          aria-hidden="true"
-        >
-          −{impacto.puntos}
-        </span>
-      )}
+      {/* Acá vivía un −N sobre la casilla, el mismo que muestra el marcador.
+          Existía porque los dos avisos estaban en puntas opuestas de la
+          pantalla y había que atarlos con la mirada; ahora la cifra sale
+          pegada al marcador y VIAJA hacia él, así que la unión la cuenta la
+          animación y repetir el número acá eran dos avisos del mismo hecho.
+          Lo que la casilla sigue diciendo es que la ficha cayó ahí: el
+          destello y la onda, que son suyos. */}
 
       {players.map((p, i) => {
         if (!p) return null;

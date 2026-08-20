@@ -28,6 +28,27 @@ export default function Fighter({
   const score = useAnimatedNumber(jugador?.score ?? 0);
   const current = useAnimatedNumber(jugador?.current ?? 0);
 
+  /* ►► Volcar el acumulado NO es una noticia. ◄◄
+   *
+   * Al plantarte, el acumulado se suma al marcador. La cifra del cambio
+   * anunciaba ese salto como cualquier otro, y era el único caso en que no
+   * decía nada nuevo: el jugador venía mirando ese mismo número crecer en
+   * el `+N` durante todo el turno. Anunciarlo al final es contarle algo que
+   * ya sabe, y de paso le gasta el gesto — cuando de verdad le roban o le
+   * pegan, la animación ya perdió el valor de sorpresa.
+   *
+   * ►► Se reconoce sin estado nuevo, y ésa es la gracia. ◄◄
+   *
+   * El acumulado también pasa por `useAnimatedNumber`, así que ya lleva su
+   * propio `bajando`. Volcar es la ÚNICA jugada en que el marcador sube
+   * mientras el acumulado baja: la vuelta al tablero y los robos suben el
+   * marcador sin tocarlo, la penitencia lo baja, y quemarse manda el
+   * acumulado a cero pero deja el marcador quieto. Las dos banderas ya
+   * viven lo que dura el movimiento, así que no hace falta ni un latch ni
+   * un temporizador: la respuesta se lee de lo que el marcador ya sabe. */
+  const volcado = score.subiendo && current.bajando;
+  const anunciaCambio = (score.subiendo || score.bajando) && !volcado;
+
   if (!jugador) return null;
 
   const maldito = (jugador.curseTurns ?? 0) > 0;
@@ -67,13 +88,47 @@ export default function Fighter({
 
       <div className="fighter-readout">
         <div className="score-row">
-          {/* Cuánto se perdió. El número grande contando hacia abajo dice
-              que algo pasó, pero no cuánto: para saberlo habría que
-              acordarse del valor anterior. */}
-          <span className={`f-hit${score.bajando ? " show" : ""}`} aria-hidden="true">
-            {score.perdido ? `−${score.perdido}` : ""}
+          {/* Cuánto cambió, al lado del marcador y fundiéndose con él.
+              El número grande contando dice que algo pasó, pero no cuánto:
+              para saberlo habría que acordarse del valor anterior.
+
+              Ahora también cuenta lo que SUMA. Antes sólo aparecía al
+              perder, así que el marcador explicaba los golpes y se quedaba
+              callado con la vuelta al tablero o con lo que te ganabas
+              robando — los puntos aparecían sin decir de dónde.
+
+              El signo va escrito acá y no en el CSS: es parte del dato, no
+              de cómo se ve, y un `content` en una pseudo-clase no lo lee un
+              lector de pantalla. */}
+          <span
+            className={`f-hit${anunciaCambio ? " show" : ""}${
+              score.delta < 0 ? " menos" : " mas"
+            }`}
+            aria-hidden="true"
+          >
+            {anunciaCambio && score.delta
+              ? score.delta < 0
+                ? `−${-score.delta}`
+                : `+${score.delta}`
+              : ""}
           </span>
-          <div className={`f-score${score.bajando ? " down bump" : " bump"}`}>
+          {/* `sube` / `baja` en vez del `bump` permanente de antes.
+              `bump` estaba puesto siempre, así que sólo se reiniciaba
+              cuando la lista de clases cambiaba por otra razón; y encima
+              competía por el `transform` con la animación de la bajada.
+              Estas dos son excluyentes, se encienden con el cambio y se
+              apagan solas, que es lo que hace que se reinicien de verdad
+              en cada movimiento del marcador. */}
+          {/* El marcador tampoco se expande al volcar: la expansión es la
+              otra mitad del mismo gesto, y sin la cifra que la provoca
+              queda un número inflándose sin motivo a la vista. El conteo
+              hacia arriba se conserva — eso no es el aviso, es el número
+              yendo a su valor nuevo. */}
+          <div
+            className={`f-score${score.bajando ? " down" : ""}${
+              anunciaCambio ? (score.bajando ? " baja" : " sube") : ""
+            }`}
+          >
             {score.shown}
           </div>
 
