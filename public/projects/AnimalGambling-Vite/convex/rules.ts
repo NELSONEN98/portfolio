@@ -23,6 +23,21 @@ export const BUST = 1;
    positivo. */
 export const PENALTY_POINTS = 6;
 
+/* Lo que cobra el bonus convertido por la maldición.
+ *
+ * Va SEPARADO de `PENALTY_POINTS` y no atado a él, aunque el efecto sea el
+ * mismo. La casilla roja es un accidente del camino y está sorteada para
+ * que aparezca cinco veces; el bonus convertido son SIETE casillas más que
+ * se le vuelven en contra al maldito de golpe. Cobrando lo mismo, la
+ * condena pasaba a valer casi el veinte por ciento del objetivo — medido:
+ * 19.2 puntos sobre 100— y la convertía en la carta más cara del mazo por
+ * lejos, con un 4% de probabilidad de salir.
+ *
+ * Es la mitad de la penitencia a propósito: el maldito ya paga el dado
+ * capado, que le quema el turno una de cada cuatro tiradas en vez de una de
+ * cada seis. Este número es el castigo EXTRA, no el castigo entero. */
+export const CURSED_BONUS_POINTS = 3;
+
 /* Lo que se cobra por dar una vuelta entera al tablero.
  *
  * ►► Este número parece chico y NO lo es. ◄◄
@@ -56,11 +71,10 @@ export const LAP_BONUS = 3;
    más—; a 4 el turno maldito rinde un tercio menos y recién ahí vale la
    pena gastar una carta en ponerla. */
 export const CURSED_MAX_ROLL = 4;
-/* Dos turnos y no tres. La maldición ahora hace DOS cosas a la vez —capa el
-   dado y convierte los bonus del maldito en casillas que le cortan el
-   turno—, así que a tres turnos decidía la partida sola. Se acorta la
-   condena en lugar de ablandarla: es preferible un castigo que se sienta y
-   pase a uno tibio que dure. */
+/* Dos turnos y no tres. La maldición hace DOS cosas a la vez —capa el dado
+   y convierte los bonus del maldito en penitencias—, así que a tres turnos
+   decidía la partida sola. Se acorta la condena en lugar de ablandarla: es
+   preferible un castigo que se sienta y pase a uno tibio que dure. */
 export const CURSE_TURNS = 2;
 
 /* La cerveza dura lo mismo que la maldición, y no es pereza: las dos son
@@ -221,7 +235,7 @@ export function cardHint(card: Card): string {
     case CARD.DEFENSE:
       return "Se gasta sola cuando te atacan y anula una carta entera";
     case CARD.CURSE:
-      return `${CURSE_TURNS} turnos: su dado no pasa de ${CURSED_MAX_ROLL} y sus bonus le cortan el turno`;
+      return `${CURSE_TURNS} turnos: su dado no pasa de ${CURSED_MAX_ROLL} y sus bonus le cobran ${CURSED_BONUS_POINTS}`;
     case CARD.DOUBLE:
       return "Tiras con dos dados y se suman los dos";
     case CARD.PUNCH:
@@ -241,14 +255,16 @@ export const SQUARE = {
   PLAIN: "plain",
   PENALTY: "penalty",
   BONUS: "bonus",
-  /* La casilla que le corta el turno al maldito.
+  /* ►► Ya no la produce nadie. ◄◄
    *
-   * ►► No existe en ningún tablero guardado. ◄◄
-   * `makeBoard` no la sortea nunca: aparece SÓLO como resultado de mirar un
-   * bonus con la maldición encima (ver `squareFor`). Esa es la propiedad que
-   * hace que todo esto funcione — el tablero es uno solo y compartido, y la
-   * maldición la sufre uno solo, así que la conversión no puede guardarse en
-   * el dato o se la estaríamos aplicando también al que la lanzó. */
+   * Era lo que devolvía `squareFor` al mirar un bonus con la maldición
+   * encima: le cortaba el turno al maldito. Ahora esa conversión devuelve
+   * `PENALTY` —le cobra puntos— y este tipo dejó de aparecer.
+   *
+   * Se conserva declarado porque el cliente y el servidor todavía saben
+   * responderle, y borrarlo obliga a tocar los dos a la vez para ganar
+   * nada. Si en algún momento se quiere una casilla que corte el turno de
+   * verdad, el tipo ya está y sólo hay que sortearla en `makeBoard`. */
   TURN_LOSS: "turnloss",
 } as const;
 
@@ -369,7 +385,25 @@ export function squareFor(
   cursed: boolean
 ): SquareType {
   const casilla = squareAt(board, pos);
-  if (cursed && casilla === SQUARE.BONUS) return SQUARE.TURN_LOSS;
+  /* ►► El bonus del maldito COBRA, no corta. ◄◄
+   *
+   * Antes devolvía `TURN_LOSS` y el bonus le terminaba el turno. El castigo
+   * existía, pero era invisible en el marcador: el jugador se plantaba con
+   * lo que tenía y ningún número decía lo que le había costado. Y el precio
+   * real dependía de cuánto llevara acumulado —caer con 2 no dolía nada,
+   * caer con 25 arruinaba la partida—, así que la misma casilla castigaba
+   * distinto según un dato que no se ve.
+   *
+   * Devolviendo `PENALTY` el castigo no depende de lo acumulado y ya lo
+   * cuenta todo lo que existe: descuenta, emite el hecho de penitencia,
+   * tiñe al peleador de rojo y saca el −N al lado del marcador. No hizo
+   * falta una rama nueva en ningún lado — la maldición pasa a hablar el
+   * idioma que el tablero ya hablaba.
+   *
+   * CUÁNTO cobra es otra pregunta y la contesta `penaltyFor`: el bonus
+   * convertido sale más barato que una casilla roja de verdad. Acá se
+   * decide QUÉ es la casilla, no cuánto vale. */
+  if (cursed && casilla === SQUARE.BONUS) return SQUARE.PENALTY;
   return casilla;
 }
 
@@ -657,8 +691,29 @@ export type PlayerLike = {
 
 /* El puntaje nunca baja de cero: una penitencia con 4 puntos encima deja
    en 0, no en -11. */
-export function applyPenalty(score: number): number {
-  return Math.max(0, score - PENALTY_POINTS);
+export function applyPenalty(score: number, puntos: number = PENALTY_POINTS): number {
+  return Math.max(0, score - puntos);
+}
+
+/* Cuánto cobra la casilla donde caíste.
+ *
+ * Existe para que la respuesta viva en UN lugar. El cliente y el servidor
+ * resuelven la penitencia por su cuenta —el local para poder predecir, el
+ * online porque es la autoridad— y con la cuenta escrita en los dos, la
+ * primera vez que alguien toque un número van a discrepar en silencio: el
+ * jugador vería bajar 3 y el servidor le descontaría 6.
+ *
+ * Recibe el tablero CRUDO y el estado de maldición, no la casilla ya
+ * convertida: después de `squareFor` las dos son `PENALTY` y no hay forma
+ * de saber cuál era un bonus. */
+export function penaltyFor(
+  board: SquareType[] | undefined,
+  pos: number,
+  cursed: boolean
+): number {
+  return cursed && squareAt(board, pos) === SQUARE.BONUS
+    ? CURSED_BONUS_POINTS
+    : PENALTY_POINTS;
 }
 
 

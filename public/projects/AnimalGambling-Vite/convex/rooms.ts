@@ -21,6 +21,7 @@ import {
   randomBonusCard,
   resolveRoll,
   applyPenalty,
+  penaltyFor,
   cappedScore,
   applyCard,
   tickBeer,
@@ -394,7 +395,7 @@ export const rollDice = mutation({
     const dioVuelta = passedStart(mine.pos, steps);
     const pos = advance(mine.pos, steps);
     /* Qué es la casilla PARA ESTE jugador: con la maldición encima, sus
-       bonus dejan de entregar carta y le cortan el turno. El tablero
+       bonus dejan de entregar carta y le cobran puntos. El tablero
        guardado no se toca —es el mismo para los dos— y la conversión ocurre
        acá, al leerlo. */
     const square = squareFor(room.board as any, pos, cursed);
@@ -421,7 +422,9 @@ export const rollDice = mutation({
     let borrachera = { beerTurns: mine.beerTurns, beerStacks: mine.beerStacks };
 
     if (square === SQUARE.PENALTY) {
-      score = applyPenalty(score);
+      /* Misma regla que el cliente, llamada desde el mismo lugar: el bonus
+         convertido por la maldición cobra menos que una casilla roja. */
+      score = applyPenalty(score, penaltyFor(room.board as any, pos, cursed));
       landed = SQUARE.PENALTY;
     } else if (square === SQUARE.TURN_LOSS) {
       /* No toca puntos ni mano: lo único que hace es avisar. El plantarse

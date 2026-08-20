@@ -10,6 +10,7 @@ import {
   BEER_TURNS,
   BEER_MAX_STACKS,
   PENALTY_POINTS,
+  CURSED_BONUS_POINTS,
   PUNCH_POINTS,
   STEAL_VALUES,
   SQUARE,
@@ -307,7 +308,11 @@ export default function RulesModal({ abierta, onClose }) {
                   >
                     Durante {CURSE_TURNS} turnos el dado del rival no pasa
                     de {CURSED_MAX_ROLL}. Le saca el mejor resultado, pero el
-                    1 le sigue pudiendo salir.
+                    1 le sigue pudiendo salir. Y además le da vuelta el
+                    camino: mientras dure, sus casillas de bonus dejan de
+                    dar carta y le <b>cobran {CURSED_BONUS_POINTS}</b>. Son{" "}
+                    <b>siete</b> casillas que se le vuelven en contra, por eso
+                    cobran menos que una penitencia de verdad.
                   </Item>
                   <Item
                     muestra={<Carta tipo={CARD.DOUBLE} />}

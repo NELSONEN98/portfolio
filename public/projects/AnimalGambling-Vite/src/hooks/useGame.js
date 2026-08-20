@@ -3,7 +3,6 @@ import {
   GOAL,
   CARD,
   hasRoomFor,
-  PENALTY_POINTS,
   SQUARE,
   squareFor,
   advance,
@@ -14,6 +13,7 @@ import {
   randomBonusCard,
   resolveRoll,
   applyPenalty,
+  penaltyFor,
   targetOf,
   nextSeat,
   cappedScore,
@@ -125,21 +125,25 @@ export function useGame() {
      objetos nuevos para volver a pintar. */
   const efectoCasilla = useCallback((p, lado, tablero) => {
     /* `squareFor` y no `squareAt`: lo que la casilla HACE depende de quién
-       la pisa. Con la maldición encima, el bonus de este jugador ya no
-       entrega carta —le corta el turno—, y quien ejecuta ese corte es la
-       pantalla, no esta función: acá alcanza con no entregar nada. */
-    const casilla = squareFor(tablero, p.pos ?? 0, (p.curseTurns ?? 0) > 0);
+       la pisa. Con la maldición encima, el bonus de este jugador no entrega
+       carta: se lee como penitencia y cae por la rama de arriba, que le
+       descuenta los puntos. Acá no hay ningún caso especial que escribir —
+       la conversión ya ocurrió al leer la casilla. */
+    const maldito = (p.curseTurns ?? 0) > 0;
+    const casilla = squareFor(tablero, p.pos ?? 0, maldito);
     const hechos = [];
     let { score, hand } = p;
     let borrachera = { beerTurns: p.beerTurns ?? 0, beerStacks: p.beerStacks ?? 0 };
 
     if (casilla === SQUARE.PENALTY) {
-      score = applyPenalty(score);
+      /* Cuánto cobra lo decide la regla, no este archivo: el bonus que la
+         maldición convirtió sale más barato que una casilla roja, y esa
+         cuenta tiene que dar igual acá y en el servidor. */
+      const puntos = penaltyFor(tablero, p.pos ?? 0, maldito);
+      score = applyPenalty(score, puntos);
       /* El lado viaja con el hecho: la pantalla necesita saber a quién
          teñir de rojo, y el nombre no alcanza para ubicarlo. */
-      hechos.push(
-        evento("penitencia", { nombre: p.char.name, puntos: PENALTY_POINTS, lado })
-      );
+      hechos.push(evento("penitencia", { nombre: p.char.name, puntos, lado }));
     } else if (casilla === SQUARE.BONUS) {
       /* Se sortea PRIMERO y se pregunta después, porque ahora la respuesta
          depende de qué salió: un escudo mira el tope de escudos y el resto
