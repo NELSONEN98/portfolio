@@ -26,9 +26,20 @@ import { celdaDe, celdaArriba } from "./mesa";
 import { ms } from "./theme";
 
 /* Cuánto queda teñido el peleador golpeado. Un pelo más que la animación
-   del destello, para limpiar la clase con el movimiento ya terminado y no
-   cortarlo en el último cuadro. */
-const IMPACTO_MS = ms("peleador.golpeMarco") + 50;
+   MÁS LARGA del golpe, para limpiar la clase con todo ya terminado y no
+   cortar nada en el último cuadro.
+ *
+ * ►► El `max` no es prolijidad, es lo que hace que se puedan tocar. ◄◄
+ *
+ * Del golpe cuelgan cuatro animaciones y esta constante decide cuándo se
+ * apaga la clase que las enciende a las cuatro. Leyendo una sola —era
+ * `golpeMarco`— cualquier otra que se alargara por encima de ella quedaba
+ * cortada de cuajo, y desde afuera eso se ve como que el cambio de duración
+ * "no funcionó". Ya pasó al subir la cara de dolor a 1080: el marco sigue en
+ * 900, así que sin esto la mueca se cortaba en el último 12%.
+ * Con el máximo, subirle el tiempo a cualquiera de las cuatro alcanza. */
+const IMPACTO_MS =
+  Math.max(ms("peleador.golpeMarco"), ms("peleador.golpeCara")) + 50;
 
 /* El respiro entre los puntos del dado y lo que dice la casilla. */
 const ESPERA_CASILLA = ms("tablero.esperaCasilla");

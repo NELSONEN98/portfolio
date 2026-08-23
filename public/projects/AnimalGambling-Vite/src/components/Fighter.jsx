@@ -80,7 +80,33 @@ export default function Fighter({
   return (
     <div className={clases}>
       <div className="fighter-frame">
-        <div className="fighter-art boil" data-cat={jugador.char.id} />
+        <div className="fighter-art boil" data-cat={jugador.char.id}>
+          {/* ►► La cara de dolor, encima del boil. ◄◄
+           *
+           * Va DENTRO de `.fighter-art` y no en su lugar porque el boil es
+           * un `background-image` que cicla por CSS: reemplazarlo obligaría
+           * a apagar la animación y volver a encenderla, y el gato saltaría
+           * a un cuadro cualquiera al terminar el golpe. Encima, tapándolo,
+           * el ciclo sigue corriendo abajo sin enterarse y al apagarse la
+           * capa el dibujo continúa donde estaba.
+           *
+           * Se monta SIEMPRE, no sólo durante el golpe. Montarla al recibir
+           * el impacto significaría empezar a descargar la imagen recién en
+           * ese momento —los 900ms del golpe no alcanzan para 80KB— y el
+           * primer golpe de cada partida no mostraría nada. Existe desde el
+           * principio, invisible, y lo único que hace la clase es
+           * encenderla.
+           *
+           * La ruta sale de la ficha del gato y no de un patrón: los cuatro
+           * archivos no se llaman igual. El porqué está en roster.js. */}
+          {jugador.char.damage && (
+            <span
+              className="fighter-damage"
+              style={{ backgroundImage: `url("${jugador.char.damage}")` }}
+              aria-hidden="true"
+            />
+          )}
+        </div>
         <div className="f-name">{jugador.char.name}</div>
         {/* ►► La mira. ◄◄
          *

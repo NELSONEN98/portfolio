@@ -27,3 +27,8 @@ dist-ssr
 # GitHub rechaza cualquier archivo de mas de 100: sin esta linea, un
 # "git add ." deja un blob que despues hay que sacar del historial.
 local_cache/
+
+# Respaldos del editor. Aparecieron como `cat1-damage.png~` —80 KB de un
+# PNG duplicado— y el publish del juego los copia al directorio publicado,
+# asi que sin esto se cuelan por dos lados a la vez.
+*~

@@ -345,6 +345,22 @@ export const MOTION = {
     golpeMarco: { ms: 900, ease: EASE.salida, keyframes: "golpe-marco", el: ".fighter.impacto-* .fighter-frame" },
     golpeFondo: { ms: 900, ease: EASE.salida, keyframes: "golpe-fondo", el: ".fighter.impacto-* .fighter-art" },
     golpeNumero: { ms: 900, ease: EASE.salida, keyframes: "golpe-numero", el: ".fighter.impacto-* .f-score" },
+    /* La cara de dolor. Dura lo mismo que el resto del golpe para que el
+       peleador entero cuente una sola cosa, pero con su propia entrada:
+       ésta es la única de las cuatro que se puede querer ajustar sola —el
+       dibujo puede pedir más aire que el destello del marco—. */
+    golpeCara: {
+      /* Un 20% más que el resto del golpe, y por eso tiene entrada propia.
+         El destello del marco y el tinte del fondo son señales: se entienden
+         apenas empiezan. La cara es un DIBUJO, y un dibujo hay que mirarlo —
+         a 900ms el gato ya estaba volviendo a su boil cuando el ojo recién
+         llegaba a la mueca. */
+      ms: 1080,
+      ease: EASE.salida,
+      keyframes: "golpe-cara",
+      el: ".fighter.impacto-* .fighter-damage",
+      nota: "El dibujo de dolor tapando el boil: entra de golpe y se va desvaneciendo.",
+    },
   },
 
   // ─── NÚMEROS ─────────────────────────────────────────────────────────

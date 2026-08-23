@@ -1994,12 +1994,36 @@ body {
   z-index: 4;
 }
 .confeti.festejo .papel {
-  width: 5%;
-  /* Cuadrados. Con `height` en porcentaje serían rectángulos: el 5% del alto
-     y el 5% del ancho no miden lo mismo en un marco de 5/6. */
+  /* ►► Del 5% al 12%, que es lo que lo vuelve visible. ◄◄
+   *
+   * A 5% del ancho del marco cada papel medía unos 5px en pantalla: doce
+   * motas que a esa escala no se leen como papeles sino como suciedad. El
+   * estallido ya ocupaba el marco entero —eso no era el problema— pero
+   * estaba hecho de nada. A 12% cada papel mide unos 13px y recién ahí se
+   * ve QUÉ está estallando. */
+  width: 12%;
+  /* Cuadrados. Con `height` en porcentaje serían rectángulos: el 12% del
+     alto y el 12% del ancho no miden lo mismo en un marco de 5/6. */
   height: auto;
   aspect-ratio: 1;
-  --dist: calc(500% + (var(--n) * 36%));
+  /* ►► Y el recorrido se recalcula, o el estallido se va de la pantalla. ◄◄
+   *
+   * `--dist` se mide contra EL PAPEL, no contra el marco: es la trampa de
+   * `translate` que ya está anotada arriba. Al pasar el papel de 5% a 12%
+   * —dos veces y media más grande— los mismos porcentajes mandarían cada
+   * papel dos veces y media más lejos, y `.fighter-frame` lleva
+   * `overflow: hidden`: no se irían de la pantalla, se cortarían todos
+   * contra la pared antes de que se los vea.
+   *
+   * Los números nuevos están calculados para conservar el recorrido REAL en
+   * fracción del marco, que es lo único que se ve:
+   *
+   *   el más cercano   233% × 12% = 28% del ancho, desde el centro
+   *   el más lejano    354% × 12% = 42%, más medio papel = 48,5%
+   *
+   * O sea que el último se apaga justo antes del borde y ninguno se corta.
+   * El estallido mide lo que mide el gato, que es lo que se pidió. */
+  --dist: calc(233% + (var(--n) * 11%));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2707,6 +2731,41 @@ body {
 .fighter.impacto-robo .fighter-art,
 .fighter.impacto-maldicion .fighter-art {
   animation: golpe-fondo var(--dur-peleador-golpe-fondo) var(--ease-peleador-golpe-fondo);
+}
+
+/* ►► La cara de dolor. ◄◄
+ *
+ * Vive encima del boil, dentro del mismo papel, y existe desde el principio:
+ * lo único que hace el golpe es encenderla. Montarla recién al recibirlo
+ * significaría empezar a descargar el dibujo en ese momento, y los 900ms
+ * del golpe no alcanzan — el primer golpe de cada partida no mostraría
+ * nada. Por eso `opacity: 0` en vez de `display: none`. */
+.fighter-damage {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  /* El mismo encuadre que el boil: la caja ya es 5:6 y los dibujos vienen a
+     420×480, así que `cover` recorta lo justo y las dos capas coinciden. */
+  background-size: cover;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Entra de GOLPE y se va desvaneciendo, no al revés. Un dolor que aparece
+   gradualmente se lee como una transición; apareciendo de una y soltando
+   despacio se lee como un impacto que después pasa — que es lo que es.
+   La misma condición que el resto del golpe, así que el peleador entero
+   cuenta una sola cosa. */
+.fighter.impacto-robo .fighter-damage,
+.fighter.impacto-maldicion .fighter-damage {
+  animation: golpe-cara var(--dur-peleador-golpe-cara) var(--ease-peleador-golpe-cara);
+}
+
+@keyframes golpe-cara {
+  0%   { opacity: 1; }
+  62%  { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 @keyframes golpe-fondo {
