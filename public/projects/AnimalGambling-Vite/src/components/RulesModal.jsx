@@ -298,10 +298,10 @@ export default function RulesModal({ abierta, onClose }) {
                     muestra={<Carta tipo={CARD.BEER} />}
                     nombre={CARD_LABEL.beer}
                   >
-                    <b>Te la tomás vos.</b> No va a la mesa ni le llega a
+                    <b>Te lo tomás vos.</b> No va a la mesa ni le llega a
                     nadie: se aplica al instante y durante {BEER_TURNS} turnos
                     ves <i>tu</i> mesa borrosa. Y <b>se apilan</b>: dos
-                    cervezas nublan el doble, hasta {BEER_MAX_STACKS}.
+                    copas nublan el doble, hasta {BEER_MAX_STACKS}.
                   </Item>
                   <Item
                     muestra={<Carta tipo={CARD.CURSE} />}
@@ -359,7 +359,7 @@ export default function RulesModal({ abierta, onClose }) {
               plantas. Cada defensa del rival tapa una sola, así que
               acumular sirve. Mientras sigan boca abajo puedes{" "}
               <b>levantarlas de vuelta</b>: hasta que te plantes no pasó
-              nada. Los <i>dos dados</i> y la <i>cerveza</i> son la
+              nada. Los <i>dos dados</i> y el <i>martini</i> son la
               excepción: se aplican sobre ti en el momento y no esperan.
             </Regla>
 

@@ -50,6 +50,9 @@ export default function VersusScreen({
      da vuelta es el orden en que les toca. Ésa es justamente la forma en que
      el cambio de dirección se ve sin que nadie se mueva de asiento. */
   sentido = A_LA_DERECHA,
+  /* Hay una copa en pantalla ahora mismo. Mientras dure, la mesa no se
+     nubla: primero se ve QUÉ te tomaste y después qué te hace. */
+  sirviendo = false,
   impacto,
   onRoll,
   onHold,
@@ -90,7 +93,7 @@ export default function VersusScreen({
      correcto en los dos modos —en online siempre vos, en local el que está
      jugando el turno— así que en la pantalla compartida la borrosidad va y
      viene con el turno, que es lo que corresponde: el castigo es de uno. */
-  const borroso = (yo?.beerTurns ?? 0) > 0;
+  const borroso = (yo?.beerTurns ?? 0) > 0 && !sirviendo;
 
   /* La maldición tiñe la mesa entera de morado. Se mira al MISMO jugador
      con cuyos ojos se dibuja el camino —en online vos, en local el que está

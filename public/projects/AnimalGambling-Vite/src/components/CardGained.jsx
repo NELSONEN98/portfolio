@@ -20,9 +20,24 @@ import { CARD } from "../../convex/rules";
  * está pintada en el momento de medir, y ahí el abanico —que está pegado,
  * en la misma línea— deja la carta cerca en vez de tirarla al centro. */
 function destinoDe(carta) {
+  /* ►► La cerveza no tiene destino, y eso ES el dato. ◄◄
+   *
+   * Es la única carta que NUNCA llega a la mano: se toma al recibirla. Una
+   * animación que la baje al abanico sería el juego mintiendo sobre su
+   * propia regla — el jugador vería la carta guardarse en un lugar donde no
+   * va a estar nunca. Devolviendo `null` la secuencia de abajo la manda por
+   * el otro camino: se queda en el centro y se vacía ahí. */
+  if (carta.type === CARD.BEER) return null;
   return carta.type === CARD.DEFENSE
     ? medir(".f-defensas") ?? medir(".hand-fan")
     : medir(".hand-fan");
+}
+
+/* Qué hace la carta después de dejarse leer: viajar a la mano, o tomarse.
+   Sale del tipo y no de si `destinoDe` devolvió algo, porque un `medir` que
+   falla también devuelve null y ahí lo correcto sigue siendo viajar. */
+function seToma(carta) {
+  return carta.type === CARD.BEER;
 }
 
 /* La carta que entrega una casilla de bonus: aparece grande en el medio,
@@ -38,6 +53,7 @@ function destinoDe(carta) {
  */
 const LECTURA_MS = ms("cartaGanada.lectura");
 const VIAJE_MS = ms("cartaGanada.viaja");
+const BEBIDA_MS = ms("cartaGanada.bebida");
 
 export default function CardGained({ carta, onDone }) {
   const [fase, setFase] = useState("entra");
@@ -65,8 +81,13 @@ export default function CardGained({ carta, onDone }) {
     setDestino(destinoDe(carta));
     setFase("entra");
 
-    const a = setTimeout(() => setFase("viaja"), LECTURA_MS);
-    const b = setTimeout(() => terminar.current?.(), LECTURA_MS + VIAJE_MS);
+    /* Dos finales para el mismo principio: la carta entra y se deja leer
+       igual, y recién ahí se decide si se va a la mano o se toma. */
+    const salida = seToma(carta) ? "bebida" : "viaja";
+    const dura = seToma(carta) ? BEBIDA_MS : VIAJE_MS;
+
+    const a = setTimeout(() => setFase(salida), LECTURA_MS);
+    const b = setTimeout(() => terminar.current?.(), LECTURA_MS + dura);
 
     return () => {
       clearTimeout(a);
@@ -90,7 +111,13 @@ export default function CardGained({ carta, onDone }) {
       <div className={`card ${carta.type}`}>
         <CardFace carta={carta} />
       </div>
-      <div className="card-gained-label">¡Carta nueva!</div>
+      {/* El rótulo dice lo que pasó, y con la cerveza lo que pasa es otra
+          cosa: no ganaste una carta, te invitaron un trago. Decir "¡Carta
+          nueva!" sobre algo que nunca vas a tener en la mano sería el mismo
+          error que bajarla al abanico, contado con palabras. */}
+      <div className="card-gained-label">
+        {seToma(carta) ? "¡LA CASA INVITA!" : "¡Carta nueva!"}
+      </div>
     </div>
   );
 }

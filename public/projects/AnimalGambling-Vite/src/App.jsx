@@ -221,25 +221,30 @@ export default function App() {
 
   /* Lo que el bonus entregó.
    *
-   * La cerveza no pasa por la animación que baja la carta al abanico, y no
-   * es un detalle: esa carta NUNCA llega a la mano —se toma al recibirla—
-   * así que verla aterrizar en el abanico sería el juego mintiendo sobre su
-   * propia regla. En su lugar va el cartel, que es lo que de verdad pasó.
+   * ►► Todas las cartas se muestran. También la cerveza. ◄◄
+   *
+   * Antes la cerveza se saltaba la entrega y salía sólo un cartel de texto.
+   * El razonamiento era bueno a medias: esa carta NUNCA llega a la mano —se
+   * toma al recibirla— así que verla aterrizar en el abanico sería el juego
+   * mintiendo sobre su propia regla. Pero de ahí se sacó la conclusión
+   * equivocada: no mostrarla.
+   *
+   * Y no mostrarla tiene un costo peor. La cerveza es lo único del juego que
+   * te nubla la mesa, o sea el efecto más agresivo que existe sobre lo que
+   * ves — y llegaba sin cara. La pantalla se ponía borrosa y el jugador
+   * tenía que leer un cartel al costado para enterarse de por qué.
+   *
+   * Lo que no puede pasar es que VIAJE al abanico. Eso lo resuelve
+   * `CardGained`, que le da su propio final: se queda en el centro y se
+   * toma. La regla se sigue respetando; lo que cambia es que ahora se ve.
    *
    * Vive acá y no en los dos sitios que entregan cartas —el motor local y
    * la respuesta del servidor— porque son dos caminos para el mismo hecho, y
    * repartir la excepción entre los dos es cómo se desincronizan. */
-  const entregarCarta = useCallback(
-    (carta) => {
-      if (!carta) return;
-      if (carta.type === CARD.BEER) {
-        anunciar("¡LA CASA INVITA!", "buena");
-        return;
-      }
-      setCartaGanada(carta);
-    },
-    [anunciar]
-  );
+  const entregarCarta = useCallback((carta) => {
+    if (!carta) return;
+    setCartaGanada(carta);
+  }, []);
 
   /* Tiñe a un peleador del color de lo que acaba de pasarle y lo deja
      volver solo. El mismo destello sirve para una carta que le llegó y para
@@ -1111,6 +1116,14 @@ export default function App() {
             online={online}
             miLado={juego.miLado}
             sentido={juego.sentido}
+            /* ►► La borrosidad espera a que se vea la copa. ◄◄
+               El estado ya dice que estás borracho —lo aplicó el motor o el
+               servidor— pero mostrarlo en el mismo cuadro en que aparece la
+               carta arruina las dos cosas: la copa se lee sobre una mesa que
+               ya se nubló, y la nube llega sin que se entienda de dónde.
+               Se retrasa la PRESENTACIÓN, no el estado: los puntos, los
+               turnos y todo lo demás ya ocurrieron. */
+            sirviendo={cartaGanada?.type === CARD.BEER}
             impacto={impacto}
             onRoll={tirar}
             onHold={plantarse}

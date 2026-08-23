@@ -243,7 +243,10 @@ export const CARD_LABEL: Record<CardType, string> = {
   curse: "MALDICIÓN",
   double: "DOS DADOS",
   punch: "GOLPE",
-  beer: "CERVEZA",
+  /* El TIPO sigue siendo `beer` y no se toca: hay salas vivas con cartas ya
+     repartidas que lo llevan escrito, y renombrarlo sería una migración de
+     datos a cambio de nada. Lo que cambia es lo que el jugador LEE. */
+  beer: "MARTINI",
   skip: "SALTAR",
   reverse: "MEDIA VUELTA",
 };
@@ -271,7 +274,7 @@ export function cardHint(card: Card): string {
     case CARD.PUNCH:
       return `Le saca ${PUNCH_POINTS} puntos y no te los suma a vos`;
     case CARD.BEER:
-      return `Te la tomás vos: ${BEER_TURNS} turnos con TU mesa borrosa, y se apilan`;
+      return `Te lo tomás vos: ${BEER_TURNS} turnos con TU mesa borrosa, y se apilan`;
     case CARD.SKIP:
       return "El siguiente se queda sin turno. Se acumulan, y la defensa no las tapa";
     case CARD.REVERSE:

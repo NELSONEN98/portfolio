@@ -2884,6 +2884,27 @@ body {
   animation: carta-ganada-viaja var(--dur-carta-ganada-viaja) var(--ease-carta-ganada-viaja) forwards;
 }
 
+/* ►► La cerveza no viaja: se toma. ◄◄
+ *
+ * Es la única carta que no llega a la mano, así que su final no puede ser
+ * el mismo. En vez de salir hacia el abanico se queda donde está, se
+ * inclina como un vaso que se vacía y se apaga.
+ *
+ * Se inclina hacia la DERECHA y no hacia la izquierda: el viaje al abanico
+ * gira en negativo, y usar el mismo sentido acá haría que las dos salidas
+ * arranquen igual — justo lo contrario de lo que se quiere, que es que se
+ * distingan desde el primer cuadro. */
+.card-gained.bebida .card {
+  animation: carta-ganada-bebida var(--dur-carta-ganada-bebida) var(--ease-carta-ganada-bebida) forwards;
+}
+/* El rótulo se va con ella y no antes: acá no hay nada que mirar después,
+   así que la carta y su nombre se apagan juntos. En el viaje el rótulo se
+   corta primero porque lo que sigue —la carta bajando— es lo que importa. */
+.card-gained.bebida .card-gained-label {
+  opacity: 0;
+  transition: opacity 0.35s ease-out;
+}
+
 .card-gained-label {
   position: absolute;
   top: calc(50% + clamp(7rem, 20vmin, 11rem));
@@ -2928,10 +2949,20 @@ body {
   }
 }
 
+/* Se vacía y se apaga en el lugar. El `scale` baja poco —a 0.86— porque no
+   se está yendo a ningún lado: encogerla como en el viaje diría que se
+   guardó, y lo que hizo fue desaparecer. */
+@keyframes carta-ganada-bebida {
+  from { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+  45%  { opacity: 1; transform: translate(0, 1%) scale(1.03) rotate(9deg); }
+  to   { opacity: 0; transform: translate(0, 6%) scale(0.86) rotate(22deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card-gained .card,
   .card-gained-label { animation: none; }
-  .card-gained.viaja .card { opacity: 0; }
+  .card-gained.viaja .card,
+  .card-gained.bebida .card { opacity: 0; }
 }
 
 /* En pantallas angostas la mano está abajo al centro, así que la carta cae

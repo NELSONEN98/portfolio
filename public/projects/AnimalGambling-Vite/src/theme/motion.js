@@ -216,6 +216,19 @@ export const MOTION = {
       el: ".card-gained.viaja .card",
       nota: "Del centro al abanico propio.",
     },
+    /* La cerveza no viaja: se toma. Es la única carta que no llega a la
+       mano, así que mandarla al abanico sería el juego mintiendo sobre su
+       propia regla. Sale del centro sin moverse de ahí.
+       Más lenta que el viaje a propósito: el viaje conecta dos lugares y se
+       entiende en cuanto arranca, mientras que esto es un final y necesita
+       que se vea el vaso vaciarse antes de que la mesa se nuble. */
+    bebida: {
+      ms: 620,
+      ease: EASE.salida,
+      keyframes: "carta-ganada-bebida",
+      el: ".card-gained.bebida .card",
+      nota: "La copa se inclina, se vacía y desaparece en el lugar.",
+    },
   },
 
   // ─── CARTAS: SOBRE LA MESA ───────────────────────────────────────────
