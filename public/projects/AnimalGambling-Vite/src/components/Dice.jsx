@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { crearEscena } from "../dice3d/escena";
+import { reproducir } from "../audio/player";
 import { ms } from "../theme";
 
 /* El dado.
@@ -47,7 +48,21 @@ export default function Dice({ tirada, esperando, dobles, onSettle, onRoll, pued
 
   useEffect(() => {
     if (!lienzo.current) return;
-    escena.current = crearEscena(lienzo.current);
+    /* ►► El sonido se conecta acá y no adentro de la escena. ◄◄
+     *
+     * `escena.js` sabe de Three y de cannon-es; que además supiera de audio
+     * la ataría a la web y le costaría lo único que la hace portable. Avisa
+     * que un cubo pegó y con qué fuerza, y la traducción a un archivo mp3 es
+     * de este lado, que es el lado que ya es de React.
+     *
+     * La fuerza llega normalizada entre 0 y 1 y se aplica con una raíz: el
+     * oído es logarítmico, así que un rebote a la mitad de fuerza suena
+     * MUCHO más que la mitad de fuerte. Lineal, los golpes suaves se
+     * perdían del todo y sólo se escuchaba el primero. */
+    escena.current = crearEscena(lienzo.current, {
+      alGolpear: ({ fuerza, tono }) =>
+        reproducir("dado", { volumen: Math.sqrt(fuerza), tono }),
+    });
     escena.current.redimensionar();
     escena.current.setCantidad(1);
 

@@ -279,7 +279,15 @@ function texturaCara(numero, fondo, punto) {
   return tex;
 }
 
-export function crearEscena(canvas) {
+/* ►► `alGolpear` es un aviso, no un reproductor. ◄◄
+ *
+ * Esta escena sabe de Three y de cannon-es y de nada más. Importar acá el
+ * reproductor de audio la ataría a la web y rompería lo único que la hace
+ * portable — es la misma razón por la que `useGame` no toca el DOM.
+ *
+ * Así que la escena AVISA —"un cubo pegó, con esta fuerza"— y quien la creó
+ * decide si eso suena, con qué archivo y a qué volumen. */
+export function crearEscena(canvas, { alGolpear } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   /* ►► VSM y no PCFSoft. ◄◄
    *
@@ -640,10 +648,68 @@ export function crearEscena(canvas) {
         angularDamping: 0.1,
       });
       world.addBody(body);
-      dados.push({ mesh, body, corrigiendo: null });
+
+      /* ►► El golpe del dado sale de la FÍSICA, no de la tirada. ◄◄
+       *
+       * Un sonido único al lanzar sonaría una vez y dejaría en silencio los
+       * tres o cuatro rebotes que vienen después — que es exactamente lo que
+       * separa un dado de un "efecto de sonido". Acá cada contacto avisa por
+       * su cuenta, con la fuerza con la que ocurrió.
+       *
+       * ►► Y esto es seguro sólo porque está DENTRO de `crearEscena`. ◄◄
+       *
+       * Este archivo tiene DOS mundos de física. `simularTiro` corre una
+       * tirada entera sin dibujar nada, para encontrar un lanzamiento que dé
+       * el número pedido — y puede correr varias seguidas. Es otro
+       * `CANNON.World` con sus propios cuerpos, así que este oyente no lo
+       * toca: si se colgara de los cuerpos de allá, cada tirada dispararía
+       * cientos de golpes de golpe y antes de que se vea nada. */
+      if (alGolpear) body.addEventListener("collide", (e) => avisarGolpe(body, e));
+
+      dados.push({ mesh, body, corrigiendo: null, ultimoGolpe: 0 });
     }
     sincronizar();
     pintar();
+  }
+
+  /* ►► Un golpe no es un contacto. ◄◄
+   *
+   * cannon-es emite `collide` por cada par en contacto y en cada paso, así
+   * que un cubo apoyado en el suelo dispara sesenta por segundo. Sin filtro
+   * el dado sonaría como una lija.
+   *
+   * Dos condiciones, y las dos hacen falta:
+   *
+   *  · UMBRAL de velocidad. Descarta el roce y el apoyo: si el cubo no venía
+   *    entrando de verdad contra la superficie, no hubo golpe.
+   *  · ESPERA por cuerpo. Un mismo rebote genera varios contactos en pasos
+   *    seguidos —los vértices del cubo tocan de a uno— y todos son el MISMO
+   *    golpe. Sin esto, un rebote suena a tres.
+   *
+   * El volumen sale de la fuerza y el tono varía un poco: son rebotes del
+   * mismo cubo, no cubos distintos, y sin variación se oye como el archivo
+   * repetido en vez de como un dado. */
+  const GOLPE_MINIMO = 1.6;
+  const GOLPE_ESPERA_MS = 55;
+
+  function avisarGolpe(body, e) {
+    const dado = dados.find((d) => d.body === body);
+    if (!dado) return;
+
+    const fuerza = Math.abs(e.contact?.getImpactVelocityAlongNormal?.() ?? 0);
+    if (fuerza < GOLPE_MINIMO) return;
+
+    const ahora = performance.now();
+    if (ahora - dado.ultimoGolpe < GOLPE_ESPERA_MS) return;
+    dado.ultimoGolpe = ahora;
+
+    /* Se normaliza contra una caída fuerte para que `alGolpear` reciba
+       siempre algo entre 0 y 1 y no tenga que saber en qué unidades trabaja
+       cannon-es. */
+    alGolpear({
+      fuerza: Math.min(1, fuerza / 14),
+      tono: 0.92 + Math.random() * 0.18,
+    });
   }
 
   function sincronizar() {

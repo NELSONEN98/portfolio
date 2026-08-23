@@ -22,6 +22,7 @@ import SelectScreen from "./screens/SelectScreen";
 import VersusScreen from "./screens/VersusScreen";
 import GameOverScreen from "./screens/GameOverScreen";
 import { CARD, SQUARE, targetOf, A_LA_DERECHA } from "../convex/rules";
+import { sonarHecho, sonarCarta } from "./audio/hechos";
 import { celdaDe, celdaArriba } from "./mesa";
 import { ms } from "./theme";
 
@@ -323,6 +324,11 @@ export default function App() {
   useEffect(() => {
     if (!eventos.length) return;
     eventos.forEach((e) => {
+      /* El mismo hecho, dos traducciones: una a lo que se LEE y otra a lo
+         que se OYE. Van juntas y no en dos efectos porque los hechos se
+         vacían al consumirlos: con dos lectores, el segundo encontraría la
+         lista ya limpia. */
+      sonarHecho(e);
       const armar = MENSAJES[e.tipo];
       const mensaje = armar?.(e);
       /* El segundo elemento decide DÓNDE se cuenta, no sólo de qué color:
@@ -1034,6 +1040,29 @@ export default function App() {
        un segundo y medio en llegar, y en local para entonces el turno ya
        cambió. Calculándolo acá, el destello rojo le caía al que la tiró. */
     const destino = lanzada?.destino;
+
+    /* ►► El sonido va ANTES del corte de abajo, y ahí está la gracia. ◄◄
+     *
+     * Ese `return` existe para el caso bloqueado —no hay a quién teñir— así
+     * que un sonido puesto después de él dejaría mudo exactamente el caso que
+     * más falta hace oír. El escudo es la única jugada del juego cuyo
+     * resultado depende de una carta que el atacante NO PODÍA VER: sin un
+     * aviso propio, la carta simplemente no pasa nada y el que la tiró tiene
+     * que deducir por qué.
+     *
+     * ►► Y va acá y no en `mostrarRevelacion`. ◄◄
+     *
+     * Aquélla es el momento en que la carta SALE; ésta, cuando LLEGA. El
+     * golpe rojo ya se dispara desde acá por la misma razón —"el golpe
+     * arranca cuando la carta llega, no cuando sale"— y el sonido tiene que
+     * caer con él o se oiría el impacto segundo y medio antes de verlo.
+     *
+     * Este punto además es el único: `mostrarRevelacion` alimenta `lanzada`
+     * desde los TRES caminos que revelan cartas —el hecho del motor local, tu
+     * propio plantarse en línea y el del rival— así que acá suenan los tres
+     * sin repetir la decisión en ninguno. */
+    if (lanzada?.carta) sonarCarta(lanzada.carta.type, lanzada.bloqueada);
+
     setLanzada(null);
     if (!tipo || destino == null) return;
     /* El golpe arranca cuando la carta llega, no cuando sale. */
