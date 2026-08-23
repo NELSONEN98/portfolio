@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# El modelo de embeddings que se baja engram. Son 127 MB de ONNX y
+# GitHub rechaza cualquier archivo de mas de 100: sin esta linea, un
+# "git add ." deja un blob que despues hay que sacar del historial.
+local_cache/

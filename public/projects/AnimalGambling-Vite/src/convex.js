@@ -1,5 +1,6 @@
 import { ConvexHttpClient } from "convex/browser";
 import { getSessionId } from "./storage";
+import { MAX_PLAYERS } from "../convex/rules";
 
 /* Convex no expone una API HTTP pública para llamar mutations: el SDK es
    obligatorio, y por eso el proyecto necesita un bundler. Los intentos de
@@ -10,11 +11,22 @@ const convex = new ConvexHttpClient(CONVEX_URL);
 
 const conSesion = (args = {}) => ({ sessionId: getSessionId(), ...args });
 
+/* Toda sala se abre al tope y se arranca a mano.
+ *
+ * `size` deja de ser una pregunta al jugador: mandando siempre MAX_PLAYERS
+ * la sala sólo arranca sola si se LLENA, y en cualquier otro caso la
+ * arranca el anfitrión con los que haya. Así no hay que decidir cuántos van
+ * a venir antes de mandar el código — que era una pregunta imposible de
+ * contestar en el único momento en que se hacía. */
 export const createRoom = () =>
-  convex.mutation("rooms:createRoom", conSesion()).then((r) => r.roomId);
+  convex.mutation("rooms:createRoom", conSesion({ size: MAX_PLAYERS })).then((r) => r.roomId);
 
 export const joinRoom = (roomId) =>
   convex.mutation("rooms:joinRoom", conSesion({ roomId })).then((r) => r.roomId);
+
+/* Arrancar con la mesa a medio llenar. Sólo lo acepta el anfitrión. */
+export const startRoom = (roomId) =>
+  convex.mutation("rooms:startRoom", conSesion({ roomId }));
 
 export const setCharacter = (roomId, playerName, catId) =>
   convex.mutation("rooms:updatePlayerCharacter", conSesion({ roomId, playerName, catId }));

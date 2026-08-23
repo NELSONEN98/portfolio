@@ -11,6 +11,11 @@ import {
   squareFor,
   targetOf,
   nextSeat,
+  seatAfter,
+  sentidoDe,
+  esDeFlujo,
+  resolverFlujo,
+  A_LA_DERECHA,
   MAX_PLAYERS,
   MIN_PLAYERS,
   advance,
@@ -70,6 +75,12 @@ function seatsOf(room: any) {
   return [room.player1, room.player2].filter(Boolean);
 }
 
+/* El sentido de la mesa, con el respaldo de las salas que no lo traen. Un
+   adaptador más, del mismo grupo que los otros tres de este archivo. */
+function sentidoOf(room: any) {
+  return sentidoDe(room.sentido);
+}
+
 function seatOf(room: any): number {
   if (typeof room.seat === "number") return room.seat;
   return room.turn === "player2" ? 1 : 0;
@@ -95,7 +106,9 @@ function whoIs(room: Doc<"rooms">, sessionId: string) {
   return {
     player: seats[seat],
     seat,
-    objetivo: targetOf(seat, seats.length),
+    /* El objetivo depende del SENTIDO, no sólo del asiento: con la mesa dada
+       vuelta, tu víctima pasa a ser quien te venía atacando. */
+    objetivo: targetOf(seat, seats.length, sentidoOf(room)),
     seats,
   };
 }
@@ -121,6 +134,31 @@ function boardOf(p: any) {
     beerStacks: p.beerStacks ?? 0,
     doubleNext: p.doubleNext ?? false,
   };
+}
+
+/* ►► A qué número arranca sola. ◄◄
+ *
+ * Ya NO es "para cuántos se abrió la mesa": eso era una decisión que había
+ * que tomar antes de saber quién iba a venir, o sea un pronóstico. El
+ * anfitrión manda el código y RECIÉN DESPUÉS se entera de cuántos entran.
+ *
+ * Ahora toda sala nueva se abre en `MAX_PLAYERS` y la arranca el anfitrión
+ * con los que haya. Este número queda como el único automatismo que sigue
+ * teniendo sentido: con la mesa físicamente llena no hay nada que esperar,
+ * y pedir un botón ahí es pedir que se confirme lo obvio.
+ *
+ * ►► Y el respaldo en MIN_PLAYERS no es decoración. ◄◄
+ *
+ * Cliente y servidor se despliegan con dos comandos distintos, así que hay
+ * una ventana en que el cliente VIEJO le habla al servidor nuevo. Ese
+ * cliente no sabe pedir `startRoom` —no existía— y crea la sala sin `size`.
+ * Sin este respaldo se quedaría esperando para siempre un arranque que
+ * nadie puede disparar. Con él, su sala arranca con el segundo exactamente
+ * como arrancaba ayer. Se puede borrar cuando no quede ninguna sala vieja
+ * viva: media hora después del despliegue. */
+function sizeOf(room: any): number {
+  const n = room.size ?? MIN_PLAYERS;
+  return Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, n));
 }
 
 const rand = () => Math.random();
@@ -149,6 +187,12 @@ function freshPlayer(sessionId: string, hand: Card[]) {
 export const createRoom = mutation({
   args: {
     sessionId: v.string(),
+    /* A qué número arranca sola. El cliente nuevo manda siempre
+       `MAX_PLAYERS`, o sea "sólo sola cuando se llene"; el resto del tiempo
+       la arranca el anfitrión.
+       Optional porque el cliente viejo no lo manda, y ahí el respaldo de
+       `sizeOf` le devuelve el duelo de dos que ese cliente sabe jugar. */
+    size: v.optional(v.number()),
   },
   async handler(ctx, args) {
     /* Seis caracteres sobre 32 símbolos son 1e9 combinaciones, pero las
@@ -160,8 +204,14 @@ export const createRoom = mutation({
 
     const openingHand = startingHand(rand);
 
+    /* Se acota acá y no se confía en el cliente: `size` viaja por la red y
+       un 9 dejaría una sala que no arranca sola nunca porque nunca se
+       llena — y el anfitrión tendría que apretar el botón siempre. */
+    const size = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, args.size ?? MIN_PLAYERS));
+
     await ctx.db.insert("rooms", {
       roomId,
+      size,
       /* La mesa arranca con un solo asiento ocupado: el del que creó. Los
          demás se agregan con `joinRoom`, en el orden en que llegan — y ese
          orden es el de la ronda y el de los ataques, así que entrar primero
@@ -169,6 +219,8 @@ export const createRoom = mutation({
       players: [freshPlayer(args.sessionId, mirrorHand(openingHand, 0))],
       seat: 0,
       status: "waiting",
+      // Toda mesa arranca yendo hacia la derecha.
+      sentido: A_LA_DERECHA,
       // Un tablero distinto por partida.
       board: makeBoard(rand),
       /* Se sortea acá, con la sala, y no cuando entra cada uno: es lo que
@@ -195,6 +247,22 @@ export const updatePlayerCharacter = mutation({
 
     const me = whoIs(room, args.sessionId);
     if (!me) throw new ConvexError("You are not in this room");
+
+    /* ►► Un gato por jugador. ◄◄
+     *
+     * Con dos esto no se notaba: el otro elegía en su pantalla y si repetía
+     * el gato quedaban dos Bonifacios, feo pero legible. Con cuatro es otra
+     * cosa — `charFromCatId` devuelve el mismo personaje para dos asientos y
+     * la mesa pasa a tener dos peleadores idénticos con marcadores
+     * distintos, que es imposible de seguir.
+     *
+     * Se valida en el servidor y no sólo pintando la carta en gris del lado
+     * del cliente: dos jugadores pueden tocar el mismo gato en el mismo
+     * instante y el que pierde la carrera tiene que enterarse. */
+    const tomado = me.seats.some(
+      (p: any, i: number) => i !== me.seat && p?.catId === args.catId
+    );
+    if (tomado) throw new ConvexError("Ese gato ya lo eligió otro jugador");
 
     await ctx.db.patch(room._id, {
       players: withSeat(me.seats, me.seat, {
@@ -224,15 +292,32 @@ export const joinRoom = mutation({
     if (room.status !== "waiting") throw new ConvexError("Room full or finished");
 
     const seats = seatsOf(room);
+    /* El tope es el de las REGLAS, no el de la sala: toda mesa abierta
+       acepta hasta cuatro. `size` ya no dice cuántos entran —eso lo decide
+       quién llegue— sino a qué número arranca sola. */
     if (seats.length >= MAX_PLAYERS) throw new ConvexError("Room full or finished");
 
     /* Se suma al final: el índice en el array es el asiento, y el asiento
        decide el orden de la ronda y a quién le pega cada uno. Insertar en el
        medio le cambiaría la víctima a alguien que ya está jugando.
 
-       La sala pasa a `playing` en cuanto hay dos, pero SIGUE aceptando gente
-       hasta el tope: con cuatro sillas, esperar a que se llenen todas para
-       arrancar dejaría colgada cualquier partida de tres. */
+       ►► La sala NO arranca con el segundo. ◄◄
+       Antes pasaba a `playing` con el segundo y seguía aceptando gente
+       adentro. Eso funcionaba mientras dos fuera el único tamaño posible;
+       con una mesa de cuatro es directamente otro juego: el tercero entraba
+       a una partida empezada, con el asiento 0 ya con puntos, y los
+       objetivos de todos cambiaban a mitad de camino porque `targetOf`
+       depende de cuántos hay sentados.
+
+       Y tampoco arranca a un tamaño declarado de antemano, que fue el
+       primer intento: eso obligaba al anfitrión a adivinar cuánta gente iba
+       a venir ANTES de mandar el código. Ahora la mesa queda abierta y la
+       arranca él cuando ve quién llegó, con `startRoom`.
+
+       Lo único que sigue siendo automático es la mesa llena: con cuatro
+       sentados no hay nada que esperar. Y para las salas del cliente viejo
+       `sizeOf` devuelve dos, así que ahí "arranca con el segundo" sigue
+       siendo verdad exactamente donde tiene que serlo. */
     /* La mano guardada en la sala, no la que tenga puesta el asiento 0: acá
        se puede entrar con la partida ya empezada, y para entonces la mano
        del primero tiene cartas jugadas y ganadas. Las salas abiertas antes
@@ -245,10 +330,58 @@ export const joinRoom = mutation({
     ];
     await ctx.db.patch(room._id, {
       players: conElNuevo,
-      status: conElNuevo.length >= MIN_PLAYERS ? "playing" : "waiting",
+      status: conElNuevo.length >= sizeOf(room) ? "playing" : "waiting",
     });
 
     return { roomId: args.roomId };
+  },
+});
+
+/* ►► Arrancar la mesa. Éste es EL camino. ◄◄
+ *
+ * Nació como escape —"si el cuarto no llega, que el anfitrión arranque
+ * igual"— y terminó siendo la única puerta. La razón es que la pregunta que
+ * reemplaza no se podía contestar: elegir el tamaño al CREAR la sala obliga
+ * a pronosticar cuánta gente va a venir antes de haber mandado el código.
+ * Nadie sabe eso. Lo sabe media hora después, mirando el vestíbulo — que es
+ * exactamente cuando se aprieta este botón.
+ *
+ * Así el juego online deja de tener dos caminos. Hay UNA sala, entran de
+ * dos a cuatro, y lo que se juega es lo que haya.
+ *
+ * Sólo el asiento 0, y no es jerarquía por gusto: es el único que estuvo
+ * desde el principio, así que es el único que sabe a quién está esperando.
+ * Con cualquiera pudiendo arrancar, el que entra segundo le cierra la
+ * puerta en la cara al tercero que ya venía en camino.
+ *
+ * Deja `size` en los que se sentaron. No cambia nada de la partida —el
+ * juego lee el largo del array, no este campo— pero deja la sala describiendo
+ * lo que terminó siendo en vez de un tope que nunca se alcanzó.
+ */
+export const startRoom = mutation({
+  args: {
+    roomId: v.string(),
+    sessionId: v.string(),
+  },
+  async handler(ctx, args) {
+    const room = await findRoom(ctx, args.roomId);
+    if (!room) throw new ConvexError("Room not found");
+
+    /* Idempotente: dos toques al botón, o el sondeo llegando tarde, no son
+       un error — la sala ya arrancó y eso es justo lo que se pedía. */
+    if (room.status === "playing") return { started: true };
+    if (room.status !== "waiting") throw new ConvexError("Room full or finished");
+
+    const me = whoIs(room, args.sessionId);
+    if (!me) throw new ConvexError("You are not in this room");
+    if (me.seat !== 0) throw new ConvexError("Sólo el anfitrión arranca la mesa");
+
+    const seats = seatsOf(room);
+    if (seats.length < MIN_PLAYERS) throw new ConvexError("Falta gente en la mesa");
+
+    await ctx.db.patch(room._id, { status: "playing", size: seats.length });
+
+    return { started: true, size: seats.length };
   },
 });
 
@@ -268,34 +401,104 @@ export const leaveRoom = mutation({
     const me = whoIs(room, args.sessionId);
     if (!me) return { ok: true };
 
-    /* Nadie llegó a entrar: la sala no le sirve a nadie más. */
+    /* Todavía en el vestíbulo.
+     *
+     * Antes esto borraba la sala fuera quien fuera el que se iba, y con dos
+     * jugadores era razonable: si el único invitado se va, la sala no le
+     * sirve a nadie. Con una mesa de cuatro es un desastre — el segundo que
+     * se arrepiente le borra el código al anfitrión y a los otros dos que ya
+     * estaban esperando.
+     *
+     * La sala es del que la abrió: se va él, se termina; se va un invitado,
+     * libera su silla y los demás siguen esperando. Los que quedan se
+     * corren un lugar, que es lo mismo que hace la mesa cuando alguien
+     * abandona en partida. */
     if (room.status === "waiting") {
-      await ctx.db.delete(room._id);
-      return { ok: true, deleted: true };
+      if (me.seat === 0) {
+        await ctx.db.delete(room._id);
+        return { ok: true, deleted: true };
+      }
+      await ctx.db.patch(room._id, {
+        players: me.seats.filter((_: any, i: number) => i !== me.seat),
+      });
+      return { ok: true, left: true };
     }
 
     if (room.status === "playing") {
-      /* Con dos jugadores, que uno se vaya termina la partida y gana el que
-         queda. Con más de dos eso sería absurdo —quedan tres jugando— pero
-         resolverlo de verdad pide decidir qué pasa con el asiento vacío: si
-         se saca del círculo cambian todos los objetivos a mitad de partida,
-         y si se deja se le pega a un fantasma. Es una decisión de diseño
-         pendiente, así que por ahora se conserva el comportamiento conocido
-         y el ganador es el de la derecha del que se fue. */
-      const ganador = me.objetivo;
+      /* ►► La silla se saca del círculo. ◄◄
+       *
+       * Acá vivía la decisión pendiente: con más de dos, ¿el asiento vacío
+       * se saca o se deja? Sacarlo cambia los objetivos de todos a mitad de
+       * partida; dejarlo obliga a pegarle a un fantasma.
+       *
+       * Se saca, y la razón es que la alternativa es peor de lo que suena
+       * el problema. Un asiento fantasma le come el ataque entero a quien lo
+       * tenga de objetivo —sus golpes, sus robos y su maldición dejan de
+       * existir por el resto de la partida— y encima le regala inmunidad al
+       * que está a la derecha del fantasma, que ya no recibe de nadie. Eso
+       * no es "conservar los objetivos": es partir la mesa en dos.
+       *
+       * Que los objetivos se recalculen no hace falta escribirlo. `targetOf`
+       * los deriva del array cada vez que se lo pregunta, así que sacar el
+       * elemento ES el arreglo. Ese fue siempre el sentido de tener la mesa
+       * como array y no como campos con nombre.
+       */
+      const restantes = me.seats.filter((_: any, i: number) => i !== me.seat);
+
+      /* Queda uno solo: no hay partida que seguir y gana por abandono, que
+         es el comportamiento que la mesa de dos ya tenía. Después del filtro
+         el único que queda está en el índice 0, así que ése es el ganador —
+         `me.objetivo` era su asiento ANTES de sacar la silla y apuntaría al
+         lugar equivocado. */
+      if (restantes.length < MIN_PLAYERS) {
+        await ctx.db.patch(room._id, {
+          players: restantes,
+          seat: 0,
+          status: "finished",
+          winner: 0,
+          endedByAbandon: true,
+        });
+
+        await ctx.db.insert("gameEvents", {
+          roomId: args.roomId,
+          sessionId: args.sessionId,
+          action: "abandon",
+          payload: { winner: 0 },
+          timestamp: Date.now(),
+        });
+
+        return { ok: true, finished: true };
+      }
+
+      /* El turno se reindexa porque los que estaban detrás del que se fue
+         se corrieron un lugar. Los tres casos:
+         · le tocaba a alguien de más atrás  → baja uno
+         · le tocaba a alguien de más adelante → se queda donde está
+         · le tocaba AL QUE SE FUE → el turno pasa a quien ahora ocupa su
+           índice, o sea el de su derecha, que es exactamente a quien le
+           tocaba después. El módulo es para cuando el que se fue era el
+           último de la ronda. */
+      const actual = seatOf(room);
+      const siguiente =
+        actual > me.seat ? actual - 1 : actual % restantes.length;
+
       await ctx.db.patch(room._id, {
-        status: "finished",
-        winner: ganador,
-        endedByAbandon: true,
+        players: restantes,
+        seat: siguiente,
       });
 
+      /* Se avisa como hecho propio y no como abandono: la partida sigue, y
+         un cartel de "tu rival se levantó" en una mesa donde quedan tres
+         diría que se terminó algo que no se terminó. */
       await ctx.db.insert("gameEvents", {
         roomId: args.roomId,
         sessionId: args.sessionId,
-        action: "abandon",
-        payload: { winner: ganador },
+        action: "leave",
+        payload: { name: me.player?.name ?? null, quedan: restantes.length },
         timestamp: Date.now(),
       });
+
+      return { ok: true, left: true, quedan: restantes.length };
     }
 
     return { ok: true };
@@ -354,6 +557,13 @@ export const getRoom = query({
       players: seatsOf(room),
       seat: seatOf(room),
       winner: winnerSeat(room),
+      /* Para cuántos se abrió: el vestíbulo dibuja una silla vacía por cada
+         uno que falta, y sin este número no sabría cuántas dibujar. */
+      size: sizeOf(room),
+      /* Viaja con la sala porque la pantalla lo necesita para dos cosas:
+         saber a quién apunta la mira y qué contarle al jugador cuando la
+         mesa se da vuelta. */
+      sentido: sentidoOf(room),
       goal: GOAL,
       lastEvent,
     };
@@ -441,7 +651,7 @@ export const rollDice = mutation({
          por el lugar de las cartas jugables. Misma función que el motor
          local, así que los dos no pueden discrepar sobre si una carta entró
          o se perdió. */
-      const sorteada = randomBonusCard(rand, Date.now());
+      const sorteada = randomBonusCard(rand, Date.now(), me.seats.length);
 
       if (sorteada.type === CARD.BEER) {
         /* La cerveza se consume al recibirla y nunca entra a la mano: como
@@ -495,8 +705,12 @@ export const rollDice = mutation({
       const devueltas = [...hand, ...mine.pendingCards];
       /* El turno pasa al SIGUIENTE asiento, no "al otro". Con dos es lo
          mismo; con cuatro, `nextSeat` gira la ronda y aquel `me.other` se
-         habría quedado siempre en el segundo. */
-      const siguiente = nextSeat(me.seat, me.seats.length);
+         habría quedado siempre en el segundo.
+         Y en el sentido de la mesa, que la carta de media vuelta puede
+         haber dado vuelta en un turno anterior. Sin saltos: quemarse
+         devuelve las cartas puestas a la mano sin revelarlas, así que nada
+         del flujo llegó a ocurrir. */
+      const siguiente = nextSeat(me.seat, me.seats.length, sentidoOf(room));
       await ctx.db.patch(room._id, {
         seat: siguiente,
         players: withSeat(me.seats, me.seat, {
@@ -674,8 +888,20 @@ export const holdScore = mutation({
        acumular. */
     const resolved: Array<{ type: string; value?: number; blocked: boolean }> = [];
 
+    /* ►► Las cartas se parten en dos, igual que en el motor local. ◄◄
+     *
+     * Los ATAQUES van contra el objetivo que tenías al empezar el turno; las
+     * de FLUJO deciden lo que viene después. Aplicar el flujo primero
+     * dejaría poner una media vuelta y encima un robo para robarle a OTRO, y
+     * eso rompe el "una sola víctima, un solo atacante" del que cuelga todo
+     * el diseño direccional. La misma partición y en el mismo orden que en
+     * `useGame`, con la misma función de las reglas: dos copias de esta
+     * decisión es exactamente cómo se desincronizan los dos motores. */
+    const ataques = mine.pendingCards.filter((c) => !esDeFlujo(c));
+    const flujo = resolverFlujo(mine.pendingCards, sentidoOf(room));
+
     if (rivalRaw) {
-      for (const pending of mine.pendingCards) {
+      for (const pending of ataques) {
         /* La misma función que usa el motor local. Acá vivía una copia de
            esa cadena de decisiones, y mantener dos copias sincronizadas de
            una regla es exactamente lo que este proyecto evita poniendo las
@@ -706,7 +932,19 @@ export const holdScore = mutation({
       roomId: args.roomId,
       sessionId: args.sessionId,
       action: gameFinished ? "hold_and_win" : "hold",
-      payload: { newScore, goal: GOAL, resolved, resolvedCount: resolved.length },
+      /* El flujo viaja con el hecho para que las otras pantallas puedan
+         contarlo: la mesa dada vuelta y los turnos comidos les pasan a
+         ellos, y sin esto se enterarían sólo por ver que el turno cayó donde
+         no esperaban. */
+      payload: {
+        newScore,
+        goal: GOAL,
+        resolved,
+        resolvedCount: resolved.length,
+        saltos: flujo.saltos,
+        vueltas: flujo.vueltas,
+        sentido: flujo.sentido,
+      },
       timestamp: Date.now(),
     });
 
@@ -740,20 +978,33 @@ export const holdScore = mutation({
       : withSeat(me.seats, me.seat, meAfter);
 
     if (gameFinished) {
+      /* Se guarda el sentido igual aunque la partida termine: la sala queda
+         describiendo lo que pasó, y una media vuelta jugada en la mano
+         ganadora ocurrió tanto como cualquier otra carta. */
       await ctx.db.patch(room._id, {
         players: mesaFinal,
+        sentido: flujo.sentido,
         status: "finished",
         winner: me.seat,
       });
-      return { newScore, gameFinished: true, winner: me.seat, resolved };
+      return { newScore, gameFinished: true, winner: me.seat, resolved, ...flujo };
     }
 
-    const siguiente = nextSeat(me.seat, me.seats.length);
+    /* `seatAfter` y no `nextSeat`: acá es donde los saltos se cobran. Con
+       tres saltos sobre una mesa de cuatro la vuelta se cierra sobre vos
+       mismo, que es la regla de la carta dicha con una sola cuenta. */
+    const siguiente = seatAfter(
+      me.seat,
+      me.seats.length,
+      flujo.sentido,
+      flujo.saltos
+    );
     await ctx.db.patch(room._id, {
       players: mesaFinal,
       seat: siguiente,
+      sentido: flujo.sentido,
     });
 
-    return { newScore, gameFinished: false, newTurn: siguiente, resolved };
+    return { newScore, gameFinished: false, newTurn: siguiente, resolved, ...flujo };
   },
 });

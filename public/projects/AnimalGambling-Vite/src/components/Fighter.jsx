@@ -13,6 +13,12 @@ import { CONFETI_PAPELES } from "./confeti";
 export default function Fighter({
   jugador,
   lado,
+  /* En qué celda del dibujo cae este asiento. Va separado de `lado` porque
+     son dos cosas distintas: `lado` es QUIÉN es —su color, su fase de
+     dibujo, a quién le llega un golpe— y `celda` es DÓNDE se dibuja, que en
+     online depende de quién esté mirando. Mezclarlos fue lo que obligó al
+     `flip` a existir. */
+  celda = 0,
   activo,
   ganador,
   perdedor,
@@ -24,6 +30,8 @@ export default function Fighter({
      estallar, y sin algo que cambie React reusa los nodos y la segunda no
      se ve. Mismo recurso que usa el confeti de la casilla. */
   festejo = 0,
+  /* Si a este peleador apuntan las cartas del que está jugando. */
+  objetivo = false,
 }) {
   const score = useAnimatedNumber(jugador?.score ?? 0);
   const current = useAnimatedNumber(jugador?.current ?? 0);
@@ -56,6 +64,8 @@ export default function Fighter({
   const clases = [
     "fighter",
     `f${lado + 1}`,
+    `celda-${celda + 1}`,
+    objetivo ? "objetivo" : "",
     activo ? "active" : "",
     maldito ? "cursed" : "",
     ganador ? "winner" : "",
@@ -72,6 +82,24 @@ export default function Fighter({
       <div className="fighter-frame">
         <div className="fighter-art boil" data-cat={jugador.char.id} />
         <div className="f-name">{jugador.char.name}</div>
+        {/* ►► La mira. ◄◄
+         *
+         * Con dos jugadores esto no hacía falta: "le pego al otro" es la
+         * única lectura posible y no hay nada que aclarar. Con cuatro,
+         * `targetOf` pasa a ser la regla más importante de la mesa y la
+         * pantalla no la decía en ningún lado — el jugador ponía un golpe
+         * sin saber a quién le iba a llegar.
+         *
+         * La disposición ya hace la mitad del trabajo: tu objetivo se dibuja
+         * pegado a vos. Esto es la otra mitad, la que lo nombra. */}
+        {objetivo && (
+          <span className="f-mira" aria-label="Tu objetivo">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="7" />
+              <path d="M12 1v4M12 19v4M1 12h4M19 12h4" />
+            </svg>
+          </span>
+        )}
         {/* El confeti de la vuelta, encima del dibujo. Va acá adentro y no
             en la línea entera para que reviente sobre el gato —que es el
             que dio la vuelta— y no en un rincón cualquiera del renglón.

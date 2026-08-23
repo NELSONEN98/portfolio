@@ -260,6 +260,7 @@ export default function RulesModal({ abierta, onClose }) {
           )}
 
           {seccion === "cartas" && (
+            <>
             <Regla
               n="01"
               titulo="LAS CARTAS"
@@ -322,6 +323,29 @@ export default function RulesModal({ abierta, onClose }) {
                     dos. Si uno sale 1, ese no cuenta y el otro sí; si salen
                     los dos en 1, te quemas igual.
                   </Item>
+                  {/* Las dos de flujo van juntas y al final, que es como se
+                      leen: no tocan puntos, cambian de quién es el turno.
+                      Comparten el azul del mazo por lo mismo. */}
+                  <Item
+                    muestra={<Carta tipo={CARD.SKIP} />}
+                    nombre={CARD_LABEL.skip}
+                  >
+                    El siguiente se queda <b>sin turno</b>. <b>La defensa no
+                    la tapa</b>: no te saca puntos, te saca el turno.{" "}
+                    <b>Se acumulan</b>, y ahí está lo bueno — en una mesa de
+                    cuatro, tres saltos dan la vuelta entera y{" "}
+                    <b>volvés a jugar vos</b>. En un duelo alcanza con una.
+                  </Item>
+                  <Item
+                    muestra={<Carta tipo={CARD.REVERSE} />}
+                    nombre={CARD_LABEL.reverse}
+                  >
+                    Da vuelta la mesa: lo que iba hacia tu derecha pasa a ir
+                    hacia tu izquierda. <b>Tu víctima pasa a ser tu
+                    atacante</b>, y al revés. Dos en el mismo turno se
+                    cancelan. No sale en los duelos: con dos jugadores no
+                    hay nada que dar vuelta.
+                  </Item>
                 </div>
               }
             >
@@ -338,6 +362,35 @@ export default function RulesModal({ abierta, onClose }) {
               nada. Los <i>dos dados</i> y la <i>cerveza</i> son la
               excepción: se aplican sobre ti en el momento y no esperan.
             </Regla>
+
+            {/* ►► A quién le pegan. ◄◄
+                No estaba escrita en ninguna parte, y con dos jugadores no
+                hacía falta: "el otro" es el único destino posible. En una
+                mesa de tres o cuatro pasa a ser la regla que decide cada
+                jugada —cuándo guardar un golpe, a quién conviene dejar
+                crecer— y sin decirla el jugador pone cartas a ciegas. */}
+            <Regla
+              n="02"
+              titulo={<>A QUIÉN LE PEGAS <span className="rule-badge">× mesa de 3 y 4 ×</span></>}
+            >
+              Siempre <b>al de tu derecha</b>, y no se elige. En la pantalla
+              ése es el que está <b>justo encima tuyo</b>: estás sentado abajo
+              a la derecha, así que tu derecha sube por el borde. Tú tienes{" "}
+              <b>una sola víctima</b> y <b>un solo atacante</b> — el de tu
+              izquierda, el que juega justo antes. La <i>mira roja</i> sobre un
+              gato, durante tu turno, marca a quién le va a llegar lo que
+              pongas — y la sigue marcando bien si alguien juega una{" "}
+              <i>{CARD_LABEL.reverse}</i> y se invierte todo.
+              <br />
+              <br />
+              Que no se pueda elegir es lo que mantiene viva la partida. Con
+              objetivo libre, pegarle al que va ganando es la jugada correcta
+              para todos los demás a la vez: el puntero nunca se despega y
+              gana el que estaba segundo cuando alguien por fin rompe. Y tu
+              escudo valdría un tercio, porque tapa una carta y te apuntarían
+              tres.
+            </Regla>
+            </>
           )}
         </div>
 

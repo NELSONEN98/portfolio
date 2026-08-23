@@ -15,7 +15,10 @@ import {
   applyPenalty,
   penaltyFor,
   targetOf,
-  nextSeat,
+  seatAfter,
+  esDeFlujo,
+  resolverFlujo,
+  A_LA_DERECHA,
   cappedScore,
   applyCard,
   tickBeer,
@@ -85,6 +88,11 @@ export function useGame() {
   const [finished, setFinished] = useState(false);
   const [rolling, setRolling] = useState(false);
   const [goal, setGoal] = useState(GOAL);
+  /* Hacia dónde va la ronda. Arranca hacia la derecha y lo da vuelta la
+     carta de media vuelta. Vive en el motor y no en la pantalla porque es
+     estado de la PARTIDA: decide el turno y los objetivos, no cómo se
+     dibuja nada. */
+  const [sentido, setSentido] = useState(A_LA_DERECHA);
   /* De qué lado está esta pantalla. En local siempre 0 —los dos miran la
      misma—; en online lo fija el sondeo comparando el sessionId. */
   const [miLado, setMiLado] = useState(0);
@@ -113,6 +121,8 @@ export function useGame() {
     setBoard(makeBoard(rand));
     setPlayers(jugadores);
     setActive(0);
+    // Toda partida empieza yendo hacia la derecha.
+    setSentido(A_LA_DERECHA);
     setPlaying(true);
     setFinished(false);
     setRolling(false);
@@ -123,7 +133,7 @@ export function useGame() {
      movimiento es la fase anterior y ocurre bastante antes en el tiempo.
      Devuelve el jugador modificado en vez de mutarlo: React necesita
      objetos nuevos para volver a pintar. */
-  const efectoCasilla = useCallback((p, lado, tablero) => {
+  const efectoCasilla = useCallback((p, lado, tablero, mesa) => {
     /* `squareFor` y no `squareAt`: lo que la casilla HACE depende de quién
        la pisa. Con la maldición encima, el bonus de este jugador no entrega
        carta: se lee como penitencia y cae por la rama de arriba, que le
@@ -149,7 +159,11 @@ export function useGame() {
          depende de qué salió: un escudo mira el tope de escudos y el resto
          mira el de la mano. Preguntando antes habría que adivinar cuál de
          los dos bolsillos va a hacer falta. */
-      const ganada = randomBonusCard(rand, Date.now());
+      /* El tamaño de la mesa entra en el sorteo: el duelo no reparte media
+         vuelta —con dos asientos no hace nada— y le baja la frecuencia al
+         salto, que ahí vale el doble porque saltear al único rival es
+         volver a jugar. Lo decide `mazoDe`, en las reglas. */
+      const ganada = randomBonusCard(rand, Date.now(), mesa);
 
       if (ganada.type === CARD.BEER) {
         /* ►► La cerveza no entra a la mano: te la tomás ahí mismo. ◄◄
@@ -291,7 +305,7 @@ export function useGame() {
       const p = prev[active];
       if (!p) return prev;
 
-      const { jugador, hechos } = efectoCasilla(p, active, board);
+      const { jugador, hechos } = efectoCasilla(p, active, board, prev.length);
       if (hechos.length) emit(...hechos);
 
       const siguiente = [...prev];
@@ -300,17 +314,25 @@ export function useGame() {
     });
   }, [active, board, efectoCasilla, emit]);
 
-  const endTurn = useCallback(() => {
-    /* El turno gira en el mismo sentido que apuntan las cartas: al de tu
-       derecha. Era `a === 0 ? 1 : 0`, que con dos jugadores da lo mismo y
-       con cuatro daría siempre el segundo asiento. */
-    setActive((a) => nextSeat(a, players.length));
-    setRolling(false);
-    /* Depende del NÚMERO de jugadores, no del array: `players.length` es un
-       número, así que esta función sólo cambia de identidad cuando cambia
-       el tamaño de la mesa —nunca durante una partida— y los efectos que la
-       listan no se vuelven a disparar en cada tirada. */
-  }, [players.length]);
+  /* Cerrar el turno y pasárselo a quien corresponda.
+   *
+   * Los dos argumentos vienen de `hold`, y por eso son argumentos y no
+   * estado leído acá adentro: `setSentido` es diferido, así que en la misma
+   * vuelta en que se juega una media vuelta este `sentido` todavía vale el
+   * de antes y el turno se iría para el lado equivocado. Quien resolvió las
+   * cartas ya sabe la respuesta; que la pase.
+   *
+   * Sin argumentos es el turno normal —el que usa el quemarse—, donde las
+   * cartas volvieron a la mano sin revelarse y por lo tanto nada del flujo
+   * llegó a pasar. */
+  const endTurn = useCallback(
+    (saltos = 0, nuevoSentido) => {
+      const haciaDonde = nuevoSentido ?? sentido;
+      setActive((a) => seatAfter(a, players.length, haciaDonde, saltos));
+      setRolling(false);
+    },
+    [players.length, sentido]
+  );
 
   const playCard = useCallback(
     (uid) => {
@@ -393,9 +415,20 @@ export function useGame() {
        jugadores es el otro y no cambia nada; con cuatro, ya está resuelto.
        Esta línea era `active === 0 ? 1 : 0` — la suposición de que la mesa
        es de dos, escrita a mano en el medio de la resolución de cartas. */
-    const otro = targetOf(active, players.length);
+    const otro = targetOf(active, players.length, sentido);
     const rival = players[otro];
-    if (!yo) return { gano: false, revelaciones: [] };
+    if (!yo) return { gano: false, revelaciones: [], saltos: 0, sentido };
+
+    /* ►► Las cartas se parten en dos, y el orden importa. ◄◄
+     *
+     * Los ATAQUES van contra el objetivo que tenías al empezar el turno.
+     * Las de FLUJO deciden lo que viene después. Si el flujo se aplicara
+     * primero, poner una media vuelta y encima un robo te dejaría robarle a
+     * OTRO — y eso rompe el "una sola víctima, un solo atacante" del que
+     * cuelga todo el diseño direccional. */
+    const pendientes = yo.pendingCards ?? [];
+    const ataques = pendientes.filter((c) => !esDeFlujo(c));
+    const flujo = resolverFlujo(pendientes, sentido);
 
     let miScore = yo.score + yo.current;
     let rivalScore = rival?.score ?? 0;
@@ -407,7 +440,7 @@ export function useGame() {
     /* Cada defensa tapa una sola carta: contra tres robos, una defensa
        frena el primero y los otros dos entran. Esa es la razón de poder
        acumular. */
-    (yo.pendingCards ?? []).forEach((carta) => {
+    ataques.forEach((carta) => {
       /* Qué hace la carta lo decide `applyCard`, en las reglas. Acá quedaba
          una cadena de `else if` que era una copia de la del servidor, y las
          dos se desincronizaron más de una vez. */
@@ -433,9 +466,25 @@ export function useGame() {
 
     /* El objetivo se mide después de las cartas: robar puede ser justo lo
        que cierra la partida. */
+    /* Las de flujo también se cuentan, aunque no golpeen a nadie: el
+       jugador puso una carta boca abajo y tiene derecho a ver qué era. Van
+       después de los ataques, en el mismo orden en que se resuelven. */
+    if (flujo.vueltas) {
+      hechos.push(
+        evento("mediaVuelta", { veces: flujo.vueltas, sentido: flujo.sentido })
+      );
+    }
+    if (flujo.saltos) {
+      hechos.push(evento("salto", { saltos: flujo.saltos, mesa: players.length }));
+    }
+
     const gano = miScore >= goal;
     hechos.push(evento(gano ? "ganado" : "plantado", { nombre: yo.char.name }));
     emit(...hechos);
+    /* El sentido nuevo queda guardado, pero `endTurn` NO lo va a leer de
+       acá: setState es diferido y en esta misma vuelta todavía valdría el
+       viejo. Por eso viaja también en el retorno. */
+    if (flujo.sentido !== sentido) setSentido(flujo.sentido);
 
     setPlayers((prev) => {
       const siguiente = [...prev];
@@ -462,17 +511,30 @@ export function useGame() {
     });
 
     if (gano) setFinished(true);
-    return { gano, revelaciones };
-  }, [players, active, goal, emit]);
+    return { gano, revelaciones, saltos: flujo.saltos, sentido: flujo.sentido };
+  }, [players, active, goal, emit, sentido]);
 
+  /* El asiento con más puntos de la mesa.
+   *
+   * Era `players[0] >= players[1] ? 0 : 1` — una comparación entre DOS, o
+   * sea la mesa de dos escrita en la única línea que quedaba del motor. Con
+   * cuatro coronaba siempre a uno de los dos primeros aunque ganara el
+   * tercero.
+   *
+   * El empate lo gana el asiento más bajo, que es lo que ya hacía el `>=`.
+   * No hace falta más: para llegar acá alguien tuvo que cruzar el objetivo
+   * al plantarse, y plantarse es de a uno. */
   const winner = useMemo(() => {
     if (!finished) return null;
-    return players[0]?.score >= players[1]?.score ? 0 : 1;
+    return players.reduce(
+      (mejor, p, i) => ((p?.score ?? -1) > (players[mejor]?.score ?? -1) ? i : mejor),
+      0
+    );
   }, [finished, players]);
 
   return {
-    board, players, active, playing, finished, rolling, goal, events, miLado, hayPartida,
-    setPlayers, setActive, setBoard, setPlaying, setFinished, setRolling, setGoal, setMiLado,
+    board, players, active, playing, finished, rolling, goal, events, miLado, hayPartida, sentido,
+    setPlayers, setActive, setBoard, setPlaying, setFinished, setRolling, setGoal, setMiLado, setSentido,
     start, roll, settleRoll, sumarPuntos, resolverCasilla, endTurn, playCard, takeBackCard, hold, winner,
     emit, consumeEvents,
   };

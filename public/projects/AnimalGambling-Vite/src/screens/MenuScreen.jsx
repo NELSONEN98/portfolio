@@ -7,12 +7,19 @@ import { useState } from "react";
  * un modo es dar vuelta la bandera y agregarle su ruta.
  */
 export const MENU_ITEMS = [
-  { id: "online", label: "Duelo Online", listo: true, ruta: "room-choice", modo: "online" },
+  /* Una sola entrada para el online, y ahora sí es una sola cosa: se abre
+     una mesa, entran de dos a cuatro, y se juega con los que haya. "Duelo"
+     nombraba la mesa de dos, que era la única que existía; con tres
+     tamaños posibles el nombre estaba mintiendo sobre dos tercios de los
+     casos. */
+  { id: "online", label: "Mesa Online", listo: true, ruta: "room-choice", modo: "online", nota: "2 a 4" },
   { id: "cpu", label: "Vs. IA", listo: false, nota: "práctica" },
   { id: "local", label: "Duelo Local", listo: true, ruta: "select", modo: "local" },
   /* `jugadores` es lo único que distingue una mesa de otra: el resto del
-     camino —elegir gato, repartir, tirar— es el mismo. Sumar una mesa de
-     tres sería esta línea con un 3. */
+     camino —elegir gato, repartir, tirar— es el mismo. La mesa de tres es
+     literalmente esta línea con un 3, que era lo que decía el comentario
+     que estaba acá y ahora está cumplido. */
+  { id: "local3", label: "Mesa de 3", listo: true, ruta: "select", modo: "local", jugadores: 3 },
   { id: "local4", label: "Mesa de 4", listo: true, ruta: "select", modo: "local", jugadores: 4 },
   { id: "skins", label: "Personalización", listo: false },
   { id: "shop", label: "Tienda", listo: false },

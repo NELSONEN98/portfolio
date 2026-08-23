@@ -74,6 +74,20 @@ export default defineSchema({
     turn: v.optional(v.string()),
 
     status: v.string(),
+    /* Para cuántos se abrió la mesa. Se elige al crear la sala y decide
+       cuándo arranca sola: en cuanto se sientan `size` jugadores.
+
+       Optional y con respaldo en MIN_PLAYERS por las salas de antes, que no
+       lo traen — y ese respaldo es exactamente el comportamiento viejo, una
+       mesa de dos que arranca con el segundo. Así un cliente que todavía no
+       sabe pedir el tamaño sigue creando y jugando duelos igual que ayer. */
+    size: v.optional(v.number()),
+    /* ►► Hacia dónde va la ronda: 1 a tu derecha, −1 a tu izquierda. ◄◄
+       Lo da vuelta la carta de media vuelta. Optional porque las salas
+       abiertas antes de esa carta no lo traen, y ahí `sentidoDe` lo lee
+       como el de siempre. Es de la SALA y no del jugador: la dirección es
+       una sola para toda la mesa. */
+    sentido: v.optional(v.number()),
     /* Se sortea al crear la sala y viaja con ella: los dos jugadores tienen
        que ver las mismas casillas en los mismos lugares. Optional porque
        las salas anteriores al tablero no lo tienen. */

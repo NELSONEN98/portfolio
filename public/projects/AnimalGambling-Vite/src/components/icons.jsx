@@ -167,6 +167,41 @@ export const BeerSteinIcon = () => (
   </Svg>
 );
 
+/* ►► SALTAR: el turno pasa de largo por encima de alguien. ◄◄
+ *
+ * Dos siluetas y un arco que salta la del medio, que queda tachada. Se
+ * dibuja en la grilla de 24 y no en la de 512 como el puno o la jarra: esas
+ * vienen de archivos con detalle que se perderia al reducirlas, y esta nace
+ * acá — tres formas simples, que a tamano de carta es todo lo que se lee.
+ * Sin fill propio, para que tome el color de la carta. */
+export const SkipIcon = () => (
+  <Svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+       strokeLinecap="round" strokeLinejoin="round">
+    {/* el arco que pasa por encima */}
+    <path d="M4 16C4 16 6.5 7 12 7s8 9 8 9" />
+    {/* la punta de flecha, para que el arco tenga sentido de marcha */}
+    <path d="M20 16l-2.6-1.2M20 16l.7-2.8" />
+    {/* el que se queda sin turno, tachado */}
+    <circle cx="12" cy="17.5" r="2.6" />
+    <path d="M10.2 19.3l3.6-3.6" />
+  </Svg>
+);
+
+/* ►► MEDIA VUELTA: la mesa cambia de mano. ◄◄
+ *
+ * Dos flechas curvas encontradas, girando en sentidos opuestos. No es un
+ * circulo con una flecha —eso dice "repetir"— sino dos que se cruzan, que
+ * es lo que de verdad pasa: lo que iba para un lado ahora va para el otro. */
+export const ReverseIcon = () => (
+  <Svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+       strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 9h11a4 4 0 0 1 0 8h-2" />
+    <path d="M7 6L4 9l3 3" />
+    <path d="M20 15H9a4 4 0 0 1 0-8h2" />
+    <path d="M17 18l3-3-3-3" />
+  </Svg>
+);
+
 export const SQUARE_ICON = {
   [SQUARE.PENALTY]: SkullIcon,
   [SQUARE.BONUS]: QuestionIcon,
@@ -185,4 +220,6 @@ export const CARD_ICON = {
   [CARD.DOUBLE]: TwoDiceIcon,
   [CARD.PUNCH]: PunchIcon,
   [CARD.BEER]: BeerSteinIcon,
+  [CARD.SKIP]: SkipIcon,
+  [CARD.REVERSE]: ReverseIcon,
 };

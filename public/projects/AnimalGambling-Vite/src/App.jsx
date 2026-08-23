@@ -6,6 +6,7 @@ import { useToasts, errorText } from "./hooks/useToasts";
 import { useAlerta } from "./hooks/useAlerta";
 import { useOnlineRoom } from "./hooks/useOnlineRoom";
 import { ROSTER, charFromCatId, warmRosterFrames } from "./roster";
+import { getRoomId } from "./storage";
 
 import Preloader from "./components/Preloader";
 import Toasts from "./components/Toasts";
@@ -20,7 +21,8 @@ import RoomChoiceScreen from "./screens/RoomChoiceScreen";
 import SelectScreen from "./screens/SelectScreen";
 import VersusScreen from "./screens/VersusScreen";
 import GameOverScreen from "./screens/GameOverScreen";
-import { CARD, SQUARE } from "../convex/rules";
+import { CARD, SQUARE, targetOf, A_LA_DERECHA } from "../convex/rules";
+import { celdaDe, celdaArriba } from "./mesa";
 import { ms } from "./theme";
 
 /* Cuánto queda teñido el peleador golpeado. Un pelo más que la animación
@@ -82,6 +84,26 @@ const MENSAJES = {
       ? `${e.cantidad} cartas sobre la mesa — se revelan al plantarte`
       : "Carta sobre la mesa — se revela al plantarte",
   ],
+  /* Las dos de flujo. No hay número que informar —no mueven el marcador—
+     así que lo único que hay que contar es lo que cambió de la RONDA: hacia
+     dónde va ahora y cuántos se quedaron sin turno. */
+  mediaVuelta: (e) => [
+    e.sentido === A_LA_DERECHA
+      ? "Media vuelta — el juego vuelve a ir hacia la derecha"
+      : "Media vuelta — ahora el juego va hacia la izquierda",
+    "cartel",
+  ],
+  salto: (e) => [
+    /* Cuando los saltos dan la vuelta entera, el turno vuelve al que los
+       jugó. Decir "saltás a 3" ahí sería contar el mecanismo en vez del
+       resultado, que es el que importa: jugás de nuevo. */
+    e.saltos % e.mesa === 0
+      ? "¡Otra vez vos! La vuelta entera saltada"
+      : e.saltos > 1
+        ? `${e.saltos} se quedan sin turno`
+        : "El siguiente se queda sin turno",
+    "cartel",
+  ],
   cartasDevueltas: (e) => [
     e.cantidad > 1
       ? `Te quemaste — tus ${e.cantidad} cartas vuelven a la mano`
@@ -108,12 +130,37 @@ export default function App() {
      encadenar temporizadores en ese bucle es imposible: cada vuelta los
      cancelaba antes de que llegara a correr el primero. */
   const {
-    setPlayers, setActive, setBoard, setGoal, setMiLado,
+    setPlayers, setActive, setBoard, setGoal, setMiLado, setSentido,
     setPlaying, setFinished, setRolling, consumeEvents, hayPartida,
     sumarPuntos, resolverCasilla, endTurn,
   } = juego;
 
-  const [modo, setModo] = useState("local");
+  /* ►► El modo se DERIVA de la sala, no se recuerda. ◄◄
+   *
+   * Esto era `useState("local")`, y ahí estaba el error: de las tres piezas
+   * que describen una partida online, dos sobreviven a recargar la página y
+   * una no.
+   *
+   *   · `screen`  vive en el hash de la URL      → sobrevive
+   *   · `roomId`  vive en sessionStorage         → sobrevive
+   *   · `modo`    vivía sólo en memoria          → NO sobrevivía
+   *
+   * Y `modo` únicamente se escribía al pasar por el menú. Así que recargar
+   * la pestaña —o duplicarla, que es como se prueba una mesa de cuatro—
+   * devolvía al vestíbulo con el código de sala intacto pero con `online`
+   * en falso.
+   *
+   * Lo peor no era que fallara: es que se veía perfecto. El vestíbulo se
+   * dibuja con datos de la sala, así que seguía contando las sillas y
+   * mostrando el botón de empezar. Hasta la mutación salía y el servidor
+   * arrancaba la partida de verdad. Lo único muerto era TODO efecto que
+   * empieza con `if (!online) return`, o sea el que mueve a elegir gato —
+   * y desde afuera eso se ve como un botón que no hace nada.
+   *
+   * Derivarlo de `getRoomId()` iguala las tres vidas: hay sala guardada,
+   * hay partida online. No hace falta acordarse de nada porque la respuesta
+   * ya estaba escrita al lado. */
+  const [modo, setModo] = useState(() => (getRoomId() ? "online" : "local"));
   const [elegidos, setElegidos] = useState([null, null]);
   const [tirada, setTirada] = useState(null);
   const [revelada, setRevelada] = useState(null);
@@ -313,6 +360,10 @@ export default function App() {
 
     if (Array.isArray(r.board) && r.board.length) setBoard(r.board);
     if (typeof r.goal === "number") setGoal(r.goal);
+    /* El sentido lo manda el servidor como todo lo demás: es estado de la
+       partida y la carta que lo da vuelta la resuelve él. Predecirlo de
+       este lado sería tener dos mesas girando por su cuenta. */
+    if (typeof r.sentido === "number") setSentido(r.sentido);
     setMiLado(sala.miLado);
 
     /* La mesa viene como array desde el servidor, que la normaliza aunque el
@@ -345,7 +396,7 @@ export default function App() {
     setActive(r.seat ?? 0);
 
     if (r.status === "finished" && !juego.finished) {
-      if (r.endedByAbandon) notify("Tu rival se levantó de la mesa");
+      if (r.endedByAbandon) notify("Se levantaron de la mesa — ganás por abandono");
       setFinished(true);
     }
     /* `juego.finished` se lee adentro pero NO va acá: sólo protege de
@@ -353,7 +404,7 @@ export default function App() {
        un valor que él mismo escribe. La sala es lo único que debe
        dispararlo. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sala.room, sala.miLado, online, setBoard, setGoal, setMiLado, setPlayers, setActive, setFinished, notify]);
+  }, [sala.room, sala.miLado, online, setBoard, setGoal, setMiLado, setSentido, setPlayers, setActive, setFinished, notify]);
 
   /* Lo que hizo el rival. El sondeo trae el hecho; acá se decide cómo se
      ve: la tirada se anima, la carta se da vuelta. */
@@ -375,7 +426,40 @@ export default function App() {
       setTirada({ dice: dados, isBust: Boolean(ev.payload?.isBust), gained: 0, mia: false });
       return;
     }
+    /* Alguien se levantó y la partida SIGUE. Con dos esto no existía: irse
+       terminaba el juego y lo contaba el cartel de abandono. Con cuatro la
+       mesa se cierra sobre el hueco —los objetivos se recalculan solos— y
+       eso hay que decirlo, porque a alguien le acaba de cambiar la víctima
+       sin que tocara nada. */
+    if (ev.action === "leave") {
+      const quien = ev.payload?.name;
+      notify(
+        quien
+          ? `${quien} se levantó de la mesa — quedan ${ev.payload?.quedan ?? "menos"}`
+          : "Un jugador se levantó de la mesa"
+      );
+      return;
+    }
     if (ev.action === "hold" || ev.action === "hold_and_win") {
+      /* Lo que el flujo le hizo a la RONDA. Se cuenta acá y no se deduce
+         del sondeo porque desde afuera es invisible: la mesa dada vuelta y
+         los turnos comidos se verían sólo como que el turno cayó donde
+         nadie lo esperaba. El que las jugó ya lo vio en su pantalla; esto
+         es para los demás. */
+      if (ev.payload?.vueltas) {
+        anunciar(
+          ev.payload.sentido === A_LA_DERECHA
+            ? "MEDIA VUELTA — VUELVE A LA DERECHA"
+            : "MEDIA VUELTA — AHORA A LA IZQUIERDA"
+        );
+      }
+      if (ev.payload?.saltos) {
+        notify(
+          ev.payload.saltos > 1
+            ? `${ev.payload.saltos} turnos saltados`
+            : "Un turno saltado"
+        );
+      }
       (ev.payload?.resolved ?? []).forEach((r, i) => {
         // De a una y con pausa: juntas no se sabría cuál hizo qué.
         const carta = { type: r.type, value: r.value };
@@ -384,7 +468,7 @@ export default function App() {
         setTimeout(() => mostrarRevelacion(carta, r.blocked, sala.miLado), i * 1500);
       });
     }
-  }, [sala, mostrarRevelacion]);
+  }, [sala, mostrarRevelacion, notify, anunciar]);
 
   /* Elegir gato, para una mesa de cualquier tamaño.
    *
@@ -394,8 +478,34 @@ export default function App() {
    * elegido lo suelta— que vale igual para dos que para cuatro. */
   const elegir = (i) => {
     setElegidos((prev) => {
-      // En online elegís sólo el tuyo; los demás los manda el servidor.
-      if (online) return [i, null];
+      /* En online elegís sólo el TUYO — pero en tu casillero, no en el
+         primero. Antes esto devolvía `[i, null]`: te sentaba siempre en el
+         asiento 0 aunque fueras el tercero en entrar, y el sondeo después
+         pisaba ese array con los picks reales de la mesa. Con dos daba lo
+         mismo porque el hueco era uno solo; con cuatro te dibujaba el gato
+         de otro como si fuera tuyo. */
+      if (online) {
+        /* El gato de otro no se toca. La pantalla ya lo dibuja tomado, pero
+           el toque puede llegar entre dos sondeos. */
+        const dueno = prev.indexOf(i);
+        if (dueno !== -1 && dueno !== sala.miLado) return prev;
+        /* Se rellena hasta tu asiento antes de escribirlo: entre entrar a
+           la sala y el primer sondeo el array todavía tiene el largo que le
+           puso el menú, y `s[3] = i` sobre uno de dos deja dos huecos
+           `undefined` que ni `indexOf(null)` ni el contador de faltantes
+           saben leer. */
+        /* `sala.miLado` y no `juego.miLado`: el primero se calcula del
+           documento de la sala en cada pintado, el segundo lo copia un
+           efecto y por lo tanto llega un pintado tarde. En la mesa esa
+           diferencia no se nota; acá se elige gato apenas se entra, que es
+           justo el instante en que el copiado todavía vale 0 — y con un 0
+           prestado el tercero en entrar escribía en el casillero del
+           anfitrión. */
+        const s = [...prev];
+        while (s.length <= sala.miLado) s.push(null);
+        s[sala.miLado] = i;
+        return s;
+      }
 
       const ya = prev.indexOf(i);
       if (ya !== -1) {
@@ -412,25 +522,29 @@ export default function App() {
   };
 
   const jugar = async () => {
-    const [p1] = elegidos;
-
     if (!online) {
+      const primero = elegidos[0] ?? 0;
       /* Un jugador por asiento elegido. El respaldo por si algún casillero
          quedó vacío reparte gatos consecutivos: es la misma red que había
          antes para el segundo jugador, ahora para todos. */
       juego.start(
-        newPlayers(elegidos.map((idx, i) => ROSTER[idx ?? (p1 + i) % ROSTER.length]))
+        newPlayers(elegidos.map((idx, i) => ROSTER[idx ?? (primero + i) % ROSTER.length]))
       );
       go("game");
       return;
     }
 
-    /* La mesa no se abre hasta que los dos eligieron: si no, el primero
-       entraba a jugar contra un placeholder mientras el otro seguía
+    /* Tu pick sale de TU casillero. Era `elegidos[0]`, que con cuatro
+       mandaba al servidor el gato del anfitrión desde cualquier asiento. */
+    const mio = elegidos[sala.miLado];
+    if (mio == null) return;
+
+    /* La mesa no se abre hasta que eligieron TODOS: si no, el primero
+       entraba a jugar contra placeholders mientras los demás seguían
        eligiendo. */
     setEsperandoRival(true);
     try {
-      const pick = ROSTER[p1];
+      const pick = ROSTER[mio];
       await sala.setCharacter(sala.roomId, pick.name, pick.id);
     } catch (e) {
       setEsperandoRival(false);
@@ -447,6 +561,11 @@ export default function App() {
        Antes preguntaba por dos campos con nombre; con la mesa como array la
        misma condición se dice sin saber cuántos hay. */
     const mesa = r?.players ?? [];
+    /* `status` además de los gatos, y no es redundante: la sala de cuatro
+       sigue en `waiting` mientras falte gente, y los dos que ya entraron
+       pueden haber elegido los dos. Sin esta condición la partida arrancaba
+       de a dos en una mesa abierta para cuatro. */
+    if (r?.status !== "playing") return;
     if (mesa.length < 2 || mesa.some((p) => !p?.catId)) return;
     setEsperandoRival(false);
     /* En online los jugadores no los arma start() sino el sondeo, así que
@@ -459,10 +578,61 @@ export default function App() {
     go("game");
   }, [online, esperandoRival, sala.room, hayPartida, setPlaying, setFinished, go]);
 
+  /* ►► Los casilleros que VE la pantalla de selección. ◄◄
+   *
+   * En online los gatos ajenos hay que verlos tomados, o dos jugadores
+   * eligen el mismo y la mesa queda con dos peleadores idénticos con
+   * marcadores distintos. El servidor lo rechaza, pero enterarse por un
+   * error después de haber elegido es la peor forma de enterarse.
+   *
+   * Se DERIVA en el pintado y no se copia a estado con un efecto. Escrito
+   * como efecto funcionaba, pero era un setState por cada sondeo —uno cada
+   * dos segundos, para siempre, aunque nadie estuviera mirando la pantalla
+   * de selección— y encima obliga a acordarse de no pisar tu propia
+   * selección mientras no la confirmaste. Derivado no hay nada que
+   * sincronizar: la mesa es la fuente de los ajenos y `elegidos` la del
+   * tuyo, y cada uno se lee de donde vive.
+   *
+   * El respaldo con `elegidos` es para el hueco entre entrar a la sala y el
+   * primer sondeo, cuando `room` todavía no llegó. */
+  const idxDeCat = (catId) => {
+    if (!catId) return null;
+    const i = ROSTER.findIndex((c) => c.id === catId);
+    return i === -1 ? null : i;
+  };
+  const mesaOnline = online ? sala.room?.players : null;
+  const elegidosVista = mesaOnline?.length
+    ? mesaOnline.map((p, i) =>
+        i === sala.miLado ? (elegidos[i] ?? idxDeCat(p?.catId)) : idxDeCat(p?.catId)
+      )
+    : elegidos;
+
+  /* La sala se cerró debajo tuyo: el anfitrión canceló o venció el TTL.
+     Se vuelve al menú en vez de dejar el vestíbulo contando jugadores de
+     una mesa que ya no existe. */
+  useEffect(() => {
+    if (!online || !sala.cerrada) return;
+    if (screen !== "room-choice" && screen !== "select") return;
+    notify("La sala se cerró", "error");
+    go("menu");
+  }, [online, sala.cerrada, screen, go, notify]);
+
   const crearSala = async () => {
     try {
       await sala.crear();
-      notify("Sala creada — pásale el código a tu rival");
+      notify("Mesa abierta — pasá el código a quien quieras");
+    } catch (e) {
+      notify(errorText(e), "error");
+    }
+  };
+
+  /* Arrancar la partida. Es la ÚNICA forma de que empiece una mesa que no
+     se llenó sola, o sea casi siempre. El servidor sólo lo acepta del
+     anfitrión y con al menos dos sentados; el botón ya aplica la misma
+     regla, así que llegar acá y que rebote sería un error de la pantalla. */
+  const empezarSala = async () => {
+    try {
+      await sala.empezar();
     } catch (e) {
       notify(errorText(e), "error");
     }
@@ -475,17 +645,32 @@ export default function App() {
     }
     try {
       await sala.unirse(codigo);
-      go("select");
+      /* Al VESTÍBULO, no directo a elegir gato.
+         Antes iba derecho a la selección, y con una sala de dos eso era
+         correcto: entrar era el último requisito, la partida ya estaba
+         armada. Con mesas de hasta cuatro entrar es sentarse a esperar —
+         puede faltar gente— y mandarlo a elegir gato le contaría que la
+         mesa está lista cuando no lo está. El vestíbulo es de todos: los
+         mueve a la selección el mismo efecto, cuando la sala arranca. */
+      go("room-choice");
     } catch (e) {
       notify(errorText(e), "error");
     }
   };
 
-  /* El que creó ve la pantalla de espera hasta que alguien entra. */
+  /* La sala arrancó: todos los que están en el vestíbulo pasan a elegir.
+     Vale igual para el anfitrión y para los que entraron, que es lo que
+     permite que el vestíbulo sea uno solo. */
   useEffect(() => {
     if (!online || screen !== "room-choice") return;
     if (sala.room?.status === "playing") {
-      notify("Tu rival entró — elige tu gato");
+      const cuantos = sala.room.players?.length ?? 2;
+      /* Se dice CUÁNTOS son, siempre. Antes con dos decía "tu rival entró",
+         que era la noticia porque el segundo jugador era el único evento
+         posible. Ahora la mesa arranca con los que el anfitrión haya
+         decidido, así que el dato es el tamaño — y el que entró tercero
+         necesita saber que se juega de tres y no de cuatro. */
+      notify(`Mesa de ${cuantos} — elige tu gato`);
       go("select");
     }
   }, [online, screen, sala.room, go, notify]);
@@ -664,19 +849,25 @@ export default function App() {
 
   const plantarse = async () => {
     if (!online) {
-      const { gano } = juego.hold();
-      if (!gano) juego.endTurn();
+      /* El sentido y los saltos vuelven POR EL RETORNO y no se leen del
+         estado: `hold` acaba de llamar a `setSentido`, y eso se aplica
+         diferido — leyéndolo acá el turno se iría para el lado de antes,
+         justo en el turno en que se jugó la media vuelta. */
+      const { gano, saltos, sentido } = juego.hold();
+      if (!gano) juego.endTurn(saltos, sentido);
       return;
     }
     try {
       const r = await sala.holdScore(sala.roomId);
+      /* A quién le llegaron: al de tu derecha, que es la MISMA regla con la
+         que el servidor las acaba de resolver. Era `miLado === 0 ? 1 : 0` —
+         "el otro"— y en una mesa de cuatro eso mandaba el golpe al asiento 1
+         sin importar dónde estuvieras sentado: el destello rojo le caía a
+         cualquiera menos a la víctima. */
+      const victima = targetOf(sala.miLado, juego.players.length, juego.sentido);
       (r.resolved ?? []).forEach((x, i) => {
         const carta = { type: x.type, value: x.value };
-        /* Acá te plantaste vos, así que la carta va contra el rival. */
-        setTimeout(
-          () => mostrarRevelacion(carta, x.blocked, sala.miLado === 0 ? 1 : 0),
-          i * 1500
-        );
+        setTimeout(() => mostrarRevelacion(carta, x.blocked, victima), i * 1500);
       });
     } catch (e) {
       notify(errorText(e), "error");
@@ -777,10 +968,20 @@ export default function App() {
     /* Se suelta la partida: sin esto, escribir #/game en la barra volvería
        a entrar a una mesa que ya no existe. */
     juego.hayPartida.current = false;
-    setElegidos([null, null]);
+    /* Se vacían los casilleros pero se conserva CUÁNTOS son: el largo lo
+       fijó el menú al elegir la mesa, y devolverlo a dos convertía la
+       revancha de una partida de cuatro en un duelo. */
+    setElegidos((prev) => prev.map(() => null));
     setEsperandoRival(false);
-    // Soltar la sala: sin esto queda viva hasta que vence.
-    if (online) sala.salir();
+    /* Soltar la sala: sin esto queda viva hasta que vence.
+       Sin el `if (online)` que tenía delante, y no es de más: era la otra
+       mitad del mismo enredo. Con `online` mal calculado la sala no se
+       soltaba, el `roomId` quedaba en el storage, y entonces el modo
+       derivado de arriba leería "online" en la próxima partida local. Sin
+       la guarda, salir siempre limpia — y limpiar cuando no hay nada que
+       limpiar no cuesta nada: `leaveRoom(null)` ya devuelve sin llamar a la
+       red. */
+    sala.salir();
     go("menu");
   };
 
@@ -797,10 +998,19 @@ export default function App() {
      Sale del destinatario de la carta y no del turno por lo mismo que el
      destello: cuando la carta aterriza, el turno ya puede haber cambiado. */
   const vuelaHaciaArriba = lanzada
-    ? online
-      ? lanzada.destino !== juego.miLado
-      : lanzada.destino === 0
+    ? celdaArriba(
+        celdaDe(lanzada.destino, online ? juego.miLado : 0, juego.players.length),
+        juego.players.length
+      )
     : true;
+
+  /* Antes esto eran dos ramas escritas a mano —"si es online, sube salvo
+     que venga para vos; si es local, sube cuando va al asiento 0"— y las
+     dos decían lo mismo por caminos distintos: que el asiento 0 se dibuja
+     arriba y el 1 abajo. Con tres o cuatro celdas esa equivalencia se
+     rompe. Ahora se le pregunta a la misma función que ubica a los
+     peleadores, así que la carta no puede volar hacia un lado distinto de
+     donde está dibujado el que la recibe. */
 
   const alAterrizar = useCallback(() => {
     const tipo = lanzada && !lanzada.bloqueada ? COLOR_IMPACTO[lanzada.carta.type] : null;
@@ -863,8 +1073,11 @@ export default function App() {
         {screen === "room-choice" && (
           <RoomChoiceScreen
             codigo={sala.roomId}
+            sala={sala.room}
+            miLado={sala.miLado}
             onCreate={crearSala}
             onJoin={unirseASala}
+            onStart={empezarSala}
             onCancel={volverAlMenu}
             onBack={volverAlMenu}
           />
@@ -873,7 +1086,8 @@ export default function App() {
         {screen === "select" && (
           <SelectScreen
             online={online}
-            elegidos={elegidos}
+            elegidos={elegidosVista}
+            miLado={sala.miLado}
             esperando={esperandoRival}
             onPick={elegir}
             onPlay={jugar}
@@ -896,6 +1110,7 @@ export default function App() {
             revelada={revelada}
             online={online}
             miLado={juego.miLado}
+            sentido={juego.sentido}
             impacto={impacto}
             onRoll={tirar}
             onHold={plantarse}
@@ -909,8 +1124,8 @@ export default function App() {
 
         {screen === "gameover" && (
           <GameOverScreen
-            ganador={juego.players[ganadorIdx]}
-            perdedor={juego.players[ganadorIdx === 0 ? 1 : 0]}
+            jugadores={juego.players}
+            ganadorIdx={ganadorIdx}
             porAbandono={Boolean(sala.room?.endedByAbandon)}
             online={online}
             onRematch={jugar}

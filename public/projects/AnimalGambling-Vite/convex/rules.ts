@@ -160,6 +160,34 @@ export const CARD = {
    * cuando el efecto no viaja a ningún lado, y una defensa enfrente no
    * tiene nada que tapar. */
   BEER: "beer",
+  /* ►► Las dos cartas de FLUJO. ◄◄
+   *
+   * No tocan el marcador de nadie. No roban, no pegan, no maldicen: cambian
+   * QUIÉN JUEGA DESPUÉS. Esa diferencia no es de sabor, decide tres cosas
+   * del código y conviene tenerlas juntas:
+   *
+   *  · No pasan por `applyCard`. Si pasaran, el chequeo de defensa las
+   *    tragaría y le quemaría un escudo al rival a cambio de nada — el
+   *    mismo bug que ya está documentado para la cerveza, unas líneas más
+   *    arriba, y por la misma razón.
+   *  · La defensa NO las tapa, y es deliberado: el escudo protege TU
+   *    puntaje, y acá no hay puntaje que proteger. Además `saltar` puede
+   *    saltear a varios a la vez, así que "cuál de los escudos lo frena"
+   *    ni siquiera tendría respuesta.
+   *  · Se resuelven al final del plantarse, después de los ataques. Los
+   *    ataques van contra el objetivo que tenías al empezar el turno; el
+   *    flujo decide lo que viene después. Al revés —cambiar la dirección y
+   *    después repartir los golpes— podrías dar vuelta la mesa para
+   *    pegarle a otro, y eso rompe el "una sola víctima, un solo atacante"
+   *    sobre el que se apoya todo el diseño direccional.
+   */
+
+  /* Le come el turno al siguiente. Se acumulan: con tres sobre una mesa de
+     cuatro, el turno da la vuelta entera y volvés a jugar vos. */
+  SKIP: "skip",
+  /* Da vuelta la mesa. Lo que iba hacia tu derecha pasa a ir hacia tu
+     izquierda: tu víctima pasa a ser tu atacante y viceversa. */
+  REVERSE: "reverse",
 } as const;
 
 export type CardType = (typeof CARD)[keyof typeof CARD];
@@ -216,6 +244,8 @@ export const CARD_LABEL: Record<CardType, string> = {
   double: "DOS DADOS",
   punch: "GOLPE",
   beer: "CERVEZA",
+  skip: "SALTAR",
+  reverse: "MEDIA VUELTA",
 };
 
 /* Qué hace la carta, en una línea.
@@ -242,6 +272,10 @@ export function cardHint(card: Card): string {
       return `Le saca ${PUNCH_POINTS} puntos y no te los suma a vos`;
     case CARD.BEER:
       return `Te la tomás vos: ${BEER_TURNS} turnos con TU mesa borrosa, y se apilan`;
+    case CARD.SKIP:
+      return "El siguiente se queda sin turno. Se acumulan, y la defensa no las tapa";
+    case CARD.REVERSE:
+      return "Da vuelta la mesa: tu víctima pasa a ser tu atacante";
     default:
       return "";
   }
@@ -434,10 +468,63 @@ export function passedStart(pos: number, steps: number): boolean {
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 4;
 
+/* ►► HACIA DÓNDE VA EL JUEGO. ◄◄
+ *
+ * `1` es hacia tu derecha y `-1` hacia tu izquierda, y los nombres están
+ * puestos desde el ASIENTO y no desde la pantalla a propósito. En pantalla
+ * "a tu derecha" se dibuja como un giro antihorario —estás sentado abajo,
+ * y desde abajo las agujas del reloj se alejan hacia la izquierda— así que
+ * llamarlo "horario" sería contar la mitad equivocada de la historia. El
+ * jugador dice "va hacia la derecha"; el código dice lo mismo.
+ *
+ * ►► Éste es el ÚNICO lugar del proyecto que sabe hacia dónde gira. ◄◄
+ *
+ * `nextSeat` y `targetOf` salen de acá, y todo lo demás —el turno, los
+ * ataques, la mira, el reparto de la ronda— sale de esas dos. La
+ * disposición en pantalla NO participa: las celdas se quedan quietas y lo
+ * que cambia es el orden en que se encienden, que es exactamente cómo el
+ * cambio de dirección se hace visible sin que nadie se mueva de asiento.
+ * Cuando aparezca otra cosa que dependa del sentido, tiene que pedirlo por
+ * parámetro como estas dos y no deducirlo por su cuenta. */
+export const A_LA_DERECHA = 1;
+export const A_LA_IZQUIERDA = -1;
+export type Sentido = 1 | -1;
+
+/* El sentido de una sala que no lo trae —las de antes de esta carta— es el
+   de siempre. Un solo lugar que lo decide, como el resto de los respaldos
+   de forma vieja. */
+export function sentidoDe(valor: number | undefined | null): Sentido {
+  return valor === A_LA_IZQUIERDA ? A_LA_IZQUIERDA : A_LA_DERECHA;
+}
+
 /* A quién le toca después. Los jugadores están sentados en círculo y el
-   turno gira siempre en el mismo sentido. */
-export function nextSeat(seat: number, total: number): number {
-  return (seat + 1) % total;
+   turno gira en el sentido que diga la mesa — que arranca hacia la derecha
+   y lo da vuelta la carta de media vuelta. */
+export function nextSeat(
+  seat: number,
+  total: number,
+  sentido: Sentido = A_LA_DERECHA
+): number {
+  /* El módulo doble no es adorno: con el sentido en −1 y el asiento en 0,
+     `(0 - 1) % 4` da −1 en JavaScript, no 3. */
+  return (((seat + sentido) % total) + total) % total;
+}
+
+/* A qué asiento salta el turno después de plantarse, con las cartas de
+   saltar ya contadas. Cero saltos es el turno normal — o sea que ésta es la
+   función que usa el motor SIEMPRE, y `nextSeat` queda para quien sólo
+   quiere el vecino.
+   Los saltos cuentan en el sentido FINAL: si en el mismo turno se puso una
+   media vuelta, primero se da vuelta la mesa y recién después se saltea,
+   que es como lo diría cualquiera en voz alta. */
+export function seatAfter(
+  seat: number,
+  total: number,
+  sentido: Sentido = A_LA_DERECHA,
+  saltos: number = 0
+): number {
+  const pasos = (1 + Math.max(0, saltos)) % total;
+  return (((seat + sentido * pasos) % total) + total) % total;
 }
 
 /* ►► A quién apuntan TUS cartas: al de tu derecha. Siempre. ◄◄
@@ -459,8 +546,51 @@ export function nextSeat(seat: number, total: number): number {
  * ya funciona. Esa es justamente la idea: reemplaza al `active === 0 ? 1 : 0`
  * que estaba escrito a mano en los dos motores —la suposición de que la mesa
  * es de dos— por algo que ya vale para cuatro. */
-export function targetOf(seat: number, total: number): number {
-  return nextSeat(seat, total);
+/* Y dónde cae ese "de tu derecha" EN LA PANTALLA lo decide `celdaDe`, en
+   src/mesa.js: sienta al jugador abajo a la derecha y hace girar la ronda
+   subiendo por su costado derecho, que es lo único que vuelve verdadera
+   esta frase. Las dos piezas se leen juntas o ninguna se entiende — un
+   anillo que gire al revés deja esta línea diciendo lo contrario de lo que
+   el jugador ve. */
+export function targetOf(
+  seat: number,
+  total: number,
+  sentido: Sentido = A_LA_DERECHA
+): number {
+  return nextSeat(seat, total, sentido);
+}
+
+/* ►► Las cartas que no golpean a nadie: cambian de quién es el turno. ◄◄ */
+export function esDeFlujo(card: Card): boolean {
+  return card.type === CARD.SKIP || card.type === CARD.REVERSE;
+}
+
+/* Lo que las cartas de flujo le hacen a la ronda.
+ *
+ * Devuelve datos y no efectos, como todo en este archivo, y por eso la usan
+ * los DOS motores sin poder discrepar: el local para mover su estado y el
+ * servidor para escribir la sala.
+ *
+ * Las medias vueltas se cuentan por PARIDAD y no se aplican de a una: dos en
+ * el mismo turno se cancelan, que es lo que cualquiera esperaría de darla
+ * vuelta dos veces. Los saltos se suman. */
+export function resolverFlujo(
+  pendientes: Card[],
+  sentido: Sentido
+): { sentido: Sentido; saltos: number; vueltas: number } {
+  let vueltas = 0;
+  let saltos = 0;
+  for (const c of pendientes) {
+    if (c.type === CARD.REVERSE) vueltas++;
+    else if (c.type === CARD.SKIP) saltos++;
+  }
+  const nuevo: Sentido =
+    vueltas % 2 === 1
+      ? sentido === A_LA_DERECHA
+        ? A_LA_IZQUIERDA
+        : A_LA_DERECHA
+      : sentido;
+  return { sentido: nuevo, saltos, vueltas };
 }
 
 /* ============================================
@@ -614,35 +744,141 @@ export function mirrorHand(mano: Card[], asiento: number): Card[] {
  * Dos dados sube apenas, a 9: es la única que no participa del intercambio
  * —no ataca ni defiende— y con el robo tan raro conviene que haya alguna
  * otra forma de empujar el marcador. */
-/* ►► El golpe y la defensa NO se tocan. ◄◄
+/* ►► EL REPARTO DEL MAZO, con ocho cartas y dos mesas. ◄◄
  *
- * Están al 35% cada uno. El empate venía de cuando el golpe rompía escudos
- * de a uno: si la defensa salía más seguido, la muralla se reponía más
- * rápido de lo que se podía tirar abajo. Con el golpe ya bloqueable esa
- * cuenta dejó de aplicar y el 35/35 quedó sin fundamento — se mantiene
- * porque cambiarlo es una decisión de balance aparte, no un arrastre de
- * este cambio.
- *
- * Toda carta nueva le saca probabilidad a alguien. La cerveza se la saca al
- * robo (17 → 14) y a los dos dados (9 → 7), que son los que tienen margen.
- * La maldición queda en su 4%, que ya estaba puesto ahí a mano.
- *
- * La cerveza no toca el marcador, así que puede abundar sin desbalancear
- * nada: sube a 9%. Sale de robar y de dos dados, que es de donde puede
- * salir. Robar baja a 12 y es el precio real de esto — es la carta que
- * cobra, y cada punto que se le saca acá se le saca al remate del bucle.
+ * Antes eran seis tipos y una sola tabla:
  *
  *   GOLPE 35 · DEFENSA 35 · ROBAR 12 · CERVEZA 9 · DOS DADOS 5 · MALDICIÓN 4
+ *
+ * ►► Primero, el número que manda sobre todos los demás. ◄◄
+ *
+ * Medido sobre 200 partidas simuladas: un jugador pisa entre 5,4 y 6,6
+ * casillas de bonus en TODA la partida —menos cuanta más gente hay, porque
+ * las partidas se reparten entre más manos—. O sea que un punto porcentual
+ * vale unas 0,06 cartas por jugador por partida. Traducido:
+ *
+ *     4%  →  la ves 1 vez cada 4 partidas
+ *     7%  →  la ves casi todas las partidas (1,2 a 1,5 por mesa)
+ *    30%  →  la ves 2 veces por partida
+ *
+ * Ese es el piso de existencia: por debajo del 5% una carta no es una
+ * mecánica, es una anécdota. Y es la razón por la que las dos nuevas no
+ * pueden entrar con el 3% que su poder crudo pediría.
+ *
+ * ►► Cuánto valen las dos nuevas. ◄◄
+ *
+ * Un turno gana +7,7 puntos en promedio (el número está arriba, en
+ * PENALTY_POINTS). Con eso se pueden medir contra lo que ya existe:
+ *
+ *   ROBAR 6   →  −6 al rival y +6 a vos      = 12 puntos de diferencia
+ *   SALTAR    →  −7,7 al rival, +0 a vos     = 7,7 puntos de diferencia
+ *   ROBAR 3   →  −3 y +3                     = 6 puntos de diferencia
+ *   GOLPE     →  −2 y +0                     = 2 puntos de diferencia
+ *
+ * Saltar cae entre los dos robos. Pero NO se bloquea, y eso lo empuja
+ * arriba de un robo de 3 —que sí se tapa— aunque muevan lo mismo. Va al 7%.
+ *
+ * La media vuelta no mueve el marcador ni un punto: lo único que cambia es
+ * a quién le pegás y quién te pega. Por poder crudo iría al 3%, y ahí sería
+ * invisible. Va al 7% por el mismo argumento que la cerveza tiene escrito
+ * desde antes: una carta que no toca el puntaje puede abundar sin
+ * desbalancear nada, y ésta encima es la que le da carácter a una mesa de
+ * cuatro. Sale una y media por partida: se siente y no gobierna.
+ *
+ * ►► De dónde salen esos 14 puntos, y por qué del golpe y la defensa. ◄◄
+ *
+ * Acá arriba decía "el golpe y la defensa NO se tocan". Los toco, y digo
+ * por qué en vez de hacerlo callado.
+ *
+ * Lo que ese 35/35 protege es el EMPATE, no el 70. Está escrito así: si la
+ * defensa saliera más seguido que el golpe, la muralla se repondría más
+ * rápido de lo que se puede tirar abajo; si saliera menos, el escudo
+ * dejaría de significar algo. 30/30 conserva el empate exacto — la mecánica
+ * queda intacta.
+ *
+ * Lo que sí cambia es el largo del molido, y ese cambio va a favor: la
+ * mesa de cuatro ya dura 40 turnos contra 26 del duelo (medido), así que
+ * acortar el intercambio un 14% le viene bien. Y sostener el 70 con ocho
+ * tipos de carta significaba dejar a los otros seis con 5% promedio, o sea
+ * por debajo del piso de existencia: cuatro cartas del mazo que casi nadie
+ * llega a ver nunca.
+ *
+ * ►► Y por qué hay DOS tablas. ◄◄
+ *
+ * Porque con dos jugadores la media vuelta es letra muerta: `targetOf` con
+ * una mesa de dos devuelve al otro en los dos sentidos. Repartirla igual
+ * sería regalar una carta en blanco el 7% de las veces.
+ *
+ * Y el salto, con dos, no es lo mismo que con cuatro: saltear al único
+ * rival es JUGAR DE NUEVO. Eso son +7,7 para vos y −7,7 para él, quince
+ * puntos de diferencia — más que un robo de 6 y sin escudo que lo frene.
+ * Por eso en el duelo baja al 5%; el mismo cartón, el doble de poder.
+ *
+ *   MESA DE 3 Y 4
+ *   GOLPE 30 · DEFENSA 30 · ROBAR 11 · SALTAR 7 · MEDIA VUELTA 7 ·
+ *   CERVEZA 7 · DOS DADOS 4 · MALDICIÓN 4
+ *
+ *   MESA DE 2  (sin media vuelta; los 7 vuelven de donde salieron)
+ *   GOLPE 30 · DEFENSA 30 · ROBAR 13 · CERVEZA 10 · DOS DADOS 7 ·
+ *   SALTAR 5 · MALDICIÓN 5
  */
-export function randomBonusCard(rand: () => number, seed: number): Card {
-  const roll = rand();
-  if (roll < 0.35) return makeCard(CARD.PUNCH, undefined, seed);
-  if (roll < 0.7) return makeCard(CARD.DEFENSE, undefined, seed);
-  if (roll < 0.82) return makeCard(CARD.STEAL, randomStealValue(rand), seed);
-  if (roll < 0.87) return makeCard(CARD.DOUBLE, undefined, seed);
-  if (roll < 0.96) return makeCard(CARD.BEER, undefined, seed);
-  return makeCard(CARD.CURSE, undefined, seed);
+
+/* Los pesos, en el orden en que se sortean. Escritos como tabla y no como
+   una escalera de `if (roll < 0.35)`: esa escalera obligaba a recalcular a
+   mano todos los cortes acumulados cada vez que se movía un número, y con
+   ocho cartas y dos mesas es una cuenta que se equivoca sola. Acá cada
+   carta dice lo que pesa y nada más. */
+const MAZO_MESA_GRANDE: Array<[CardType, number]> = [
+  [CARD.PUNCH, 30],
+  [CARD.DEFENSE, 30],
+  [CARD.STEAL, 11],
+  [CARD.SKIP, 7],
+  [CARD.REVERSE, 7],
+  [CARD.BEER, 7],
+  [CARD.DOUBLE, 4],
+  [CARD.CURSE, 4],
+];
+
+const MAZO_DUELO: Array<[CardType, number]> = [
+  [CARD.PUNCH, 30],
+  [CARD.DEFENSE, 30],
+  [CARD.STEAL, 13],
+  [CARD.BEER, 10],
+  [CARD.DOUBLE, 7],
+  [CARD.SKIP, 5],
+  [CARD.CURSE, 5],
+];
+
+/* Que sumen 100 no lo garantiza nadie mirándolo: se suma acá y el sorteo
+   usa este total, así que un número mal puesto desafina el reparto pero no
+   rompe nada — y `mazoDe` lo puede afirmar en las pruebas. */
+export function mazoDe(jugadores: number): Array<[CardType, number]> {
+  return jugadores >= 3 ? MAZO_MESA_GRANDE : MAZO_DUELO;
 }
+
+/* `jugadores` por defecto en dos y no en cuatro: es el valor que hace que un
+   llamador que todavía no lo pasa se comporte como se comportaba antes. */
+export function randomBonusCard(
+  rand: () => number,
+  seed: number,
+  jugadores: number = MIN_PLAYERS
+): Card {
+  const mazo = mazoDe(jugadores);
+  const total = mazo.reduce((a, [, w]) => a + w, 0);
+  let tick = rand() * total;
+  for (const [tipo, peso] of mazo) {
+    tick -= peso;
+    if (tick < 0) {
+      return makeCard(
+        tipo,
+        tipo === CARD.STEAL ? randomStealValue(rand) : undefined,
+        seed
+      );
+    }
+  }
+  return makeCard(CARD.PUNCH, undefined, seed);
+}
+
 
 /* ============================================
    TIRADA
@@ -766,6 +1002,20 @@ export function applyCard(
      rival a cambio de nada — el peor tipo de bug: silencioso, del lado del
      que ni jugó la carta, y sólo en partidas viejas. */
   if (card.type === CARD.BEER) {
+    return { ...base, blocked: false, taken: 0 };
+  }
+
+  /* ►► Y las de flujo, por la MISMA razón y con más motivo. ◄◄
+   *
+   * Saltar y media vuelta no le hacen nada al puntaje ni a la mano de
+   * nadie: cambian de quién es el turno. El plantarse ya las aparta antes
+   * de llegar acá, así que esta salida es un cinturón — pero uno que hace
+   * falta, porque el costo de que se cuele una es que el chequeo de abajo
+   * le queme un escudo al rival a cambio de absolutamente nada. Es
+   * exactamente el bug que la cerveza dejó documentado arriba, y la lección
+   * es la misma: toda carta que no viaja al rival necesita su salida
+   * explícita ANTES del escudo. */
+  if (esDeFlujo(card)) {
     return { ...base, blocked: false, taken: 0 };
   }
 

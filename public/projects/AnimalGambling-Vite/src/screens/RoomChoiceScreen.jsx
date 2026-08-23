@@ -1,8 +1,30 @@
 import { useEffect, useState } from "react";
+import { MIN_PLAYERS, MAX_PLAYERS } from "../../convex/rules";
 
 /* Crear sala o entrar a una. Va antes de elegir personaje: el que crea
-   necesita el código para pasárselo a alguien, y recién cuando el otro
-   entra tiene sentido ponerse a elegir gato. */
+   necesita el código para pasárselo a alguien, y recién cuando los demás
+   entran tiene sentido ponerse a elegir gato.
+
+   ►► Y ahora además es el vestíbulo. ◄◄
+
+   Antes esto era una pantalla de espera con una frase: "esperando al otro
+   jugador". Alcanzaba porque el otro era uno solo y su llegada era el
+   evento entero — la sala arrancaba sola con el segundo.
+
+   Con mesas de hasta cuatro esa frase deja de ser cierta y de ser útil: hay
+   que decir cuántos hay, quién ya está, y quién decide arrancar.
+
+   ►► Acá vivía un selector de tamaño, y se fue. ◄◄
+
+   Pedía elegir "2, 3 o 4" ANTES de crear la sala, y esa pregunta no se
+   puede contestar en ese momento: el anfitrión manda el código y recién
+   después se entera de cuántos entran. Era pedirle un pronóstico y después
+   hacérselo cumplir — una sala abierta para cuatro con tres adentro no
+   arrancaba nunca.
+
+   Ahora hay UNA sola forma de jugar online: se abre la sala, entra quien
+   entre hasta cuatro, y el anfitrión arranca con los que haya. El tamaño
+   dejó de ser una decisión y pasó a ser un resultado. */
 
 const COPIADO_MS = 1800;
 
@@ -51,14 +73,33 @@ async function alPortapapeles(texto) {
 
 export default function RoomChoiceScreen({
   codigo,        // el de la sala creada, mientras se espera
+  sala,          // la sala sondeada, o null mientras no llegó
+  miLado = 0,
   onCreate,
   onJoin,
+  onStart,
   onCancel,
   onBack,
 }) {
   const [entrada, setEntrada] = useState("");
   const [copiado, setCopiado] = useState(false);
   const esperando = Boolean(codigo);
+
+  const sentados = sala?.players?.length ?? (esperando ? 1 : 0);
+  /* La capacidad sale de las REGLAS y no de la sala: toda mesa se abre al
+     tope. Antes venía de `sala.size`, que era el pronóstico del anfitrión;
+     ahora ese campo sólo dice a qué número arranca sola y no tiene nada que
+     ver con cuántas sillas hay que dibujar. */
+  const libres = Math.max(0, MAX_PLAYERS - sentados);
+  /* El anfitrión es el asiento 0: el único que estuvo desde el principio y
+     por lo tanto el único que sabe a quién está esperando. El servidor
+     aplica la misma regla, así que este botón no puede prometer algo que la
+     mutación después rechace. */
+  const anfitrion = miLado === 0;
+  /* Sin `libres > 0`: con la mesa llena la sala arranca sola y esta pantalla
+     ya no está. Ponerlo sería escribir una condición para un instante que no
+     se ve. */
+  const puedeArrancar = anfitrion && sentados >= MIN_PLAYERS;
 
   /* El visto se apaga solo: si se quedara fijo dejaría de significar
      "acabo de copiar" y pasaría a ser parte del dibujo del botón. */
@@ -73,14 +114,23 @@ export default function RoomChoiceScreen({
   return (
     <section className="screen room-choice-screen active">
       <div className="room-choice-header">
-        <h2>DUELO ONLINE</h2>
+        <h2>{esperando ? "MESA ABIERTA" : "MESA ONLINE"}</h2>
       </div>
 
       {!esperando && (
         <div className="room-choice-content">
           <div className="room-choice-option">
-            <button className="btn-nav" onClick={onCreate}>+ CREAR SALA</button>
-            <p>Genera un código y comparte con tu rival</p>
+            <button className="btn-nav" onClick={onCreate}>
+              + CREAR MESA
+            </button>
+            {/* Se dice el rango acá y no se pregunta: la mesa admite de dos
+                a cuatro y el jugador no tiene que elegir nada, pero sí tiene
+                que saberlo — si no, manda el código a una sola persona. */}
+            <p>
+              Genera un código y comparte con tus rivales.{" "}
+              <b>De {MIN_PLAYERS} a {MAX_PLAYERS} jugadores</b>: arrancas
+              cuando estén los que quieras.
+            </p>
           </div>
 
           {/* El campo va arriba del botón porque ése es el orden en que se
@@ -134,8 +184,66 @@ export default function RoomChoiceScreen({
               {copiado ? "¡COPIADO!" : "Clic para copiar"}
             </span>
           </div>
-          <p>Esperando al otro jugador...</p>
-          <button className="btn-nav" onClick={onCancel}>Cancelar</button>
+
+          {/* ►► Las sillas. ◄◄
+              Siempre las cuatro, ocupadas y vacías. Un contador —"2 de 4"—
+              dice lo mismo en menos espacio y por eso parece mejor, pero hay
+              que leerlo y restar; las sillas se cuentan de un vistazo y
+              además hacen VER el lugar libre, que es exactamente la
+              información con la que el anfitrión decide si arranca o
+              espera. */}
+          <ul
+            className="room-seats"
+            aria-label={`${sentados} de ${MAX_PLAYERS} jugadores`}
+          >
+            {Array.from({ length: MAX_PLAYERS }, (_, i) => {
+              const ocupada = i < sentados;
+              return (
+                <li
+                  key={i}
+                  className={`room-seat${ocupada ? " ocupada" : ""}${i === miLado ? " yo" : ""}`}
+                >
+                  <span className="room-seat-n">{i + 1}</span>
+                  <span className="room-seat-txt">
+                    {i === miLado ? "VOS" : ocupada ? "LISTO" : "LIBRE"}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Lo que se cuenta es lo que HAY, no lo que falta.
+              "Faltan 2" era una cuenta contra un tamaño que el anfitrión
+              había pronosticado, y ese pronóstico ya no existe: no falta
+              nadie, la mesa está lista desde que hay dos. */}
+          <p aria-live="polite">
+            {sentados < MIN_PLAYERS
+              ? "Esperando a que entre alguien…"
+              : libres === 0
+                ? "Mesa completa — arrancando…"
+                : `${sentados} en la mesa · entran hasta ${MAX_PLAYERS}`}
+          </p>
+
+          {/* El botón que arranca la partida. No es un escape para cuando
+              falta gente: es EL camino, y por eso está siempre a la vista
+              del anfitrión desde que hay con quién jugar. */}
+          {puedeArrancar && (
+            <button className="btn-nav" onClick={onStart}>
+              ▸ EMPEZAR CON {sentados}
+            </button>
+          )}
+          {anfitrion && sentados < MIN_PLAYERS && (
+            <p className="room-hint">
+              Con {MIN_PLAYERS} ya podés arrancar.
+            </p>
+          )}
+          {/* Al invitado hay que decirle que la espera no depende de él, o
+              se queda buscando un botón que no tiene. */}
+          {!anfitrion && (
+            <p className="room-hint">El anfitrión decide cuándo arrancar.</p>
+          )}
+
+          <button className="btn-nav secondary" onClick={onCancel}>Salir</button>
         </div>
       )}
 

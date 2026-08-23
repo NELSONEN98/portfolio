@@ -62,6 +62,17 @@ export function useOnlineRoom() {
   const ultimoEvento = useRef(null);
   const [novedad, setNovedad] = useState(null);
   const vivo = useRef(false);
+  /* La sala existía y dejó de existir.
+   *
+   * Antes esto no podía pasarle a nadie: en el vestíbulo había como mucho
+   * un invitado, y la sala sólo se borraba cuando ese invitado no estaba.
+   * Con mesas de cuatro el anfitrión puede cancelar con tres esperando, y
+   * sin este aviso los tres se quedaban mirando un vestíbulo muerto que
+   * seguía diciendo "faltan 1" para siempre.
+   *
+   * Es una BANDERA y no un `room: null`: la diferencia entre "todavía no
+   * llegó" y "ya no está" es justamente lo que hay que contar. */
+  const [cerrada, setCerrada] = useState(false);
 
   /* En qué asiento estás sentado. Se busca en la mesa en vez de preguntar
      "¿sos el primero? entonces 0, si no 1" — que era una respuesta binaria y
@@ -91,18 +102,29 @@ export function useOnlineRoom() {
     }
 
     if (!vivo.current) return;
-    if (sala) {
-      /* Se normaliza al ENTRAR, no al usarse: así hay un solo lugar que
-         conoce la forma vieja en vez de un `??` en cada lectura. */
-      setRoom(enAsientos(sala));
 
-      const ev = sala.lastEvent;
-      if (ev && ev._id !== ultimoEvento.current) {
-        const primera = ultimoEvento.current === null;
-        ultimoEvento.current = ev._id;
-        // Lo propio ya se mostró al hacerlo; lo viejo no se reproduce.
-        if (!primera && ev.sessionId !== getSessionId()) setNovedad(ev);
-      }
+    /* Null con sondeo vivo es una sala borrada: el anfitrión canceló o
+       venció el TTL. Se corta acá — seguir sondeando algo que ya no existe
+       es una petición cada dos segundos, para siempre, contra la nada. */
+    if (!sala) {
+      vivo.current = false;
+      clearRoomId();
+      setSala(null);
+      setRoom(null);
+      setCerrada(true);
+      return;
+    }
+
+    /* Se normaliza al ENTRAR, no al usarse: así hay un solo lugar que
+       conoce la forma vieja en vez de un `??` en cada lectura. */
+    setRoom(enAsientos(sala));
+
+    const ev = sala.lastEvent;
+    if (ev && ev._id !== ultimoEvento.current) {
+      const primera = ultimoEvento.current === null;
+      ultimoEvento.current = ev._id;
+      // Lo propio ya se mostró al hacerlo; lo viejo no se reproduce.
+      if (!primera && ev.sessionId !== getSessionId()) setNovedad(ev);
     }
 
     setTimeout(() => sondear(id), SONDEO_MS);
@@ -112,11 +134,13 @@ export function useOnlineRoom() {
     (id) => {
       vivo.current = true;
       ultimoEvento.current = null;
+      setCerrada(false);
       sondear(id);
     },
     [sondear]
   );
 
+  /* Sin argumentos: la sala se abre al tope y la arranca el anfitrión. */
   const crear = useCallback(async () => {
     try {
       const id = await api.createRoom();
@@ -146,6 +170,19 @@ export function useOnlineRoom() {
     [observar]
   );
 
+  /* Arrancar sin esperar a que se llene. El estado real vuelve por el
+     sondeo, igual que todo lo demás: acá sólo se manda la intención. */
+  const empezar = useCallback(async () => {
+    const id = getRoomId();
+    if (!id) return;
+    try {
+      await api.startRoom(id);
+    } catch (e) {
+      setError(e);
+      throw e;
+    }
+  }, []);
+
   const salir = useCallback(() => {
     const id = getRoomId();
     detener();
@@ -166,8 +203,8 @@ export function useOnlineRoom() {
   const consumirNovedad = useCallback(() => setNovedad(null), []);
 
   return {
-    roomId, room, miLado, error, novedad,
-    crear, unirse, salir, consumirNovedad, detener,
+    roomId, room, miLado, error, novedad, cerrada,
+    crear, unirse, empezar, salir, consumirNovedad, detener,
     // Acciones que van al servidor; el estado real vuelve por el sondeo.
     setCharacter: api.setCharacter,
     playCard: api.playCard,

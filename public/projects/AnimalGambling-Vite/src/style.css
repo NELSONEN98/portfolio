@@ -575,10 +575,15 @@ body {
   /* Sin fila para la mano: las cartas viven en la línea de su dueño, así
      que ese alto —que antes quedaba reservado aunque el abanico estuviera
      flotando en otro lado— se lo queda la mesa. */
+  /* Las áreas se llaman por CELDA y no por jugador. `f1`/`f2` eran el
+     asiento, y eso obligaba al `flip` a existir: para que el jugador se
+     viera abajo había que reescribir a qué área iba cada asiento. Ahora el
+     asiento elige su celda en JavaScript —`celdaDe`, en mesa.js— y el CSS
+     sólo dibuja celdas numeradas sin saber quién cae en cada una. */
   grid-template-areas:
-    "f1"
+    "c1"
     "table"
-    "f2"
+    "c2"
     "ctrl";
   gap: var(--gap-v);
   /* Ahora sobra alto en lugar de repartirse: el bloque entero se centra. */
@@ -878,14 +883,17 @@ body {
 /* El sentido de la línea se declara UNA vez, más abajo, junto al del
    peleador: los dos tienen que leerse juntos o no se entiende de dónde sale
    el orden final. Acá quedaba un `row` suelto que decía lo contrario. */
-.fighter-linea.f1 { grid-area: f1; justify-self: start; }
-.fighter-linea.f2 { grid-area: f2; justify-self: end; }
-
-/* Con el flip los dos intercambian celda para que vos quedes siempre abajo.
-   Cambia la posición, no la identidad: cada uno conserva su color y su
-   personaje. */
-.versus-screen.flip .fighter-linea.f1 { grid-area: f2; justify-self: end; }
-.versus-screen.flip .fighter-linea.f2 { grid-area: f1; justify-self: start; }
+/* ►► Acá vivía el flip, y ya no hace falta. ◄◄
+ *
+ * Eran cuatro reglas: dos que mandaban cada asiento a su área y dos más que
+ * las intercambiaban cuando la pantalla era del jugador 1. Funcionaba con
+ * dos porque un intercambio es su propia inversa; con cuatro haría falta
+ * una rotación, o sea doce reglas que se pisan entre sí.
+ *
+ * La rotación la hace `celdaDe` antes de pintar, así que acá quedan sólo
+ * las celdas — y son las mismas mire quien mire. */
+.fighter-linea.celda-1 { grid-area: c1; justify-self: start; }
+.fighter-linea.celda-2 { grid-area: c2; justify-self: end; }
 
 /* Sólo el que TIENE cartas invierte su orden, para que el puntaje quede
    entre el abanico y el dibujo: CARTAS · PUNTAJE · PERSONAJE.
@@ -1022,8 +1030,14 @@ body {
 
 /* Negative delay, not positive: it starts immediately, just out of phase,
    so two cats on screen never breathe in lockstep. */
+/* Sale del ASIENTO y no de la celda: es la identidad del gato, no dónde
+   está parado. Y ahora son tres desfases y no uno — con cuatro peleadores,
+   dos escalones dejaban dos pares respirando al unísono, que es justo lo
+   que esta regla existe para evitar. */
 .f2 .fighter-art,
 .char-card:nth-child(even) .char-art { animation-delay: -0.35s; }
+.f3 .fighter-art { animation-delay: -0.7s; }
+.f4 .fighter-art { animation-delay: -1.05s; }
 
 @keyframes cat1-boil {
   0%      { background-image: url("cat1/frame0000.webp"); }
@@ -2360,8 +2374,11 @@ body {
    Sale de `--f2-gap` porque es alto que le está sacando a la mesa, y todo
    lo que le saca alto a la mesa tiene que estar declarado arriba o el
    presupuesto miente por esa diferencia. */
-.fighter-linea.f2,
-.versus-screen.flip .fighter-linea.f1 {
+/* Por FILA y no por celda: lo que pide el hueco es estar debajo de la mesa,
+   y eso vale igual para la única línea de abajo de una mesa de dos que para
+   las dos de una de cuatro. Escrito por celda habría que repetirlo una vez
+   por tamaño. */
+.fighter-linea.abajo {
   margin-top: var(--f2-gap);
 }
 
@@ -3139,6 +3156,23 @@ body {
    bonus y repetirlo acá los mezclaba. */
 .card.double  { background: var(--c-gold); color: var(--c-black); }
 
+/* ►► Las dos de flujo comparten familia de color, y es a propósito. ◄◄
+ *
+ * Todas las demás cartas del mazo tocan puntos: robar, golpe, maldición.
+ * Estas dos no tocan ninguno — cambian de quién es el turno. Que compartan
+ * el azul las agrupa de un vistazo en la mano: al levantar el abanico se ve
+ * "dos que mueven la ronda" sin tener que leer nada.
+ *
+ * El azul estaba reservado a las casillas de bonus, y por eso los dos
+ * dados se fueron al dorado. Acá vuelve, pero no choca: aquél es el azul
+ * del TABLERO —una casilla del camino— y éste es el de una carta en la
+ * mano. Nunca comparten superficie, y son el único par del mazo que no
+ * necesita distinguirse entre sí porque su parentesco es real. */
+.card.skip    { background: var(--c-blue); color: #fff; }
+/* Un punto más claro que su hermana: son parientes, no la misma carta, y a
+   tamaño de abanico dos azules idénticos se cuentan como una sola. */
+.card.reverse { background: #123ec0; color: #fff; }
+
 /* A 5:7 la carta es un 40% más alta que ancha, así que en pantallas de
    poco alto es lo primero que empuja los controles fuera de la vista.
    Acá manda el alto disponible y no el lado menor. */
@@ -3847,8 +3881,22 @@ body {
    860px wide and 560px tall and would take the diagonal, where each side
    column is only ~180px — narrower than the drawing it has to hold. In
    portrait the stack is right no matter how big the screen is. */
+/* ►► Sólo la mesa de DOS. ◄◄
+ *
+ * Este bloque reparte la pantalla en tres columnas y manda a cada peleador
+ * a una diagonal. Es la disposición del DUELO: funciona porque hay
+ * exactamente dos y sobra ancho a los costados.
+ *
+ * Con tres o cuatro no hay tal cosa —los costados tendrían que sostener dos
+ * peleadores cada uno, más angostos que el dibujo que llevan adentro— así
+ * que esas mesas se quedan con la vista apilada a cualquier tamaño. Estaba
+ * resuelto ganándole por especificidad desde el bloque de la mesa de
+ * cuatro, y eso obligaba a que ese bloque desarmara una por una todas las
+ * reglas de acá. Decirlo en el selector es la misma decisión escrita donde
+ * se puede leer.
+ */
 @media (min-width: 860px) and (min-height: 560px) and (orientation: landscape) {
-  .versus-screen {
+  .versus-screen.mesa-2 {
     /* Las columnas de los costados miden lo que miden sus peleadores —marco
        más abanico— y la mesa se queda con todo el resto.
        Antes el reparto era `1fr : 2.2fr : 1fr`, una proporción fija que no
@@ -3864,7 +3912,7 @@ body {
        no cruza el ancho porque dejó de ser de nadie en particular: cada
        abanico está en la línea de su dueño. */
     grid-template-areas:
-      "f1    table  f2"
+      "c1    table  c2"
       "ctrl  ctrl   ctrl";
     gap: var(--gap-v) clamp(1rem, 1.8vw, 2rem);
 
@@ -3901,7 +3949,7 @@ body {
      tal cosa: peleadores y mesa comparten la MISMA fila, así que lo que
      midan a los costados no le saca ni un píxel al tablero. Fijarlo igual
      sólo serviría para cortar el marcador cuando aparecen las defensas. */
-  .fighter-linea { width: auto; height: auto; max-height: 100%; }
+  .mesa-2 .fighter-linea { width: auto; height: auto; max-height: 100%; }
   /* Con lugar de sobra los números vuelven abajo del dibujo.
      El selector repite `.fighter-linea` para igualar la especificidad del
      `row-reverse` de la vista apilada: en CSS la especificidad le gana al
@@ -3912,7 +3960,7 @@ body {
      `.fighter-linea.con-cartas .fighter`, más específica todavía, así que
      en pantalla ancha el jugador CON cartas nunca llegaba a ponerse en
      columna y quedaba distinto de su rival. */
-  .fighter-linea .fighter {
+  .mesa-2 .fighter-linea .fighter {
     flex-direction: column;
     align-items: center;
     gap: 0.8rem;
@@ -3920,39 +3968,29 @@ body {
   /* La celda la ocupa la línea, así que es ella la que se alinea. */
   /* Acá los dos van a los costados de la mesa, no debajo, así que el hueco
      que despegaba la línea de abajo no tiene sentido. */
-  .fighter-linea.f2,
-  .versus-screen.flip .fighter-linea.f1 { margin-top: 0; }
+  .mesa-2 .fighter-linea.abajo { margin-top: 0; }
   /* Acá el abanico va al COSTADO de la mesa, no debajo, así que bajarlo no
      lo aleja del fieltro por arriba — lo aleja del canto que tiene al lado.
      Las cartas van rotadas y se abren hacia la mesa: bajando el montón, esa
      apertura queda por debajo del filo del tablero en vez de montarse sobre
      él. Antes acá el desplazamiento se anulaba, y por eso en pantalla ancha
      el abanico terminaba apoyado encima de la mesa. */
-  .hand-fan { transform: translateY(var(--cartas-baja)); }
+  .mesa-2 .hand-fan { transform: translateY(var(--cartas-baja)); }
 
-  .fighter-linea.f1 { align-self: start; justify-self: start; }
-  .fighter-linea.f2 { align-self: end; justify-self: end; }
-  .fighter-readout,
-  .fighter.f2 .fighter-readout { text-align: center; }
-  .fighter.f2 .f-numbers { flex-direction: row; }
-  .f-numbers { justify-content: center; }
+  .mesa-2 .fighter-linea.celda-1 { align-self: start; justify-self: start; }
+  .mesa-2 .fighter-linea.celda-2 { align-self: end; justify-self: end; }
+  .mesa-2 .fighter-readout,
+  .mesa-2 .fighter.celda-2 .fighter-readout { text-align: center; }
+  .mesa-2 .fighter.celda-2 .f-numbers { flex-direction: row; }
+  .mesa-2 .f-numbers { justify-content: center; }
 
-  /* Acá no hay arriba y abajo: los peleadores son dos columnas. El flip
-     sigue valiendo —el jugador queda siempre en el mismo lado— pero hay
-     que deshacer el row-reverse y el alineado que trae del layout
-     apilado, porque esos selectores le ganan en especificidad a los de
-     este bloque. */
-  .versus-screen.flip .fighter.f1,
-  .versus-screen.flip .fighter.f2 {
-    flex-direction: column;
-    align-items: center;
-  }
-  .versus-screen.flip .fighter-linea.f1 { align-self: end; justify-self: end; }
-  .versus-screen.flip .fighter-linea.f2 { align-self: start; justify-self: start; }
-  .versus-screen.flip .fighter.f1 .fighter-readout,
-  .versus-screen.flip .fighter.f2 .fighter-readout { text-align: center; }
-  .versus-screen.flip .fighter.f1 .f-numbers,
-  .versus-screen.flip .fighter.f2 .f-numbers { flex-direction: row; }
+  /* Acá desaparecieron catorce líneas de `.flip`.
+     Deshacían el row-reverse y el alineado que la vista apilada le dejaba a
+     cada asiento cuando las posiciones estaban dadas vuelta — o sea,
+     arreglaban a mano las consecuencias de que una misma clase significara
+     a la vez "quién sos" y "dónde estás". Separadas las dos cosas, no hay
+     nada que deshacer: las reglas de arriba ya hablan de celdas y una celda
+     no cambia de lugar. */
 
   /* Acá los peleadores son columnas y no renglones: el marco va arriba de
      los números en lugar de al lado, así que la línea necesita el alto de
@@ -3961,15 +3999,15 @@ body {
      El alto de la línea sube porque acá no compite con nada: es la misma
      fila del tablero, y lo que la mesa no usa a los costados no lo usa
      nadie. */
-  .versus-screen { --fighter-h: max(9rem, min(30dvh, 22vw)); }
-  .fighter-frame { height: calc(var(--fighter-h) * 0.52); }
+  .versus-screen.mesa-2 { --fighter-h: max(9rem, min(30dvh, 22vw)); }
+  .mesa-2 .fighter-frame { height: calc(var(--fighter-h) * 0.52); }
   /* Redefine la VARIABLE y no el `font-size`. Escribiendo el tamaño acá se
      saltaba `--marcador`, y la cifra del cambio —que cuelga de ella— seguía
      midiendo su 80% de OTRO número: medida en pantalla daba 144% del
      marcador en vez de 80%. Tocando la variable, los dos se mueven juntos. */
-  .fighter { --marcador: calc(var(--fighter-h) * 0.4); }
+  .mesa-2 .fighter { --marcador: calc(var(--fighter-h) * 0.4); }
   /* El mismo 20% que arriba: 0.09 → 0.108. */
-  .f-current { font-size: calc(var(--fighter-h) * 0.108); }
+  .mesa-2 .f-current { font-size: calc(var(--fighter-h) * 0.108); }
 }
 
 /* ============================================
@@ -4004,8 +4042,7 @@ body {
    * las otras cuatro seguirían tapando el camino y el arreglo no arreglaría
    * nada. Anclado siempre, además, no hay salto: la mano no se reacomoda de
    * golpe al recibir una carta. */
-  .fighter-linea.f2 .hand-fan,
-  .versus-screen.flip .fighter-linea.f1 .hand-fan {
+  .fighter-linea.abajo .hand-fan {
     /* Línea de abajo: la mesa queda arriba. Se clava el techo y crece hacia
        abajo, contra la banda de los botones. No se tocan: los botones van
        centrados y las cartas contra el borde izquierdo. */
@@ -4016,8 +4053,7 @@ body {
        de la mesa. */
     transform: translateY(var(--cartas-baja));
   }
-  .fighter-linea.f1 .hand-fan,
-  .versus-screen.flip .fighter-linea.f2 .hand-fan {
+  .fighter-linea.arriba .hand-fan {
     /* Línea de arriba: la mesa queda abajo. Se clava el piso y crece hacia
        arriba, contra el borde de la ventana. Acá el desplazamiento que
        traía de fábrica empujaba el montón HACIA el fieltro, así que se le
@@ -4028,47 +4064,513 @@ body {
 }
 
 /* ============================================
-   MESA DE CUATRO — disposición provisional
+   MESAS DE TRES Y DE CUATRO
    ============================================ */
-/* ►► Esto es un andamio, no el diseño final. ◄◄
+/* ►► Dos filas, no cuatro. ◄◄
  *
- * Existe para poder PROBAR la mesa de cuatro, que el motor y el servidor ya
- * soportan pero la pantalla no. Dos jugadores arriba, dos abajo, mesa en el
- * medio: no es la disposición que merece un juego de cuatro —eso pide
- * repensar dónde va cada uno respecto de a quién le pega— pero es honesta y
- * entra en el presupuesto de alto sin tocarlo.
+ * `--tabla-alto` descuenta `2 × --fighter-h` y UN `--f2-gap`. Estas dos
+ * mesas mantienen esa cuenta exacta —dos renglones de peleador y un solo
+ * hueco contra la mesa, porque las dos celdas de abajo comparten fila— así
+ * que el presupuesto de alto sigue valiendo sin tocar un número. Poner cada
+ * jugador en su propio renglón lo rompería y la mesa se quedaría sin la
+ * mitad de su alto.
  *
- * Y esa es la razón de las DOS filas y no cuatro: `--tabla-alto` descuenta
- * `2 × --fighter-h`. Poniendo cada jugador en su propio renglón habría que
- * rehacer la cuenta y la mesa se quedaría sin la mitad de su alto.
+ * ►► Y quién cae en cada celda no se decide acá. ◄◄
  *
- * Gana sobre el bloque apaisado por especificidad —`.versus-screen.mesa-4`
- * son dos clases contra una—, así que la mesa de cuatro se ve igual en
- * cualquier ventana. Deliberado: una sola disposición que revisar mientras
- * esto sea provisorio. */
+ * Lo decide `celdaDe` en mesa.js, que sienta al jugador de esta pantalla
+ * SIEMPRE en la última celda —abajo, y con cuatro abajo a la derecha— y
+ * reparte a los demás en anillo antihorario desde ahí. Por eso el objetivo
+ * de cada uno queda dibujado a su lado: la dirección del ataque se lee de
+ * la disposición.
+ *
+ *      mesa de 3            mesa de 4
+ *   ┌────┐ ┌────┐        ┌────┐ ┌────┐
+ *   │ c1 │ │ c2 │        │ c1 │ │ c2 │
+ *   └────┘ └────┘        └────┘ └────┘
+ *      TABLERO              TABLERO
+ *      ┌────┐            ┌────┐ ┌────┐
+ *      │ c3 │◄vos        │ c3 │ │ c4 │◄vos
+ *      └────┘            └────┘ └────┘
+ */
+.versus-screen.mesa-3,
 .versus-screen.mesa-4 {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-rows: auto auto auto auto;
+}
+
+/* Con tres, la celda de abajo cruza las dos columnas y el jugador se apoya
+   contra el borde derecho: el mismo rincón que ocupa en la mesa de cuatro.
+   Que tu asiento esté siempre en el mismo lugar de la pantalla vale más que
+   centrarlo — pasar de una mesa a otra no debería obligar a buscarse. */
+.versus-screen.mesa-3 {
   grid-template-areas:
-    "f1    f2"
+    "c1    c2"
     "table table"
-    "f3    f4"
+    "c3    c3"
     "ctrl  ctrl";
 }
-.versus-screen.mesa-4 .fighter-linea.f1 { grid-area: f1; justify-self: start; }
-.versus-screen.mesa-4 .fighter-linea.f2 { grid-area: f2; justify-self: end; }
-.versus-screen.mesa-4 .fighter-linea.f3 { grid-area: f3; justify-self: start; }
-.versus-screen.mesa-4 .fighter-linea.f4 { grid-area: f4; justify-self: end; }
 
-/* Cada línea tiene la mitad del ancho, así que el peleador se achica para
-   que el marcador no empuje al abanico fuera de su celda. */
+.versus-screen.mesa-4 {
+  grid-template-areas:
+    "c1    c2"
+    "table table"
+    "c3    c4"
+    "ctrl  ctrl";
+}
+
+.versus-screen.mesa-3 .fighter-linea.celda-1,
+.versus-screen.mesa-4 .fighter-linea.celda-1 { grid-area: c1; justify-self: start; }
+.versus-screen.mesa-3 .fighter-linea.celda-2,
+.versus-screen.mesa-4 .fighter-linea.celda-2 { grid-area: c2; justify-self: end; }
+.versus-screen.mesa-3 .fighter-linea.celda-3,
+.versus-screen.mesa-4 .fighter-linea.celda-3 { grid-area: c3; justify-self: end; }
+.versus-screen.mesa-4 .fighter-linea.celda-3 { justify-self: start; }
+.versus-screen.mesa-4 .fighter-linea.celda-4 { grid-area: c4; justify-self: end; }
+
+/* ►► En la mesa de tres, TU línea es la de 1v1. Sin asteriscos. ◄◄
+ *
+ * Acá había un `width: auto` que encogía la línea de abajo a lo que midiera
+ * su contenido y la apoyaba contra el borde derecho. Era un error, y de los
+ * caros: en el duelo la línea del jugador CRUZA la pantalla —el abanico
+ * contra el borde izquierdo, el peleador contra el derecho, y el hueco del
+ * medio separando lo que tocás de lo que sólo mirás—. Encogida, las cartas
+ * quedaban apretadas contra el gato y ese hueco desaparecía.
+ *
+ * Ahora la celda cruza las dos columnas y la línea la ocupa entera, que es
+ * exactamente lo que hace `celda-2` en el duelo. No hace falta ninguna
+ * regla para lograrlo: alcanza con no estorbar. */
+
+/* ►► Y dos alturas, no una. ◄◄
+ *
+ * Acá estaba el otro error, y era más grande de lo que parecía. Bajar
+ * `--fighter-h` no achica "el peleador": achica la ESCALA ENTERA de la
+ * línea, porque de ahí cuelgan el marco (`× 0.86`), el marcador
+ * (`--marcador`, `× 0.72`) y el acumulado. Un solo número movido y la
+ * línea del jugador dejaba de parecerse a la del duelo.
+ *
+ * Pero tampoco se puede usar una sola altura para las dos filas: arriba van
+ * DOS peleadores repartiéndose el ancho, y a la altura del duelo el marcador
+ * de cada uno se sale de su media pantalla en un teléfono. Es lo que aquel
+ * número encogido estaba tratando de resolver — mal, aplicándoselo también
+ * a quien no lo necesitaba.
+ *
+ * Dos alturas, entonces. La de abajo es LA DEL DUELO, literal; la de arriba
+ * es la de la mesa de cuatro, que ya está probada repartiendo dos por
+ * renglón. Y como `--fighter-h` se redefine sobre la línea misma, el marco y
+ * el marcador de los rivales lo siguen solos: no hay que tocar ni uno. */
+.versus-screen.mesa-3 {
+  /* Idéntico al de `.versus-screen`: es el punto entero de este bloque.
+     `--fighter-h` es SIEMPRE la escala del jugador de esta pantalla y
+     `--fighter-rival` la de los demás. Los dos nombres valen igual acá y en
+     la mesa de cuatro; lo único que cambia entre las dos es a qué celdas se
+     les aplica cada uno. */
+  --fighter-h: max(7rem, min(19dvh, 34vw));
+  --fighter-rival: max(6rem, min(15dvh, 17vw));
+
+  /* El presupuesto de alto, con las dos filas contadas por separado.
+     El de arriba descuenta `2 × --fighter-h` porque las dos filas medían lo
+     mismo; acá ya no, así que si esto no se recalcula la mesa se lleva de
+     más el alto que la fila de abajo ganó — y se sale por el borde. */
+  --tabla-alto: calc(
+    100dvh
+    - 2 * var(--pad-v)
+    - 3 * var(--gap-v)
+    - var(--fighter-rival)
+    - var(--fighter-h)
+    - 2 * var(--table-gap)
+    - var(--f2-gap)
+    - var(--ctrl-gap)
+    - var(--lado)
+    - var(--canto)
+    - env(safe-area-inset-bottom)
+  );
+}
+
+/* Los dos rivales, que comparten renglón. Se redefine la VARIABLE y no el
+   `height`: así el marco y el marcador bajan con ella en vez de quedarse
+   dimensionados para una línea que ya no mide eso. Es la misma lección que
+   dejó escrita el bloque apaisado unas líneas más arriba. */
+.versus-screen.mesa-3 .fighter-linea.arriba {
+  --fighter-h: var(--fighter-rival);
+}
+
+/* ►► LA MESA DE CUATRO ◄◄
+ *
+ * De base, las dos filas van a la escala chica y el presupuesto de alto de
+ * `.versus-screen` —que descuenta `2 × --fighter-h`— vale tal como está.
+ * Eso es lo que se ve en vertical y en pantallas angostas, y es lo único
+ * que ahí puede verse: medido, con tu peleador a tamaño de duelo el marco y
+ * el marcador solos miden 300px contra los 384 de media pantalla de una
+ * tablet vertical. No entra ni con la mano vacía.
+ *
+ * En apaisado sí entra, y ahí abajo está la regla que lo aprovecha. */
 .versus-screen.mesa-4 { --fighter-h: max(6rem, min(15dvh, 17vw)); }
 
-/* El hueco que despega la línea de abajo de la mesa vale para las dos de
-   abajo, no sólo para f2. */
-.versus-screen.mesa-4 .fighter-linea.f3,
-.versus-screen.mesa-4 .fighter-linea.f4 { margin-top: var(--f2-gap); }
-.versus-screen.mesa-4 .fighter-linea.f2 { margin-top: 0; }
+
+
+/* ►► El abanico crece hacia afuera de la mesa. ◄◄
+ *
+ * Es la misma regla de la vista apilada, repetida acá por una razón de
+ * alcance: aquélla vive dentro de la consulta de pantalla angosta, y estas
+ * dos mesas usan la disposición apilada TAMBIÉN en una ventana ancha. Sin
+ * esto, con cuatro jugadores en un monitor el abanico crecía hacia el
+ * fieltro y tapaba el camino.
+ *
+ * Cuelga de la fila —`arriba` / `abajo`— y no de la celda, así que las dos
+ * mesas se resuelven con las mismas dos reglas. */
+.versus-screen.mesa-3 .fighter-linea.abajo .hand-fan,
+.versus-screen.mesa-4 .fighter-linea.abajo .hand-fan {
+  align-self: flex-start;
+  transform: translateY(var(--cartas-baja));
+}
+.versus-screen.mesa-3 .fighter-linea.arriba .hand-fan,
+.versus-screen.mesa-4 .fighter-linea.arriba .hand-fan {
+  align-self: flex-end;
+  transform: translateY(calc(var(--cartas-baja) * -1));
+}
+
+/* ►► Y este bloque va DESPUÉS de esas dos reglas a propósito. ◄◄
+ *
+ * Adentro se las anula para la mesa de cuatro en apaisado, y la anulación
+ * usa los mismos cinco selectores — o sea que empatan en especificidad y
+ * decide el orden del archivo. Un `@media` NO suma especificidad: escrito
+ * más arriba, este bloque perdía contra las de acá y el abanico seguía
+ * bajándose aunque adentro dijera lo contrario. Moverlo no es acomodar, es
+ * la única forma de que gane. */
+/* ►► LA MANO DE LA MESA DE CUATRO: acostada, y a cualquier tamaño. ◄◄
+ *
+ * Esto vivía dentro de la consulta de apaisado, junto al tamaño del
+ * peleador, y era un error de mi parte: son dos problemas distintos.
+ *
+ * El tamaño del peleador SÍ depende de la ventana —a tamaño de duelo el
+ * marco y el marcador solos miden 300px contra los 384 de media pantalla de
+ * una tablet vertical, así que ahí no entra— pero la mano acostada no
+ * depende de nada: en la mesa de cuatro tu línea mide media pantalla
+ * SIEMPRE, y el abanico vertical de cinco cartas nunca entró bien ahí.
+ * Atarla a la consulta la dejaba sin efecto en todo el resto de los
+ * tamaños, que es justamente donde más falta hace.
+ *
+ * Va después del bloque "el abanico crece hacia afuera" a propósito: dos de
+ * estas reglas anulan aquéllas y empatan en especificidad, así que decide
+ * el orden del archivo. */
+.versus-screen.mesa-4 {
+  /* El 60% del general. Escrito como su propio clamp y no como
+     `calc(var(--carta-ancho) * 0.6)` porque los tres extremos tienen que
+     poder achicarse a distinto ritmo: el piso en rem sigue a la tipografía
+     y el del medio a la ventana. */
+  --carta-ancho: clamp(4.6rem, 10.7vmin, 7.1rem);
+}
+
+/* Se anula el paso del giro en vez de pisar el `transform` de las cartas.
+   Con `--paso-giro: 0` el `--giro` de cada carta da cero y TODAS las reglas
+   que lo usan —el reposo, el hover, el arrastre, la animación de entrada y
+   la de salida— siguen funcionando sin tocarlas. Pisando el `transform`
+   habría que reescribir las cinco, y la carta arrastrada dejaría de seguir
+   al dedo. */
+.versus-screen.mesa-4 .hand-fan {
+  --paso-giro: 0deg;
+  flex-direction: row;
+  align-items: flex-end;
+}
+
+/* El anclaje se anula APUNTANDO A LOS MISMOS SELECTORES que lo pusieron, y
+   no con uno más corto: aquellas dos reglas llevan cinco clases y una de
+   tres habría perdido. Empatadas, gana la que va última — ésta.
+   Y tiene sentido anularlo: aquel desplazamiento existe porque el abanico
+   VERTICAL crece hacia el fieltro. Una fila de cartas mide un alto y entra
+   dentro de la línea, así que no hay nada de qué despegarla. */
+.versus-screen.mesa-4 .fighter-linea.abajo .hand-fan,
+.versus-screen.mesa-4 .fighter-linea.arriba .hand-fan {
+  align-self: center;
+  transform: none;
+}
+
+/* El solape pasa del alto al ancho: acostadas, las cartas se tapan de
+   costado. El `1.4` del general es la proporción de la carta (5:7) y acá no
+   va, porque el que se solapa ahora es el lado corto. */
+.versus-screen.mesa-4 .hand-fan .card {
+  margin-top: 0;
+  margin-left: calc(var(--card-w) * var(--solape, 0.42) * -1);
+}
+/* La primera se apoya donde empieza la fila; el solape es entre vecinas, no
+   contra el borde. */
+.versus-screen.mesa-4 .hand-fan .card:first-child { margin-left: 0; }
+
+/* ►► En apaisado, TU peleador vuelve al tamaño del duelo. ◄◄
+ *
+ * La misma condición que usa la mesa de dos para abrirse en diagonal: si
+ * hay ancho para aquello, hay ancho para esto.
+ *
+ * Lo que cambia es SÓLO la escala de tu celda —la de abajo a la derecha— y
+ * el tamaño de tus cartas. Los tres rivales se quedan chicos: comparten el
+ * renglón de a dos y no tienen mano que mostrar, así que no les hace falta
+ * más. El peleador propio sí: es el que mirás todo el tiempo y el que en
+ * las otras tres mesas ya se ve grande.
+ *
+ * ►► Y por eso las cartas se achican y se acuestan. ◄◄
+ *
+ * Tu línea mide media pantalla, no la pantalla entera como en las otras
+ * mesas. Con el peleador a tamaño de duelo lo que queda para la mano es la
+ * mitad de lo que había. Medido en 1440×900: te quedan 340px y el abanico
+ * de cinco cartas a tamaño normal pide 380. El abanico VERTICAL además
+ * crece hacia arriba y se mete en el fieltro.
+ *
+ * Acostadas y al 60% piden 228 y entran con lugar de sobra — y de paso el
+ * montón deja de crecer hacia la mesa: una fila de cartas mide un alto y no
+ * cinco, así que cabe DENTRO de la línea sin desbordar hacia ningún lado.
+ *
+ * Los botones no se tocan y no hacía falta tocarlos: `--lado` sale de
+ * `clamp(84px, 12vmin, 124px)`, que no cuelga de `--fighter-h`, así que ya
+ * medían lo mismo que en el duelo. Lo que los hacía parecer distintos era
+ * todo lo demás encogido alrededor. */
+@media (min-width: 860px) and (min-height: 560px) and (orientation: landscape) {
+  .versus-screen.mesa-4 {
+    /* ►► Acá no se agranda: se REDISTRIBUYE. ◄◄
+     *
+     * El primer intento le dio a tu línea el mismo `--fighter-h` que el
+     * duelo y dejó a los rivales como estaban. Medido, eso daba un marco de
+     * 110×132 contra 87 de cada rival: apenas un 26% más grande. Con tres
+     * casi iguales alrededor, el tuyo no se lee como "el principal" sino
+     * como uno de cuatro.
+     *
+     * Los rivales no necesitan ese tamaño y ésa es la clave: no tienen mano
+     * que mostrar, sólo retrato y puntaje. Bajarlos paga el crecimiento del
+     * tuyo sin pedirle nada a nadie.
+     *
+     * ►► Y la suma no se mueve. ◄◄
+     * Antes 19 + 15 = 34dvh. Ahora 24 + 10 = 34dvh. El presupuesto de alto
+     * descuenta las dos filas, así que el tablero conserva EXACTAMENTE el
+     * tamaño que tenía. No es que se le haya sacado espacio a la mesa: es
+     * el mismo espacio repartido distinto.
+     *
+     * Resultado medido: tu marco 138×166 contra 58 del rival — de 1,27
+     * veces a 2,40. Ahí ya no hay duda de cuál sos vos.
+     *
+     * ►► Y por qué no más todavía. ◄◄
+     * Se probó una variante más agresiva (26 + 9). Desborda el ancho de tu
+     * media columna en 1280×800 y en 1024×768, que son dos portátiles muy
+     * comunes. Ésta entra en las siete ventanas apaisadas medidas. */
+    --fighter-rival: max(4.4rem, min(10dvh, 12vw));
+    --fighter-h: max(8rem, min(24dvh, 30vw));
+    /* Las dos filas ya no miden lo mismo: la de abajo la estira tu línea.
+       Sin recalcular esto la mesa se lleva de más el alto que tu fila
+       acaba de ganar, y se sale por el borde. */
+    --tabla-alto: calc(
+      100dvh
+      - 2 * var(--pad-v)
+      - 3 * var(--gap-v)
+      - var(--fighter-rival)
+      - var(--fighter-h)
+      - 2 * var(--table-gap)
+      - var(--f2-gap)
+      - var(--ctrl-gap)
+      - var(--lado)
+      - var(--canto)
+      - env(safe-area-inset-bottom)
+    );
+  }
+
+  /* Los tres rivales. Se selecciona por CELDA y no por "no ser vos": la
+     celda de abajo a la derecha es siempre la del jugador de esta pantalla
+     —lo garantiza `celdaDe`— y una regla por celda no se entera nunca de
+     quién se sentó ahí. */
+  .versus-screen.mesa-4 .fighter-linea.celda-1,
+  .versus-screen.mesa-4 .fighter-linea.celda-2,
+  .versus-screen.mesa-4 .fighter-linea.celda-3 {
+    --fighter-h: var(--fighter-rival);
+  }
+
+
+}
+
+/* ►► LA MIRA ◄◄
+ *
+ * Marca al que va a recibir tus cartas. Sólo se dibuja en mesas de tres o
+ * más y sólo durante tu turno: con dos, "el otro" es el único destino
+ * posible y señalarlo no agrega nada; fuera de tu turno señalaría una
+ * decisión que no es tuya.
+ *
+ * Va sobre el marco del peleador y no al lado del marcador: lo que hay que
+ * mirar para decidir es la CARA del que va a comerse el golpe. */
+.f-mira {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: clamp(1.1rem, 2.6vmin, 1.8rem);
+  height: clamp(1.1rem, 2.6vmin, 1.8rem);
+  display: grid;
+  place-items: center;
+  color: var(--blood);
+  pointer-events: none;
+  z-index: 3;
+  animation: mira-late 1.6s ease-in-out infinite;
+}
+.f-mira svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  /* Un halo claro detrás del trazo: el dibujo del gato es línea negra sobre
+     papel blanco y una mira roja fina encima se pierde contra el pelo. */
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.9));
+}
+
+/* El marco se rodea del mismo rojo: la mira sola es un icono chico en una
+   esquina, y con cuatro peleadores en pantalla hay que poder ubicarla sin
+   buscarla.
+
+   `outline` y no `box-shadow`, y no es intercambiable: el marco ya usa
+   `box-shadow` para su relieve y para el halo que lo enciende en su turno,
+   con una transición declarada encima. Pisarlo acá le apagaría las dos
+   cosas justo al peleador que más se está mirando. El contorno además no
+   ocupa espacio, así que no corre nada de su celda. */
+.fighter.objetivo .fighter-frame {
+  outline: 0.2rem solid var(--blood);
+  outline-offset: -0.2rem;
+}
+
+/* Late en vez de quedarse fija. Una mira quieta se lee como parte del
+   dibujo del marco; el pulso dice que es una condición del momento y que
+   puede cambiar. */
+@keyframes mira-late {
+  0%, 100% { opacity: 0.55; transform: scale(0.92); }
+  50%      { opacity: 1;    transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .f-mira { animation: none; opacity: 1; }
+}
+
+/* ============================================
+   VESTÍBULO DE LA SALA
+   ============================================ */
+/* Antes acá había una frase —"esperando al otro jugador"— y alcanzaba,
+   porque el otro era uno solo y su llegada era el evento entero. Con mesas
+   de hasta cuatro hay que decir cuántos faltan y quién ya está, o los que
+   esperan no tienen forma de saber si vale la pena seguir esperando. */
+
+/* ►► Acá vivían los botones de "2 / 3 / 4", y se fueron con el selector. ◄◄
+   Pedían elegir el tamaño ANTES de crear la sala, o sea antes de saber
+   quién iba a venir. Ahora la mesa se abre al tope y el anfitrión arranca
+   con los que haya, así que no hay nada que elegir. */
+
+/* Siempre las cuatro sillas, ocupadas y vacías. Un contador —"2 de 4"— dice
+   lo mismo en menos espacio, pero hay que leerlo y restar; las sillas se
+   cuentan de un vistazo y además hacen VER el lugar libre, que es
+   exactamente el dato con el que el anfitrión decide si arranca o espera. */
+.room-seats {
+  list-style: none;
+  display: flex;
+  gap: 0.7rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+}
+.room-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 3.4rem;
+  padding: 0.5rem 0.4rem;
+  border: 0.14rem dashed var(--bone-dim);
+  border-radius: 0.5rem;
+  opacity: 0.45;
+  transition: opacity 0.25s, border-color 0.25s;
+}
+.room-seat.ocupada {
+  opacity: 1;
+  border-style: solid;
+  border-color: var(--toxic);
+}
+/* El tuyo, distinto de los demás ocupados: en una fila de sillas iguales
+   hay que poder encontrarse sin contar asientos. */
+.room-seat.yo { border-color: var(--neon-amber); }
+.room-seat-n {
+  font-size: 1.15rem;
+  color: var(--bone);
+}
+.room-seat-txt {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  color: var(--bone-dim);
+}
+.room-seat.ocupada .room-seat-txt { color: var(--toxic); }
+.room-seat.yo .room-seat-txt { color: var(--neon-amber); }
+
+.room-hint {
+  font-size: 0.78rem;
+  color: var(--bone-dim);
+}
+
+/* El gato que ya tomó otro jugador. Se apaga en vez de desaparecer: el
+   jugador tiene que ver que existe y que no está disponible, no que la
+   mesa tiene menos gatos de los que tiene. */
+.char-card.ajeno {
+  cursor: not-allowed;
+  filter: grayscale(1);
+  opacity: 0.42;
+}
+.char-card.ajeno:hover .char-art { transform: none; }
+
+/* ============================================
+   FINAL — LA TABLA DE LOS QUE NO GANARON
+   ============================================ */
+/* Con dos jugadores el segundo se dibuja grande y con su frase: es el duelo
+   de siempre. Con tres o cuatro ninguno se lleva ese lugar —señalar a uno
+   entre tres sería inventar un subcampeón que el juego no premia— así que
+   se apilan en una tabla ordenada por puntaje. */
+.gameover-stage.mesa-grande {
+  align-items: center;
+}
+.go-tabla {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: min(20rem, 70vw);
+}
+.go-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.45rem 0.7rem;
+  border: 0.12rem solid rgba(232, 225, 204, 0.22);
+  border-radius: 0.45rem;
+  background: rgba(0, 0, 0, 0.28);
+}
+.go-puesto {
+  min-width: 1.9rem;
+  font-size: 0.95rem;
+  color: var(--bone-dim);
+}
+/* El dibujo chiquito reusa el mismo boil que el resto: el gato tiene que
+   ser reconocible de un vistazo, y el nombre solo obliga a recordar cuál
+   era cuál. */
+.go-mini {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 0.3rem;
+  background-size: cover;
+  background-position: center top;
+  background-color: var(--marfil, #f7f4ea);
+  flex: none;
+}
+.go-fila-nombre {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--bone);
+}
+.go-fila-score {
+  font-size: 1.3rem;
+  color: var(--bone-dim);
+}
 
 /* Chips only survive as decoration in the rules modal footer — the
    in-hand chip rows went out with the player panels. */

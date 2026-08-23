@@ -14,15 +14,22 @@ import { ms } from "../theme";
 /* Lo mismo que dura el confeti de la casilla: es el mismo hecho contado en
    dos lugares y tienen que apagarse juntos. */
 const CONFETI_MS = ms("tablero.confeti");
-import { CARD, STARTING_CARDS } from "../../convex/rules";
+import { CARD, STARTING_CARDS, targetOf, A_LA_DERECHA } from "../../convex/rules";
+import { celdaDe, celdaArriba } from "../mesa";
 
-/* La mesa.
+/* La mesa, de dos a cuatro.
  *
- * `miLado` es de quién es esta pantalla: en online cada uno ve la suya y
- * tiene que verse siempre abajo. Como f1 es el de arriba, al que le tocó
- * ser player1 se le dan vuelta las posiciones — no los elementos: cada
- * peleador conserva su identidad, sólo cambia dónde se dibuja.
- * En local no aplica, los dos miran la misma pantalla.
+ * `miLado` es de quién es esta pantalla. En online cada uno ve la suya y
+ * tiene que verse siempre abajo; en local los cuatro miran la misma y
+ * `miLado` se queda en 0.
+ *
+ * ►► Acá vivía el `flip`. ◄◄
+ *
+ * Era una clase que intercambiaba las dos celdas para dejarte abajo. Con
+ * dos asientos alcanzaba porque un intercambio es su propia inversa; con
+ * cuatro hace falta una rotación, y eso ya no es una clase — es un cálculo.
+ * Vive en `celdaDe`, y desde acá lo único que se hace es preguntarle a qué
+ * celda va cada asiento. La pantalla dejó de saber que existe el online.
  */
 export default function VersusScreen({
   board,
@@ -38,6 +45,11 @@ export default function VersusScreen({
   revelada,
   online,
   miLado = 0,
+  /* Hacia dónde va la ronda. Sólo se usa para apuntar la mira: la
+     disposición NO cambia, los peleadores se quedan en su celda y lo que se
+     da vuelta es el orden en que les toca. Ésa es justamente la forma en que
+     el cambio de dirección se ve sin que nadie se mueva de asiento. */
+  sentido = A_LA_DERECHA,
   impacto,
   onRoll,
   onHold,
@@ -47,7 +59,7 @@ export default function VersusScreen({
   onLlegada,
   retrasoCasilla,
 }) {
-  const flip = online && miLado === 0;
+  const total = players.length;
 
   /* En local juega el que está activo; en online, siempre vos. */
   const yo = players[online ? miLado : active];
@@ -58,9 +70,14 @@ export default function VersusScreen({
 
   /* De quién son las cartas que se muestran: en online siempre tuyas, en
      local las del que está jugando el turno. Es el índice del JUGADOR, no
-     el lado en que se dibuja — de eso se encarga el grid, que con el flip
-     manda cada peleador a la celda del otro. */
+     la celda en que se dibuja — de eso se encarga `celdaDe`. */
   const ladoMano = online ? miLado : active;
+
+  /* A quién le pegan las cartas que se están mirando. Sale de la misma
+     regla que las resuelve al plantarse —`targetOf`, en las reglas— y no de
+     una cuenta paralela: una mira que apunte a otro lado que el golpe es
+     peor que no tener mira. */
+  const objetivo = targetOf(ladoMano, total, sentido);
 
   /* Las defensas salen del abanico. No se juegan —se gastan solas cuando te
      atacan— así que en la mano ocupaban lugar sin ser nunca una opción, y
@@ -143,7 +160,7 @@ export default function VersusScreen({
        cuatro jugadores las líneas f3 y f4 no encuentran su `grid-area` y el
        navegador las tira en celdas automáticas, encima de la mesa. */
     <section
-      className={`screen versus-screen active mesa-${players.length}${flip ? " flip" : ""}${borroso ? " borroso" : ""}${maldito ? " maldito" : ""}`}
+      className={`screen versus-screen active mesa-${total}${borroso ? " borroso" : ""}${maldito ? " maldito" : ""}`}
       style={borroso ? { "--borrachera": borrachera } : undefined}
     >
       {/* Cada peleador con sus cartas en la misma línea: CARTAS · PUNTAJE ·
@@ -151,9 +168,23 @@ export default function VersusScreen({
           Antes el abanico flotaba en un costado fijo y reservaba una franja
           entera de alto; en la línea del dueño no le saca nada a la mesa y
           se ve de quién son las cartas sin tener que deducirlo. */}
-      {players.map((p, i) => (
+      {players.map((p, i) => {
+        /* Dos clases y no una: `f{n}` es el ASIENTO —lo que el reparto mide
+           para tirarle las cartas y lo que no cambia nunca— y `celda-{n}` es
+           el LUGAR, que en online depende de quién mira. Todo lo posicional
+           del CSS cuelga de la segunda; ninguna regla de posición vuelve a
+           mencionar un asiento. */
+        const celda = celdaDe(i, online ? miLado : 0, total);
+        /* En qué FILA cae. Va como clase propia y no deducida de la celda en
+           el CSS porque hay dos reglas que sólo dependen de esto —hacia
+           dónde crece el abanico y de qué lado se despega de la mesa— y
+           escritas por celda habría que repetirlas una vez por tamaño de
+           mesa. Dichas por fila se escriben una sola vez y valen para las
+           tres. */
+        const arriba = celdaArriba(celda, total);
+        return (
         <div
-          className={`fighter-linea f${i + 1}${ladoMano === i ? " con-cartas" : ""}`}
+          className={`fighter-linea f${i + 1} celda-${celda + 1} ${arriba ? "arriba" : "abajo"}${ladoMano === i ? " con-cartas" : ""}`}
           key={i}
         >
           {/* El abanico se monta SIEMPRE, vacío durante la apertura. No es
@@ -172,15 +203,23 @@ export default function VersusScreen({
           <Fighter
             jugador={p}
             lado={i}
+            celda={celda}
             activo={playing && i === active}
             /* Sólo la del rival: la propia ya está en su abanico. */
             mostrarMano={online && i !== miLado}
             impacto={impacto?.lado === i ? impacto.tipo : null}
             defensas={ladoMano === i ? defensas : null}
             festejo={festejos[i] ?? 0}
+            /* La mira sólo mientras se pueda hacer algo con ella: apuntada
+               durante el turno ajeno contaría una decisión que no es tuya, y
+               en una mesa de cuatro habría tres miras encendidas a la vez.
+               Con dos jugadores no se dibuja: ahí "el otro" es el único
+               destino posible y señalarlo no agrega nada. */
+            objetivo={total > 2 && playing && objetivo === i && miTurno}
           />
         </div>
-      ))}
+        );
+      })}
 
       <div className="pool-table">
         <div className="pool-felt">
