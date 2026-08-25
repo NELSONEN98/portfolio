@@ -4691,14 +4691,27 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.6em;
-  margin-top: 0.9rem;
-  padding: 0.7em 1.2em;
+  margin-top: 1.2rem;
+  /* El relleno y el icono van en `em`, así que cuelgan del tamaño de letra:
+     para agrandar el botón entero alcanza con mover ese número y las
+     proporciones se conservan solas. */
+  padding: 0.75em 1.4em;
   border-radius: 999px;
-  border: 0.14rem solid #25d366;
-  background: rgba(37, 211, 102, 0.12);
+  border: 0.16rem solid #25d366;
+  background: rgba(37, 211, 102, 0.14);
   color: #25d366;
   font-family: var(--display);
-  font-size: clamp(0.7rem, 1.5vmin, 0.95rem);
+  /* ►► El doble que antes. ◄◄
+     Este botón compite con el código, que está justo encima y es enorme. Al
+     tamaño anterior se leía como una nota al pie del código; al doble se lee
+     como la otra forma de invitar, que es lo que de verdad es — y con mesas
+     de hasta cuatro es la que más se va a usar.
+
+     Va en una variable porque el rótulo corto del teléfono NO puede heredarlo
+     —ver abajo— y tiene que repetir el valor. Repetido a mano se despega el
+     día que alguien mueva uno solo. */
+  --compartir-letra: clamp(1.05rem, 2.9vmin, 1.7rem);
+  font-size: var(--compartir-letra);
   letter-spacing: 0.1em;
   text-decoration: none;
   cursor: pointer;
@@ -4721,12 +4734,22 @@ body {
 
 /* En un teléfono el rótulo entero no entra al lado del icono sin apretar la
    letra hasta que deje de leerse. Se cae el texto largo y queda el verbo,
-   que con el icono de WhatsApp al lado ya no necesita más. */
+   que con el icono de WhatsApp al lado ya no necesita más.
+
+   ►► Y acá hay que REPETIR el tamaño, no heredarlo. ◄◄
+
+   El truco para tapar el rótulo largo es ponerle al `span` tamaño de letra
+   cero, así que todo lo que herede de él vale cero también: un `1em` en el
+   `::after` lo haría invisible. Por eso va la variable, que cuelga del botón
+   y no del span aplastado. Un número suelto acá era el error: al agrandar el
+   botón el relleno crecía y la palabra se quedaba chica, y sólo en el
+   teléfono — el único lugar donde no se mira mientras se programa. */
 @media (max-width: 480px) {
   .room-compartir span { font-size: 0; }
   .room-compartir span::after {
     content: "COMPARTIR";
-    font-size: clamp(0.7rem, 3vw, 0.95rem);
+    font-size: var(--compartir-letra);
+    letter-spacing: 0.1em;
   }
 }
 
