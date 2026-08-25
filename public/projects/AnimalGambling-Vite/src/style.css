@@ -3816,6 +3816,36 @@ body {
    `--lado` manda sobre los dos, así que la proporción entre ellos se
    conserva sola en cualquier pantalla. */
 .versus-controls {
+  /* Ancla de la barra del turno, que va absoluta. El `transform` de
+     `--ui-shift` ya creaba un bloque contenedor, así que esto no cambia
+     nada de lo que había. */
+  position: relative;
+
+  /* ►► El color de la tecla de tirar, en seis variables. ◄◄
+   *
+   * Vive acá y no en `.btn-accion.tirar` para que la BARRA DEL TURNO —que
+   * es su hermana, no su hija— pueda leerlas también: las propiedades
+   * personalizadas se heredan hacia abajo, no de costado.
+   *
+   * El oro estaba repetido en CINCO lugares: el degradado, el canto, y
+   * adentro de los dos keyframes más el respaldo sin movimiento. Repetido
+   * así, teñirlo de morado obligaba a duplicar las dos animaciones enteras
+   * —y dos copias de un keyframe son una que se va a quedar vieja.
+   *
+   * Puestas como variables, la maldición redefine SEIS VALORES y el latido,
+   * el destello del dedo apoyado, el resplandor sin movimiento y la barra
+   * del turno se van con ellas sin que ninguna animación se escriba dos
+   * veces. Es lo mismo que ya hacen las bombillas de la mesa. */
+  --tirar-claro: #ffc93d;
+  --tirar-medio: var(--c-gold);
+  --tirar-oscuro: #b98700;
+  /* El canto: el grosor de la tecla vista de costado. */
+  --tirar-canto-color: #6d5000;
+  /* Los dos extremos del latido. Van en `r, g, b` sueltos porque cada uso
+     les pone su propia opacidad. */
+  --tirar-halo: 228, 167, 0;
+  --tirar-halo-vivo: 255, 201, 61;
+
   /* `--lado` y `--canto` viven ahora en .versus-screen, junto al resto del
      presupuesto de alto: la banda de botones es una de las cosas que le
      restan sitio a la mesa, y el cálculo tiene que poder leerlas. Siguen
@@ -3884,27 +3914,6 @@ body {
 /* El que tira: cuadrado con las esquinas bien redondeadas, como un dado
    visto de frente. Es el que más se aprieta, así que es el más grande. */
 .btn-accion.tirar {
-  /* ►► El color del botón, en seis variables y no escrito a mano. ◄◄
-   *
-   * El oro estaba repetido en CINCO lugares: el degradado, el canto, y
-   * adentro de los dos keyframes más el respaldo sin movimiento. Repetido
-   * así, teñirlo de morado obligaba a duplicar las dos animaciones enteras
-   * —y dos copias de un keyframe son una que se va a quedar vieja.
-   *
-   * Puestas como variables, la maldición redefine SEIS VALORES y el latido,
-   * el destello del dedo apoyado y el resplandor sin movimiento se van con
-   * ellas sin que ninguna animación se escriba dos veces. Es lo mismo que ya
-   * hacen las bombillas de la mesa y el camino más abajo. */
-  --tirar-claro: #ffc93d;
-  --tirar-medio: var(--c-gold);
-  --tirar-oscuro: #b98700;
-  /* El canto: el grosor de la tecla vista de costado. */
-  --tirar-canto-color: #6d5000;
-  /* Los dos extremos del latido. Van en `r, g, b` sueltos porque cada uso
-     les pone su propia opacidad. */
-  --tirar-halo: 228, 167, 0;
-  --tirar-halo-vivo: 255, 201, 61;
-
   width: var(--lado);
   height: var(--lado);
   border-radius: 28%;
@@ -3920,6 +3929,69 @@ body {
     inset 0 -4px 0 rgba(0, 0, 0, 0.22),
     0 var(--canto) 0 var(--tirar-canto-color),
     0 calc(var(--canto) + 0.5rem) 1rem rgba(0, 0, 0, 0.55);
+}
+
+/* ►► LA BARRA DEL TURNO. ◄◄
+ *
+ * Diez segundos para decidir, sin un solo número. Un contador obliga a leer
+ * y a restar; esto se mira de reojo con el dado en la mano, y lo que hace
+ * falta saber no es "cuántos segundos quedan" sino "¿me apuro?".
+ *
+ * ►► Va absoluta, y eso no es pereza. ◄◄
+ *
+ * El alto de esta pantalla es un presupuesto repartido: `--tabla-alto` es lo
+ * que sobra después de restar todo lo demás. Una barra en el flujo normal le
+ * cobraría su alto A LA MESA en todas las ventanas, incluidas las que ya
+ * andan justas. Colgada del hueco que los botones ya dejan debajo, no le
+ * saca un píxel a nadie. */
+.turno-reloj {
+  position: absolute;
+  top: calc(100% + 0.85rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(56%, 30rem);
+  height: 0.55rem;
+  border-radius: 999px;
+  /* El carril oscuro es lo que hace legible lo que FALTA. Sin él, una barra
+     al 20% se lee como una barra chica y no como una casi vacía. */
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.turno-reloj i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--tirar-oscuro) 0%,
+    var(--tirar-medio) 45%,
+    var(--tirar-claro) 100%
+  );
+  box-shadow: 0 0 0.7rem rgba(var(--tirar-halo), 0.75);
+  /* Se encoge hacia la izquierda: lo que queda es lo que sigue pegado al
+     borde de arranque, como en cualquier barra de carga. */
+  transform-origin: left center;
+  animation: reloj-turno var(--dur-turno-reloj) linear forwards;
+}
+
+/* Lineal, sin curva. Toda otra animación del juego imita algo físico y por
+   eso tiene curva; ésta representa TIEMPO, y el tiempo no acelera al final.
+   Con una curva, media barra valdría más segundos que la otra media y sería
+   imposible calcular cuánto queda. */
+@keyframes reloj-turno {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+/* Sin movimiento la barra NO desaparece: es la única señal de que hay un
+   reloj corriendo, y quitarla dejaría al jugador perdiendo el turno sin
+   ninguna advertencia. Se queda quieta y encendida — dice que el reloj
+   existe, aunque no muestre cuánto queda. */
+@media (prefers-reduced-motion: reduce) {
+  .turno-reloj i { animation: none; }
 }
 
 /* ►► MALDITO: la tecla se pone morada, y con ella todo lo que hace. ◄◄
@@ -3941,7 +4013,7 @@ body {
  * `.versus-screen.maldito` y no una clase en el botón: la señal ya existe y
  * ya la calcula la pantalla —`players[ladoMano].curseTurns > 0`—, así que no
  * hay ningún estado nuevo que mantener sincronizado. */
-.versus-screen.maldito .btn-accion.tirar {
+.versus-screen.maldito .versus-controls {
   --tirar-claro: #d6b3ff;
   --tirar-medio: #a55ff0;
   --tirar-oscuro: #6b28b8;

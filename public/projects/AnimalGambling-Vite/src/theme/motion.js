@@ -430,6 +430,36 @@ export const MOTION = {
     fichaEntra: { ms: 400, ease: EASE.salida, keyframes: "chip-in", el: ".chip" },
   },
 
+  // ─── EL RELOJ DEL TURNO ──────────────────────────────────────────────
+  turno: {
+    /* ►► Diez segundos para decidir, y el mismo número para las dos cosas. ◄◄
+     *
+     * De acá salen la duración de la barra que se vacía Y el temporizador
+     * que quita el turno. Tienen que ser el mismo número o la barra miente:
+     * si la animación dura más, se te acaba el tiempo con barra todavía a la
+     * vista; si dura menos, quedás mirando una barra vacía que todavía te
+     * deja jugar. Un jugador aprende a confiar en la barra en dos turnos, y
+     * a partir de ahí cualquier diferencia es el juego mintiéndole.
+     *
+     * Diez y no menos: el reloj corre sólo mientras SE PUEDE actuar. Se
+     * reinicia después de cada tirada y no corre mientras los dados ruedan
+     * ni mientras la ficha camina, así que estos diez segundos son de pensar
+     * de verdad, no de mirar animaciones. Con un dado rodando adentro del
+     * presupuesto, diez se sentirían como cuatro.
+     *
+     * Lineal a propósito. Toda otra animación del juego tiene curva porque
+     * imita algo físico; ésta representa TIEMPO, y el tiempo no acelera al
+     * final. Con una curva, la mitad de la barra valdría más segundos que la
+     * otra mitad y sería imposible calcular cuánto queda. */
+    reloj: {
+      ms: 10000,
+      ease: "linear",
+      keyframes: "reloj-turno",
+      el: ".turno-reloj i",
+      nota: "Si se vacía, el turno se planta solo. Corre sólo cuando el jugador puede actuar.",
+    },
+  },
+
   // ─── BOTONES ─────────────────────────────────────────────────────────
   boton: {
     /* El resplandor mientras el botón está apretado. Va en bucle y no de

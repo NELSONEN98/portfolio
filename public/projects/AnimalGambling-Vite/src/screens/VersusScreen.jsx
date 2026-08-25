@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import Board from "../components/Board";
 import BonusDeck from "../components/BonusDeck";
@@ -60,6 +60,9 @@ export default function VersusScreen({
   onTakeBackCard,
   onSettleRoll,
   onLlegada,
+  /* Se acabaron los diez segundos sin que el jugador hiciera nada. Qué
+     significa eso lo decide App —planta el turno—; acá sólo se avisa. */
+  onTiempoAgotado,
   retrasoCasilla,
 }) {
   const total = players.length;
@@ -68,6 +71,46 @@ export default function VersusScreen({
   const yo = players[online ? miLado : active];
   const miTurno = !online || active === miLado;
   const puedeActuar = playing && !rolling && miTurno;
+
+  /* ►► EL RELOJ DEL TURNO. ◄◄
+   *
+   * Vive acá y no en App porque `puedeActuar` ya se calcula acá —es lo que
+   * enciende y apaga los botones— y el reloj corre exactamente cuando ellos
+   * responden. Calcularlo de nuevo arriba serían dos definiciones de "podés
+   * jugar" que se despegan el día que una cambie.
+   *
+   * ►► Corre SÓLO mientras se puede actuar, y por eso son diez de verdad. ◄◄
+   *
+   * `puedeActuar` es falso mientras los dados ruedan y mientras la ficha
+   * camina, así que el reloj se frena solo en toda esa parte y arranca de
+   * nuevo cuando el control vuelve. Diez segundos de pensar, no de mirar
+   * animaciones. Con el dado adentro del presupuesto, diez se sentirían
+   * como cuatro y el reloj castigaría por ver el juego.
+   *
+   * `active` está en las dependencias además de `puedeActuar`: en la mesa
+   * local `puedeActuar` sigue en verdadero cuando el turno pasa de un
+   * jugador al otro —siempre le toca a alguien— así que sin esto el segundo
+   * jugador heredaría lo que quedaba del reloj del primero.
+   *
+   * El aviso va por un ref y NO en las dependencias. Si entrara como
+   * dependencia, un App que rearme esa función en cada pintado volvería a
+   * montar el efecto en cada pintado: el temporizador se cancelaría y se
+   * programaría de nuevo sin llegar nunca a los diez segundos, y el reloj
+   * no se cumpliría jamás. Es el mismo motivo por el que el tablero guarda
+   * `onVueltaRef`. */
+  const avisoTiempo = useRef(onTiempoAgotado);
+  /* El ref se escribe en un efecto y no durante el pintado: pintar tiene que
+     ser puro, y con el modo estricto de React 19 el cuerpo del componente
+     puede correr dos veces. */
+  useEffect(() => {
+    avisoTiempo.current = onTiempoAgotado;
+  }, [onTiempoAgotado]);
+
+  useEffect(() => {
+    if (!puedeActuar) return undefined;
+    const t = setTimeout(() => avisoTiempo.current?.(), ms("turno.reloj"));
+    return () => clearTimeout(t);
+  }, [puedeActuar, active]);
 
   const pendientes = players.flatMap((p) => p?.pendingCards ?? []);
 
@@ -318,6 +361,42 @@ export default function VersusScreen({
         >
           <HaltIcon />
         </button>
+
+        {/* ►► La barra del turno. ◄◄
+         *
+         * Sin números a propósito: un contador obliga a leer y a restar,
+         * y esto se mira de reojo con el dado en la mano. Una barra que se
+         * vacía se entiende sin leerla — y lo que hace falta saber no es
+         * "cuántos segundos quedan" sino "¿me apuro?".
+         *
+         * Sólo cuando se puede actuar. Dibujarla quieta y llena fuera de
+         * turno diría que el reloj está corriendo cuando no lo está.
+         *
+         * `aria-hidden`: para quien no ve la pantalla, una barra vaciándose
+         * no dice nada. El aviso de que se acabó el turno sí le llega, por
+         * el mismo cartel que ve todo el mundo. */}
+        {puedeActuar && (
+          <div className="turno-reloj" aria-hidden="true">
+            {/* ►► Sin estado: la barra se reinicia sola, por dos caminos. ◄◄
+             *
+             * Acá había un contador en `useState` que subía en cada
+             * arranque. Sobraba, y además obligaba a escribir estado adentro
+             * de un efecto —lo que encadena pintados y React marca como
+             * error—. Los dos casos ya estaban cubiertos sin él:
+             *
+             *  · Tiraste: `puedeActuar` se apaga mientras el dado rueda, la
+             *    barra se DESMONTA y al volver monta de cero.
+             *  · Pasó el turno sin que se apagara —te plantaste en la mesa
+             *    local— y ahí entra la `key`: cambia de dueño, React
+             *    reemplaza el nodo y la animación arranca de nuevo.
+             *
+             * Son exactamente las mismas dos condiciones que reinician el
+             * temporizador de arriba, y eso no es casualidad: si la barra y
+             * el reloj se reiniciaran en momentos distintos, la barra
+             * mentiría. */}
+            <i key={active} />
+          </div>
+        )}
       </div>
     </section>
   );

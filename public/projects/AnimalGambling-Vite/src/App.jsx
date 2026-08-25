@@ -313,11 +313,40 @@ export default function App() {
      estado, eso vuelve a pintar y el efecto se evalúa de nuevo—. Acá estamos
      en el manejador del hecho, que es donde va a parar cualquier cosa que se
      le quiera CONTAR al jugador. El efecto queda sólo con la ejecución. */
-  const forzarPlante = useCallback(() => {
-    plantarForzado.current = true;
-    setPlantarKey(Math.random());
-    notify("Casilla maldita — se te acabó el turno", "error");
-  }, [notify]);
+  const forzarPlante = useCallback(
+    (motivo = "Casilla maldita — se te acabó el turno") => {
+      plantarForzado.current = true;
+      setPlantarKey(Math.random());
+      notify(motivo, "error");
+    },
+    [notify]
+  );
+
+  /* ►► Se acabaron los diez segundos. ◄◄
+   *
+   * Perder el turno acá es EXACTAMENTE lo que ya hace la casilla de turno
+   * perdido: un plantarse forzado. No es una comodidad — es que en este
+   * juego "perdés el turno" ya significa esto, y darle un segundo
+   * significado al mismo castigo obligaría al jugador a aprender dos reglas
+   * donde había una.
+   *
+   * Y hace lo correcto en los dos casos que importan. Si te quedaste
+   * pensando con quince puntos acumulados, se guardan: el reloj te apura,
+   * no te roba. Y si se acabó sin que tiraras una sola vez, plantarse con
+   * cero acumulado ES perder el turno, sin ningún caso especial que
+   * escribir.
+   *
+   * Además reusa el camino que ya existe y ya está probado: el mismo que
+   * revela las cartas puestas y las cobra. Un final de turno escrito aparte
+   * sería una segunda copia de esa resolución, esperando a desincronizarse
+   * con la primera.
+   *
+   * Va por `forzarPlante` y no por `plantarse` directo por lo mismo que la
+   * casilla: el efecto que ejecuta el plante espera a que la ficha esté
+   * quieta. Llamado en crudo, plantaría sin la última tirada. */
+  const alAgotarseElTiempo = useCallback(() => {
+    forzarPlante("Se acabó el tiempo — pierdes el turno");
+  }, [forzarPlante]);
 
   const golpear = useCallback((lado, tipo) => {
     setImpacto({ lado, tipo, key: Math.random() });
@@ -1326,6 +1355,7 @@ export default function App() {
             onTakeBackCard={retirarCarta}
             onSettleRoll={alFrenar}
             onLlegada={alLlegar}
+            onTiempoAgotado={alAgotarseElTiempo}
             retrasoCasilla={ESPERA_CASILLA}
           />
         )}
