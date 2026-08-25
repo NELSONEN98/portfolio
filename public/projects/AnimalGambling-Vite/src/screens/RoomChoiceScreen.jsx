@@ -76,6 +76,12 @@ const GatoVacio = () => (
   </svg>
 );
 
+const WhatsGlyph = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="none">
+    <path d="M12.04 2A9.9 9.9 0 0 0 2.1 11.9a9.8 9.8 0 0 0 1.36 4.98L2 22l5.28-1.38a9.9 9.9 0 0 0 4.76 1.21h.01A9.9 9.9 0 0 0 22 11.94 9.9 9.9 0 0 0 12.04 2Zm0 18.05h-.01a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.12.82.83-3.05-.2-.31a8.2 8.2 0 1 1 6.98 3.87Zm4.5-6.14c-.24-.12-1.45-.72-1.68-.8-.22-.09-.39-.13-.55.12s-.63.79-.77.96c-.14.16-.28.18-.53.06a6.7 6.7 0 0 1-1.97-1.22 7.4 7.4 0 0 1-1.36-1.7c-.15-.24 0-.38.11-.5.11-.11.24-.29.36-.43.12-.15.16-.25.24-.41.08-.17.04-.31-.02-.43-.06-.12-.55-1.33-.76-1.82-.2-.47-.4-.4-.55-.41h-.47c-.16 0-.43.06-.65.31-.22.25-.85.83-.85 2.03s.87 2.35.99 2.51c.12.16 1.72 2.62 4.17 3.68.58.25 1.04.4 1.39.51.59.19 1.12.16 1.54.1.47-.07 1.45-.59 1.65-1.17.2-.57.2-1.06.15-1.16-.06-.11-.22-.17-.46-.29Z" />
+  </svg>
+);
+
 const CheckGlyph = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M4 12.5l5 5L20 6.5" />
@@ -152,6 +158,33 @@ export default function RoomChoiceScreen({
 
   const copiar = async () => setCopiado(await alPortapapeles(codigo));
 
+  /* ►► El enlace de invitación. ◄◄
+   *
+   * El código va en la query y no en el hash: el hash es del router, que lo
+   * compara contra su lista de rutas y no reconocería nada pegado ahí.
+   *
+   * Se arma desde `location` y no desde una dirección escrita a mano porque
+   * este juego vive dentro de una carpeta del portafolio y además se abre en
+   * local mientras se desarrolla. Una dirección fija funcionaría en uno de
+   * los dos lugares y en el otro mandaría a la nada. */
+  const enlace = `${location.origin}${location.pathname}?sala=${codigo}`;
+
+  /* `wa.me` sin número abre WhatsApp con el mensaje listo y deja que la
+     persona elija a quién mandárselo. Con número habría que pedirlo antes,
+     que es exactamente el paso que este botón viene a evitar.
+   *
+   * El código va en el texto ADEMÁS del enlace: si alguien abre el mensaje
+   * en un aparato donde el enlace no funciona —o lo lee por encima del
+   * hombro— todavía puede entrar a mano. El enlace es el atajo, no el único
+   * camino. */
+  const whatsapp = `https://wa.me/?text=${encodeURIComponent(
+    `Te invito a una mesa de Animal Gambling.
+
+Entra directo: ${enlace}
+
+O usa el código: ${codigo}`
+  )}`;
+
   return (
     <section className="screen room-choice-screen active">
       <div className="room-choice-header">
@@ -224,6 +257,26 @@ export default function RoomChoiceScreen({
             >
               {copiado ? "¡COPIADO!" : "Clic para copiar"}
             </span>
+
+            {/* ►► Compartir por WhatsApp. ◄◄
+             *
+             * Copiar el código y pegarlo en otra aplicación son cuatro pasos
+             * y una pantalla que no es ésta. Este botón los reemplaza por
+             * uno, y lo que manda no es el código sino un enlace: quien lo
+             * abre se sienta solo, sin escribir nada.
+             *
+             * `rel="noreferrer"` además de `noopener`: la dirección lleva el
+             * código de la sala en la query, y sin esto se lo estaríamos
+             * pasando a WhatsApp como referente. */}
+            <a
+              className="room-compartir"
+              href={whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <WhatsGlyph />
+              <span>COMPARTIR POR WHATSAPP</span>
+            </a>
           </div>
 
           {/* ►► Las sillas. ◄◄

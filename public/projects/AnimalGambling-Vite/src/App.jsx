@@ -8,6 +8,23 @@ import { useOnlineRoom } from "./hooks/useOnlineRoom";
 import { ROSTER, charFromCatId, warmRosterFrames } from "./roster";
 import { getRoomId } from "./storage";
 
+/* ►► El código de sala que vino en el enlace, si vino alguno. ◄◄
+ *
+ * Va en la query y no en el hash porque el hash ya es del router: `useRouter`
+ * lo compara contra su lista de rutas y cualquier cosa pegada ahí —
+ * `#/room-choice?sala=X`— deja de coincidir y cae al título.
+ *
+ * Se lee una sola vez, al cargar el módulo. Después la URL se limpia, así
+ * que preguntar más tarde daría null y la respuesta hay que guardarla. */
+const INVITACION = (() => {
+  try {
+    const c = new URLSearchParams(location.search).get("sala");
+    return c ? c.toUpperCase().trim() : null;
+  } catch {
+    return null;
+  }
+})();
+
 import Preloader from "./components/Preloader";
 import Toasts from "./components/Toasts";
 import RulesModal from "./components/RulesModal";
@@ -184,7 +201,9 @@ export default function App() {
    * Derivarlo de `getRoomId()` iguala las tres vidas: hay sala guardada,
    * hay partida online. No hace falta acordarse de nada porque la respuesta
    * ya estaba escrita al lado. */
-  const [modo, setModo] = useState(() => (getRoomId() ? "online" : "local"));
+  const [modo, setModo] = useState(() =>
+    getRoomId() || INVITACION ? "online" : "local"
+  );
   const [elegidos, setElegidos] = useState([null, null]);
   const [tirada, setTirada] = useState(null);
   const [revelada, setRevelada] = useState(null);
@@ -324,6 +343,58 @@ export default function App() {
   );
 
   const { screen, go } = useRouter({ puedeEntrar });
+
+  /* ►► Entrar por invitación. ◄◄
+   *
+   * El enlace de WhatsApp trae el código, así que quien lo abre no tiene que
+   * pasar por el menú ni pegar nada: se sienta solo.
+   *
+   * ►► Pero NO salta la pantalla de título, y no es por descuido. ◄◄
+   *
+   * Ahí vive el desbloqueo del audio, y los navegadores no lo dan sin un
+   * gesto del jugador. Un enlace que entrara derecho al vestíbulo dejaría
+   * mudo TODO el resto de la partida para quien llegó invitado — sin dado,
+   * sin golpes, sin nada — y no habría forma de recuperarlo después.
+   *
+   * Así que se sienta a la mesa ya mismo —el anfitrión lo ve llegar en el
+   * acto, que es lo que importa del otro lado— y el botón de siempre lo
+   * lleva al vestíbulo en vez de al menú. Un toque en lugar de cuatro pasos.
+   */
+  const invitado = useRef(Boolean(INVITACION));
+
+  useEffect(() => {
+    if (!INVITACION) return;
+    let vivo = true;
+    /* La URL se limpia enseguida para que recargar no reintente una entrada
+       que ya ocurrió, y para que el código no quede a la vista en la barra
+       de direcciones el resto de la partida. `replaceState` no navega ni
+       agrega una entrada al historial: el botón atrás sigue haciendo lo que
+       hacía. */
+    try {
+      history.replaceState(null, "", location.pathname + location.hash);
+    } catch {
+      /* Sin history API la URL queda con el código. Es feo y no rompe nada. */
+    }
+    sala
+      .unirse(INVITACION)
+      .then(() => {
+        if (vivo) notify("Ya tienes tu silla — pulsa para entrar");
+      })
+      .catch((e) => {
+        if (!vivo) return;
+        /* La sala se llenó, terminó o no existe. Se avisa y el botón vuelve
+           a llevar al menú, que es de donde se puede entrar a mano. */
+        invitado.current = false;
+        notify(errorText(e), "error");
+      });
+    return () => {
+      vivo = false;
+    };
+    /* Sólo al montar: `INVITACION` es una constante del módulo y `sala` se
+       arma de nuevo en cada pintado, así que listarlo repetiría la entrada
+       cada dos segundos, con el sondeo. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (document.readyState === "complete") warmRosterFrames();
@@ -1111,7 +1182,14 @@ export default function App() {
           <div className="smoke-wisp" />
         </div>
 
-        {screen === "title" && <TitleScreen onStart={() => go("menu")} />}
+        {screen === "title" && (
+          <TitleScreen
+            /* Al vestíbulo si vino por un enlace, al menú si no. La misma
+               pantalla y el mismo botón; lo único que cambia es a dónde
+               abre. */
+            onStart={() => go(invitado.current ? "room-choice" : "menu")}
+          />
+        )}
 
         {screen === "menu" && (
           <MenuScreen

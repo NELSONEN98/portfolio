@@ -4677,6 +4677,59 @@ body {
   padding: 0;
 }
 
+/* ►► COMPARTIR POR WHATSAPP. ◄◄
+ *
+ * Va pegado al código y no junto a los botones de abajo a propósito: es la
+ * segunda forma de hacer lo mismo que el código —invitar a alguien— y las
+ * dos tienen que estar donde el anfitrión ya está mirando. Abajo viven las
+ * acciones sobre la MESA (arrancar, salir), que son otra cosa.
+ *
+ * Verde de WhatsApp y no de la casa: es el único elemento del juego que
+ * lleva a otra aplicación, y que se vea prestado es justamente lo que avisa
+ * que al tocarlo te vas a ir de acá. */
+.room-compartir {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-top: 0.9rem;
+  padding: 0.7em 1.2em;
+  border-radius: 999px;
+  border: 0.14rem solid #25d366;
+  background: rgba(37, 211, 102, 0.12);
+  color: #25d366;
+  font-family: var(--display);
+  font-size: clamp(0.7rem, 1.5vmin, 0.95rem);
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.12s, box-shadow 0.2s;
+}
+.room-compartir svg {
+  width: 1.6em;
+  height: 1.6em;
+  flex: none;
+}
+.room-compartir:hover {
+  background: rgba(37, 211, 102, 0.22);
+  box-shadow: 0 0 1.8rem rgba(37, 211, 102, 0.3);
+}
+.room-compartir:active { transform: translateY(0.1rem); }
+.room-compartir:focus-visible {
+  outline: 0.2rem solid var(--neon-amber);
+  outline-offset: 0.2rem;
+}
+
+/* En un teléfono el rótulo entero no entra al lado del icono sin apretar la
+   letra hasta que deje de leerse. Se cae el texto largo y queda el verbo,
+   que con el icono de WhatsApp al lado ya no necesita más. */
+@media (max-width: 480px) {
+  .room-compartir span { font-size: 0; }
+  .room-compartir span::after {
+    content: "COMPARTIR";
+    font-size: clamp(0.7rem, 3vw, 0.95rem);
+  }
+}
+
 /* ►► LAS SILLAS DE LA MESA. ◄◄
  *
  * Eran fichas de 3,4rem con el número a 1,15rem: cabían cuatro en el ancho
