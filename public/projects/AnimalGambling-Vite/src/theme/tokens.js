@@ -153,7 +153,26 @@ export const TABLERO = {
    viaja — RN no tiene contexto 3D en views. Al portar, o se rehace con
    una librería 3D o se cambia por seis imágenes y una rotación plana. */
 export const DADO = {
-  cara: { fondo: COLOR.marfil, punto: COLOR.negro, radio: 0.16 },
+  /* ►► El uno va en rojo, y no es un capricho de diseño. ◄◄
+   *
+   * Es como se pintan los dados de verdad desde hace siglos: el as en rojo
+   * y el resto en negro. Acá además hace un trabajo concreto — el uno es la
+   * peor tirada del juego, la que te quema el turno, y con todos los puntos
+   * del mismo color hay que CONTARLOS para saber qué salió. Un punto solo y
+   * rojo se lee de un vistazo desde el otro lado de la mesa, que es la
+   * distancia real a la que se mira este dado mientras rueda.
+   *
+   * Es el mismo rojo del robo y de la penitencia. Deliberado: en este juego
+   * el rojo ya significa "algo te salió mal", y el uno es exactamente eso.
+   *
+   * Vive en el token y no adentro del canvas porque el canvas dibuja, no
+   * decide. Cambiar el rojo del juego tiene que mover el dado también. */
+  cara: {
+    fondo: COLOR.marfil,
+    punto: COLOR.negro,
+    puntoUno: COLOR.rojo,
+    radio: 0.16,
+  },
   /* Grados de cada cara para dejarla mirando al frente. Esto sí viaja:
      son números, no CSS.
    *

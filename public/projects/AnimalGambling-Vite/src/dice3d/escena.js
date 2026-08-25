@@ -228,7 +228,7 @@ function buscarTiro(valores, limites, gesto) {
 /* La cara del dado, dibujada en un canvas. Se genera en vez de cargarse
    como imagen para que los puntos escalen sin pixelarse y para que el color
    salga de la paleta del juego en vez de estar horneado en un PNG. */
-function texturaCara(numero, fondo, punto) {
+function texturaCara(numero, fondo, punto, puntoUno) {
   const S = 128;
   const c = document.createElement("canvas");
   c.width = S;
@@ -254,7 +254,17 @@ function texturaCara(numero, fondo, punto) {
     6: [[p, p], [q, p], [p, m], [q, m], [p, q], [q, q]],
   }[numero];
 
-  g.fillStyle = punto;
+  /* ►► El as en rojo. ◄◄
+   *
+   * La condición mira el NÚMERO y no la cantidad de puntos, aunque acá sean
+   * lo mismo. Son dos cosas distintas que hoy coinciden: el uno es rojo
+   * porque es el uno —la tirada que te quema el turno— y no porque tenga un
+   * punto solo. Escrito sobre `puntos.length === 1` diría lo otro, y sería
+   * una trampa para el día que alguien dibuje una cara distinta.
+   *
+   * El respaldo a `punto` deja la firma vieja funcionando: quien llame sin
+   * el cuarto argumento obtiene el dado de siempre, todo del mismo color. */
+  g.fillStyle = numero === 1 ? puntoUno ?? punto : punto;
   for (const [x, y] of puntos) {
     g.beginPath();
     g.arc(x, y, r, 0, Math.PI * 2);
@@ -506,7 +516,7 @@ export function crearEscena(canvas, { alGolpear } = {}) {
   /* El cubo que el jugador tiene agarrado, si hay alguno. */
   let agarrado = null;
 
-  function materialesDe(fondo, punto) {
+  function materialesDe(fondo, punto, puntoUno) {
     /* El orden es el que espera el cubo: +X, −X, +Y, −Y, +Z, −Z. Puesto
        así, cada índice cae en la normal que NORMAL_DE da por sentada. */
     return [1, 6, 2, 5, 3, 4].map(
@@ -524,7 +534,10 @@ export function crearEscena(canvas, { alGolpear } = {}) {
        * modelo correcto —no tiene que brillar— y es el más barato de los que
        * se iluminan. Standard daría reflejos que este dado no debería tener,
        * y costaría más por cada píxel. */
-      (n) => new THREE.MeshLambertMaterial({ map: texturaCara(n, fondo, punto) })
+      (n) =>
+        new THREE.MeshLambertMaterial({
+          map: texturaCara(n, fondo, punto, puntoUno),
+        })
     );
   }
 
@@ -628,7 +641,7 @@ export function crearEscena(canvas, { alGolpear } = {}) {
          un píxel del cubo. */
       const mesh = new THREE.Mesh(
         geometria,
-        materialesDe(DADO.cara.fondo, DADO.cara.punto)
+        materialesDe(DADO.cara.fondo, DADO.cara.punto, DADO.cara.puntoUno)
       );
       // Arroja sombra; no la recibe: un dado no se sombrea a sí mismo.
       mesh.castShadow = true;
