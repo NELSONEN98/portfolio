@@ -35,6 +35,47 @@ const CopyGlyph = () => (
   </svg>
 );
 
+/* ►► Las dos caras de una silla. ◄◄
+ *
+ * Ocupada lleva un gato; libre, la silueta del mismo gato en puro contorno.
+ * Es a propósito el MISMO dibujo: dos formas distintas —una cara y una silla
+ * vacía, por ejemplo— obligarían a comparar dos cosas para contar cuántos
+ * hay. Con la misma silueta llena o vacía, el conteo se hace de un vistazo,
+ * igual que un medidor de vidas.
+ *
+ * Van acá y no en `icons.jsx` porque no son del juego: ese archivo dibuja
+ * cartas y casillas, cosas de la mesa. Esto es una pantalla de espera. */
+const GatoLleno = () => (
+  <svg viewBox="0 0 64 64" aria-hidden="true">
+    <path
+      d="M14 26 L11 9 L24 18 A28 28 0 0 1 40 18 L53 9 L50 26
+         A22 21 0 1 1 14 26 Z"
+      fill="currentColor"
+    />
+    <circle cx="24" cy="34" r="3.4" fill="#000" opacity="0.75" />
+    <circle cx="40" cy="34" r="3.4" fill="#000" opacity="0.75" />
+    <path
+      d="M32 42 l-3 3 h6 z"
+      fill="#000"
+      opacity="0.75"
+    />
+  </svg>
+);
+
+const GatoVacio = () => (
+  <svg viewBox="0 0 64 64" aria-hidden="true">
+    <path
+      d="M14 26 L11 9 L24 18 A28 28 0 0 1 40 18 L53 9 L50 26
+         A22 21 0 1 1 14 26 Z"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.6"
+      strokeLinejoin="round"
+      strokeDasharray="5 4"
+    />
+  </svg>
+);
+
 const CheckGlyph = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M4 12.5l5 5L20 6.5" />
@@ -203,10 +244,25 @@ export default function RoomChoiceScreen({
                   key={i}
                   className={`room-seat${ocupada ? " ocupada" : ""}${i === miLado ? " yo" : ""}`}
                 >
-                  <span className="room-seat-n">{i + 1}</span>
+                  {/* El número va de marca de agua detrás del gato y no como
+                      un renglón más: acá lo que se cuenta es cuántas sillas
+                      hay ocupadas, y para eso el dibujo alcanza. El número
+                      resuelve la otra pregunta —cuál es la mía— y esa se hace
+                      una sola vez, así que puede estar en segundo plano. */}
+                  <span className="room-seat-n" aria-hidden="true">{i + 1}</span>
+                  <span className="room-seat-figura">
+                    {ocupada ? <GatoLleno /> : <GatoVacio />}
+                  </span>
                   <span className="room-seat-txt">
                     {i === miLado ? "VOS" : ocupada ? "LISTO" : "LIBRE"}
                   </span>
+                  {/* Quién manda la mesa, dicho en la silla y no en un cartel
+                      aparte: es el único que puede arrancar, y el botón de
+                      abajo sólo aparece de su lado. Sin esto, el invitado lee
+                      "el anfitrión decide" sin saber cuál de los cuatro es. */}
+                  {i === 0 && (
+                    <span className="room-seat-jefe">ANFITRIÓN</span>
+                  )}
                 </li>
               );
             })}

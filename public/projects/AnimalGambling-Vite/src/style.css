@@ -4667,41 +4667,151 @@ body {
 .room-seats {
   list-style: none;
   display: flex;
-  gap: 0.7rem;
+  /* Se centra y se permite bajar de renglón: en un teléfono angosto cuatro
+     sillas de este tamaño no entran en fila, y apretarlas hasta que entren
+     las devolvería al tamaño de ficha del que vienen. */
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(0.8rem, 2vw, 1.6rem);
   margin: 0.4rem 0 0;
   padding: 0;
 }
+
+/* ►► LAS SILLAS DE LA MESA. ◄◄
+ *
+ * Eran fichas de 3,4rem con el número a 1,15rem: cabían cuatro en el ancho
+ * de una palabra. Y esta pantalla no tiene nada más que mostrar —el código
+ * arriba, las sillas, y una línea de texto— así que el espacio le sobraba a
+ * lo único que hay que mirar mientras se espera.
+ *
+ * Ahora son cartas, del tamaño de las del juego, y esperar pasa a ser mirar
+ * cómo se llena la mesa en vez de leer un contador.
+ */
 .room-seat {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  min-width: 3.4rem;
-  padding: 0.5rem 0.4rem;
-  border: 0.14rem dashed var(--bone-dim);
-  border-radius: 0.5rem;
-  opacity: 0.45;
-  transition: opacity 0.25s, border-color 0.25s;
+  justify-content: center;
+  gap: 0.6rem;
+
+  /* Proporción de carta y ancho en vmin: la pantalla es de espera y no tiene
+     presupuesto de alto que respetar —a diferencia de la mesa— así que la
+     silla puede crecer con la ventana sin quitarle sitio a nadie. */
+  width: clamp(7rem, 19vmin, 15rem);
+  aspect-ratio: 3 / 4;
+  padding: 1rem 0.6rem;
+
+  border: 0.2rem dashed rgba(232, 225, 204, 0.35);
+  border-radius: clamp(0.8rem, 2vmin, 1.4rem);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--bone-dim);
+  transition: border-color 0.3s, background 0.3s, color 0.3s, transform 0.3s;
 }
+
+/* ►► La silla vacía respira. ◄◄
+ *
+ * Es la única señal de que la pantalla sigue viva mientras no pasa nada: sin
+ * movimiento, un jugador que espera no puede distinguir "todavía no llegó
+ * nadie" de "esto se colgó". El latido es lento a propósito — a ritmo rápido
+ * pasaría a leerse como una alarma, y esperar no es una urgencia. */
+.room-seat:not(.ocupada) {
+  animation: silla-espera 2.6s ease-in-out infinite;
+}
+@keyframes silla-espera {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 0.85; }
+}
+
+/* Ocupada: se planta. Deja el punteado, se enciende y sube un pelo — el
+   salto es lo que hace que la llegada de alguien se NOTE aunque no estés
+   mirando esa silla justo en ese momento. */
 .room-seat.ocupada {
+  animation: none;
   opacity: 1;
   border-style: solid;
   border-color: var(--toxic);
+  background: rgba(126, 224, 107, 0.09);
+  color: var(--toxic);
+  transform: translateY(-0.3rem);
 }
-/* El tuyo, distinto de los demás ocupados: en una fila de sillas iguales
-   hay que poder encontrarse sin contar asientos. */
-.room-seat.yo { border-color: var(--neon-amber); }
+
+/* La tuya, en el dorado de la casa. Va después de `.ocupada` para ganarle:
+   tu silla está ocupada por definición, y de las cuatro es la que tenés que
+   poder encontrar sin contar asientos. */
+.room-seat.yo {
+  border-color: var(--neon-amber);
+  background: rgba(245, 185, 66, 0.12);
+  color: var(--neon-amber);
+  box-shadow: 0 0 2.4rem rgba(245, 185, 66, 0.25);
+}
+
+/* El gato, que es casi toda la carta. Toma el color de la silla —por eso
+   `currentColor` en el svg— así que encenderse y cambiar de color son el
+   mismo gesto y no dos reglas separadas. */
+.room-seat-figura {
+  display: block;
+  width: 58%;
+  line-height: 0;
+}
+.room-seat-figura svg { width: 100%; height: auto; display: block; }
+
+/* ►► El número, de marca de agua. ◄◄
+ *
+ * Detrás del gato y no como un renglón más. Lo que se cuenta de un vistazo
+ * es cuántas sillas hay llenas, y para eso el dibujo alcanza; el número
+ * responde la otra pregunta —cuál es la mía— que se hace una sola vez y
+ * puede vivir en segundo plano.
+ * Es la misma decisión que la insignia de la pantalla de personajes: grande
+ * y apagado gana contra chico y nítido cuando lo que hace falta es ubicarse,
+ * no leer. */
 .room-seat-n {
-  font-size: 1.15rem;
-  color: var(--bone);
+  position: absolute;
+  top: 0.3rem;
+  right: 0.7rem;
+  font-family: var(--display);
+  font-size: clamp(2.2rem, 6.2vmin, 4.4rem);
+  line-height: 1;
+  color: currentColor;
+  opacity: 0.28;
+  pointer-events: none;
 }
+
 .room-seat-txt {
-  font-size: 0.6rem;
-  letter-spacing: 0.12em;
-  color: var(--bone-dim);
+  font-family: var(--display);
+  font-size: clamp(0.75rem, 2vmin, 1.25rem);
+  letter-spacing: 0.16em;
+  color: currentColor;
 }
-.room-seat.ocupada .room-seat-txt { color: var(--toxic); }
-.room-seat.yo .room-seat-txt { color: var(--neon-amber); }
+
+/* ►► Quién manda la mesa, dicho en su silla. ◄◄
+ *
+ * El botón de arrancar sólo existe del lado del anfitrión, así que a los
+ * demás les queda una frase —"el anfitrión decide cuándo arrancar"— sin
+ * forma de saber cuál de los cuatro es. Colgado de la silla, el dato está
+ * donde se lo busca.
+ * Cruza el borde de abajo a propósito: una etiqueta metida adentro sería un
+ * renglón más de la carta; montada sobre el canto se lee como un sello. */
+.room-seat-jefe {
+  position: absolute;
+  bottom: -0.7rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.2em 0.6em;
+  border-radius: 0.4rem;
+  background: #000;
+  border: 0.12rem solid currentColor;
+  font-family: var(--display);
+  font-size: clamp(0.55rem, 1.4vmin, 0.9rem);
+  letter-spacing: 0.14em;
+  color: currentColor;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-seat:not(.ocupada) { animation: none; opacity: 0.6; }
+  .room-seat.ocupada { transform: none; }
+}
 
 .room-hint {
   font-size: 0.78rem;
