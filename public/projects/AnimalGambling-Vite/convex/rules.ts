@@ -947,6 +947,43 @@ export function resolveRoll(rand: () => number, cursed: boolean, double: boolean
   return { dice, gained, isBust };
 }
 
+/* ►► CUÁNTAS CASILLAS MUEVE ESTA TIRADA. ◄◄
+ *
+ * Nunca se avanza de a uno. Sacar un 1 con un dado no te mueve: te quema el
+ * turno y te deja donde estabas. Antes te movía una casilla —el turno se
+ * quemaba pero la ficha caminaba igual— y eso hacía que la peor tirada del
+ * juego igual te acercara a la meta.
+ *
+ * ►► La cuenta es "si el turno se quema, no te movés". ◄◄
+ *
+ * No es "los dados en 1 no cuentan", que es la otra forma de decirlo y es
+ * la incorrecta. Con la carta de dos dados un [1,5] SUMA SEIS y mueve seis:
+ * el jugador ve dos cubos que suman seis y la ficha tiene que caminar lo que
+ * él ve. Descontar el 1 la movería cinco, que es exactamente el error que ya
+ * se arregló una vez —el tablero es posición física, no puntaje— y que
+ * volvería a entrar por la ventana si esta regla se escribiera sobre los
+ * dados en vez de sobre el resultado.
+ *
+ * Y no hace falta ningún caso especial para "nunca de a uno": con dos dados
+ * el mínimo que no se quema es dos. El único camino a un paso solo era el
+ * dado único en 1, y ése ahora vale cero.
+ *
+ *   dado único   1        quema      → 0 casillas
+ *   dado único   5                   → 5 casillas
+ *   dos dados    [1,5]               → 6 casillas  (lo que se ve)
+ *   dos dados    [1,1]    quema      → 0 casillas
+ *
+ * ►► Vive acá y no en cada llamador. ◄◄
+ *
+ * Esta cuenta estaba escrita DOS VECES a mano, en el servidor y en el
+ * cliente, con un comentario en cada copia avisando que tenían que ser
+ * idénticas. Dos copias que tienen que coincidir es una que va a dejar de
+ * coincidir. Ahora es una función y las dos la llaman.
+ */
+export function pasosDe(outcome: RollOutcome): number {
+  return outcome.isBust ? 0 : outcome.dice.reduce((a, b) => a + b, 0);
+}
+
 /* ============================================
    EFECTOS
    ============================================ */

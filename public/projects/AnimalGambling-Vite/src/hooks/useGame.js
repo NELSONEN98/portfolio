@@ -12,6 +12,7 @@ import {
   mirrorHand,
   randomBonusCard,
   resolveRoll,
+  pasosDe,
   applyPenalty,
   penaltyFor,
   targetOf,
@@ -216,13 +217,10 @@ export function useGame() {
         const p = prev[active];
         if (!p) return prev;
 
-        /* La ficha avanza la SUMA DE LOS DADOS, no los puntos ganados.
-           Son dos cosas distintas y usar una por la otra era el error:
-           `gained` descarta los dados que salieron 1, así que con la carta
-           de dos dados un [1,5] mostraba 6 en pantalla y movía 5. El
-           puntaje sigue su regla —el 1 no suma— pero el tablero es
-           posición física y tiene que coincidir con lo que se ve. */
-        const pasos = tirada.dice.reduce((a, b) => a + b, 0);
+        /* Cuánto camina la ficha. La misma función que usa el servidor: era
+           esta cuenta escrita a mano en los dos lados, y dos copias que
+           tienen que coincidir son una que va a dejar de coincidir. */
+        const pasos = pasosDe(tirada);
         const desde = p.pos ?? 0;
         const destino = advance(desde, pasos);
 

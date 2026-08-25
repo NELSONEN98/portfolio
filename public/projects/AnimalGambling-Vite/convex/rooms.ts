@@ -25,6 +25,7 @@ import {
   mirrorHand,
   randomBonusCard,
   resolveRoll,
+  pasosDe,
   applyPenalty,
   penaltyFor,
   cappedScore,
@@ -591,15 +592,10 @@ export const rollDice = mutation({
     const cursed = mine.curseTurns > 0;
     const outcome = resolveRoll(rand, cursed, mine.doubleNext);
 
-    /* La ficha avanza aunque el turno se queme: el 1 te saca lo acumulado,
-       no te devuelve al casillero anterior.
-
-       Avanza la SUMA DE LOS DADOS y no los puntos ganados: `gained`
-       descarta los que salieron 1, así que con la carta de dos dados un
-       [1,5] mostraba 6 en pantalla y movía 5. El puntaje sigue su regla;
-       el tablero es posición física y tiene que coincidir con lo que se ve.
-       Tiene que ser idéntico al cliente o las dos fichas se separan. */
-    const steps = outcome.dice.reduce((a, b) => a + b, 0);
+    /* Cuánto camina la ficha. La cuenta está en `pasosDe`, en las reglas, y
+       la llaman el servidor y el cliente: antes estaba escrita a mano en los
+       dos lados con un comentario pidiendo que no se despegaran. */
+    const steps = pasosDe(outcome);
     /* Se pregunta antes de avanzar: después del módulo ya no se puede saber
        si la ficha dio la vuelta o llegó de al lado. */
     const dioVuelta = passedStart(mine.pos, steps);
@@ -608,7 +604,20 @@ export const rollDice = mutation({
        bonus dejan de entregar carta y le cobran puntos. El tablero
        guardado no se toca —es el mismo para los dos— y la conversión ocurre
        acá, al leerlo. */
-    const square = squareFor(room.board as any, pos, cursed);
+    /* ►► Sin recorrido no hay casilla. ◄◄
+     *
+     * Con la tirada quemada la ficha se queda donde estaba, y preguntar por
+     * "la casilla donde cayó" devolvería la que ya estaba pisando desde el
+     * turno anterior — y se la volvería a cobrar. Parado en un bonus, cada 1
+     * regalaba otra carta; parado en una penitencia, cada 1 volvía a
+     * descontar. El bonus era el peor de los dos: quedarse quieto pasaba a
+     * ser rentable, o sea que la peor tirada del juego se convertía en la
+     * que más daba.
+     *
+     * Se lee como PLAIN y no se saltea el bloque entero para que abajo siga
+     * habiendo un solo camino: el resto del turno —el aviso, el patch, el
+     * cambio de asiento— no tiene por qué saber que esta tirada fue rara. */
+    const square = steps > 0 ? squareFor(room.board as any, pos, cursed) : SQUARE.PLAIN;
 
     /* El premio por la vuelta va al marcador, igual que la penitencia lo
        descuenta de ahí: los dos son efectos del camino, y lo que el camino

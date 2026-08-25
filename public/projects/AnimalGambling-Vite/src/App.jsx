@@ -38,7 +38,7 @@ import RoomChoiceScreen from "./screens/RoomChoiceScreen";
 import SelectScreen from "./screens/SelectScreen";
 import VersusScreen from "./screens/VersusScreen";
 import GameOverScreen from "./screens/GameOverScreen";
-import { CARD, SQUARE, targetOf, A_LA_DERECHA, vuelveAJugar } from "../convex/rules";
+import { CARD, SQUARE, targetOf, A_LA_DERECHA, vuelveAJugar, pasosDe } from "../convex/rules";
 import { sonarHecho, sonarCarta } from "./audio/hechos";
 import { celdaDe, celdaArriba } from "./mesa";
 import { ms } from "./theme";
@@ -864,10 +864,16 @@ export default function App() {
     if (online) {
       const pos = posDelServidor.current;
       posDelServidor.current = null;
-      if (pos == null) {
-        /* Sin posición no hay recorrido que esperar, así que se devuelve el
-           control en el acto: quedarse esperando un aviso que no va a
-           llegar dejaría al jugador sin poder tirar. */
+      /* Sin posición no hay recorrido que esperar, así que se devuelve el
+         control en el acto: quedarse esperando un aviso que no va a
+         llegar dejaría al jugador sin poder tirar.
+
+         Y con la tirada quemada tampoco hay recorrido: el 1 ya no mueve, la
+         ficha se queda donde estaba y el tablero SÓLO avisa cuando camina
+         —`if (fin === desde) return`—. Sin esta salida el turno esperaba
+         para siempre por un aviso que nadie iba a mandar, y como el 1 sale
+         una de cada seis veces, el juego se trababa solo. */
+      if (pos == null || (t && pasosDe(t) === 0)) {
         juego.setRolling(false);
         return;
       }
@@ -880,8 +886,29 @@ export default function App() {
       });
       return;
     }
-    pendiente.current = t;
     juego.settleRoll(t);
+
+    /* ►► La tirada quemada se cierra ACÁ, no cuando la ficha llegue. ◄◄
+     *
+     * Porque no va a llegar: el 1 ya no mueve, y el tablero sólo avisa
+     * cuando hubo recorrido. Todo lo que normalmente cuelga de ese aviso
+     * —los puntos, el cambio de turno, devolver el control— se quedaba
+     * esperando, y el juego se trababa una de cada seis tiradas.
+     *
+     * Es la misma secuencia que `alLlegar`, sin las dos partes que
+     * necesitan un aterrizaje: la casilla no se resuelve —la ficha no pisó
+     * ninguna nueva, y volver a cobrar la de abajo era regalar una carta
+     * por cada 1— y no hay golpe rojo que mostrar.
+     *
+     * Los 900ms son los mismos de allá: el cartel de PIERDES TURNO ya está
+     * en pantalla y el turno no puede pasar antes de que se lea. */
+    if (pasosDe(t) === 0) {
+      sumarPuntos(t);
+      setTimeout(endTurn, 900);
+      return;
+    }
+
+    pendiente.current = t;
   };
 
   /* La ficha frenó: recién ahora se cobra o se cobra el precio de la
