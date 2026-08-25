@@ -38,7 +38,7 @@ import RoomChoiceScreen from "./screens/RoomChoiceScreen";
 import SelectScreen from "./screens/SelectScreen";
 import VersusScreen from "./screens/VersusScreen";
 import GameOverScreen from "./screens/GameOverScreen";
-import { CARD, SQUARE, targetOf, A_LA_DERECHA, vuelveAJugar, pasosDe } from "../convex/rules";
+import { CARD, SQUARE, targetOf, A_LA_DERECHA, vuelveAJugar, pasosDe, sentidoDe } from "../convex/rules";
 import { sonarHecho, sonarCarta } from "./audio/hechos";
 import { celdaDe, celdaArriba } from "./mesa";
 import { ms } from "./theme";
@@ -1001,6 +1001,44 @@ export default function App() {
         const carta = { type: x.type, value: x.value };
         setTimeout(() => mostrarRevelacion(carta, x.blocked, victima), i * 1500);
       });
+
+      /* ►► Y el salto y la media vuelta, para EL QUE LAS JUGÓ. ◄◄
+       *
+       * Acá no había nada, y era un agujero de verdad: en online el que
+       * jugaba una carta de flujo no se enteraba de nada. Las tres puertas
+       * por las que podía llegarle estaban cerradas a la vez —
+       *
+       *   · el motor local no corre en online, así que sus hechos —los que
+       *     arman el cartel en la mesa local— nunca se emiten;
+       *   · el sondeo DESCARTA tus propios eventos a propósito
+       *     (`ev.sessionId !== getSessionId()` en useOnlineRoom), porque
+       *     todo lo demás ya te lo contó tu propia pantalla;
+       *   · y acá sólo se leía `resolved`, que trae los ATAQUES. El flujo
+       *     viene aparte, en `saltos` / `vueltas` / `sentido`.
+       *
+       * O sea que los datos venían en la respuesta desde siempre y nadie los
+       * miraba. Lo peor: el comentario del sondeo decía "el que las jugó ya
+       * lo vio en su pantalla" — y era falso. Sonaba a que estaba resuelto.
+       *
+       * Los textos salen de `MENSAJES`, la misma tabla que usa la mesa
+       * local. Escribirlos de nuevo acá serían dos redacciones de lo mismo
+       * que se despegan en cuanto alguien retoque una.
+       *
+       * Van DESPUÉS de los ataques, con la misma pausa: es el orden en que
+       * el servidor los resolvió y el mismo que usa la mesa local. Encimados
+       * con las cartas volando, el cartel explicaría algo mientras en
+       * pantalla todavía está pasando otra cosa. */
+      const espera = (r.resolved?.length ?? 0) * 1500;
+      const contar = (armar, hecho) => {
+        const [texto] = armar(hecho);
+        setTimeout(() => anunciar(texto), espera);
+      };
+      if (r.vueltas) {
+        contar(MENSAJES.mediaVuelta, { sentido: sentidoDe(r.sentido) });
+      }
+      if (r.saltos) {
+        contar(MENSAJES.salto, { saltos: r.saltos, mesa: juego.players.length });
+      }
     } catch (e) {
       notify(errorText(e), "error");
     }
