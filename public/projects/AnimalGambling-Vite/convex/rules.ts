@@ -272,9 +272,9 @@ export function cardHint(card: Card): string {
     case CARD.DOUBLE:
       return "Tiras con dos dados y se suman los dos";
     case CARD.PUNCH:
-      return `Le saca ${PUNCH_POINTS} puntos y no te los suma a vos`;
+      return `Le saca ${PUNCH_POINTS} puntos y no te los suma a ti`;
     case CARD.BEER:
-      return `Te lo tomás vos: ${BEER_TURNS} turnos con TU mesa borrosa, y se apilan`;
+      return `Te lo tomas tú: ${BEER_TURNS} turnos con TU mesa borrosa, y se apilan`;
     case CARD.SKIP:
       return "El siguiente se queda sin turno. Se acumulan, y la defensa no las tapa";
     case CARD.REVERSE:

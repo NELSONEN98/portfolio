@@ -254,7 +254,7 @@ export default function RoomChoiceScreen({
                     {ocupada ? <GatoLleno /> : <GatoVacio />}
                   </span>
                   <span className="room-seat-txt">
-                    {i === miLado ? "VOS" : ocupada ? "LISTO" : "LIBRE"}
+                    {i === miLado ? "TÚ" : ocupada ? "LISTO" : "LIBRE"}
                   </span>
                   {/* Quién manda la mesa, dicho en la silla y no en un cartel
                       aparte: es el único que puede arrancar, y el botón de
@@ -290,7 +290,7 @@ export default function RoomChoiceScreen({
           )}
           {anfitrion && sentados < MIN_PLAYERS && (
             <p className="room-hint">
-              Con {MIN_PLAYERS} ya podés arrancar.
+              Con {MIN_PLAYERS} ya puedes arrancar.
             </p>
           )}
           {/* Al invitado hay que decirle que la espera no depende de él, o

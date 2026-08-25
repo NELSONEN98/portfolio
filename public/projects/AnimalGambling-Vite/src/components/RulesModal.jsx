@@ -298,7 +298,7 @@ export default function RulesModal({ abierta, onClose }) {
                     muestra={<Carta tipo={CARD.BEER} />}
                     nombre={CARD_LABEL.beer}
                   >
-                    <b>Te lo tomás vos.</b> No va a la mesa ni le llega a
+                    <b>Te lo tomas tú.</b> No va a la mesa ni le llega a
                     nadie: se aplica al instante y durante {BEER_TURNS} turnos
                     ves <i>tu</i> mesa borrosa. Y <b>se apilan</b>: dos
                     copas nublan el doble, hasta {BEER_MAX_STACKS}.
@@ -334,7 +334,7 @@ export default function RulesModal({ abierta, onClose }) {
                     la tapa</b>: no te saca puntos, te saca el turno.{" "}
                     <b>Se acumulan</b>, y ahí está lo bueno — en una mesa de
                     cuatro, tres saltos dan la vuelta entera y{" "}
-                    <b>volvés a jugar vos</b>. En un duelo alcanza con una.
+                    <b>vuelves a jugar tú</b>. En un duelo alcanza con una.
                   </Item>
                   <Item
                     muestra={<Carta tipo={CARD.REVERSE} />}
@@ -374,7 +374,7 @@ export default function RulesModal({ abierta, onClose }) {
               titulo={<>A QUIÉN LE PEGAS <span className="rule-badge">× mesa de 3 y 4 ×</span></>}
             >
               Siempre <b>al de tu derecha</b>, y no se elige. En la pantalla
-              ése es el que está <b>justo encima tuyo</b>: estás sentado abajo
+              ése es el que está <b>justo encima de ti</b>: estás sentado abajo
               a la derecha, así que tu derecha sube por el borde. Tú tienes{" "}
               <b>una sola víctima</b> y <b>un solo atacante</b> — el de tu
               izquierda, el que juega justo antes. La <i>mira roja</i> sobre un

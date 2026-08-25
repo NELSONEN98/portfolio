@@ -122,7 +122,7 @@ const MENSAJES = {
      * Ahora `vuelveAJugar` la dice una vez, al lado de `seatAfter`, que es
      * quien mueve el turno de verdad. */
     vuelveAJugar(e.mesa, e.saltos)
-      ? "¡Otra vez vos! La vuelta entera saltada"
+      ? "¡Otra vez tú! La vuelta entera saltada"
       : e.saltos > 1
         ? `${e.saltos} se quedan sin turno`
         : "El siguiente se queda sin turno",
@@ -430,7 +430,7 @@ export default function App() {
     setActive(r.seat ?? 0);
 
     if (r.status === "finished" && !juego.finished) {
-      if (r.endedByAbandon) notify("Se levantaron de la mesa — ganás por abandono");
+      if (r.endedByAbandon) notify("Se levantaron de la mesa — ganas por abandono");
       setFinished(true);
     }
     /* `juego.finished` se lee adentro pero NO va acá: sólo protege de
@@ -654,7 +654,7 @@ export default function App() {
   const crearSala = async () => {
     try {
       await sala.crear();
-      notify("Mesa abierta — pasá el código a quien quieras");
+      notify("Mesa abierta — pasa el código a quien quieras");
     } catch (e) {
       notify(errorText(e), "error");
     }
