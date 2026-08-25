@@ -173,16 +173,28 @@ export default function RoomChoiceScreen({
      persona elija a quién mandárselo. Con número habría que pedirlo antes,
      que es exactamente el paso que este botón viene a evitar.
    *
-   * El código va en el texto ADEMÁS del enlace: si alguien abre el mensaje
-   * en un aparato donde el enlace no funciona —o lo lee por encima del
-   * hombro— todavía puede entrar a mano. El enlace es el atajo, no el único
-   * camino. */
+   * ►► La dirección va SOLA en su renglón. ◄◄
+   *
+   * WhatsApp no recibe enlaces: recibe texto plano y después lo peina
+   * buscando cosas que parezcan direcciones. Ese detector es literal, y
+   * cualquier cosa pegada a la dirección lo confunde — un `Entra directo:`
+   * delante, un punto detrás, un paréntesis alrededor. Cuando duda, no
+   * subraya nada y lo que llega es un renglón muerto que hay que copiar a
+   * mano: justo el trabajo que este botón vino a sacar del medio.
+   *
+   * Sola en su renglón, con un salto limpio a cada lado, no hay nada que
+   * confundir. Es la única forma que funciona en todas las versiones.
+   *
+   * El código sigue yendo en el texto ADEMÁS del enlace, pero DEBAJO: si el
+   * enlace no anda —o alguien lee el mensaje por encima del hombro— todavía
+   * se puede entrar a mano. Y va debajo justamente para no meterse entre el
+   * detector y la dirección. */
   const whatsapp = `https://wa.me/?text=${encodeURIComponent(
     `Te invito a una mesa de Animal Gambling.
 
-Entra directo: ${enlace}
+${enlace}
 
-O usa el código: ${codigo}`
+O entra con el código: ${codigo}`
   )}`;
 
   return (
