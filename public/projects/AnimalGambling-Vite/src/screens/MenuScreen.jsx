@@ -15,12 +15,16 @@ export const MENU_ITEMS = [
   { id: "online", label: "Mesa Online", listo: true, ruta: "room-choice", modo: "online", nota: "2 a 4" },
   { id: "cpu", label: "Vs. IA", listo: false, nota: "práctica" },
   { id: "local", label: "Duelo Local", listo: true, ruta: "select", modo: "local" },
-  /* `jugadores` es lo único que distingue una mesa de otra: el resto del
-     camino —elegir gato, repartir, tirar— es el mismo. La mesa de tres es
-     literalmente esta línea con un 3, que era lo que decía el comentario
-     que estaba acá y ahora está cumplido. */
-  { id: "local3", label: "Mesa de 3", listo: true, ruta: "select", modo: "local", jugadores: 3 },
-  { id: "local4", label: "Mesa de 4", listo: true, ruta: "select", modo: "local", jugadores: 4 },
+  /* ►► Acá estaban "Mesa de 3" y "Mesa de 4", locales. Se fueron del menú. ◄◄
+   *
+   * No se borró nada más que estas dos líneas, y es a propósito: el camino
+   * sigue entero. `jugadores` sigue viajando en el item, App.jsx sigue
+   * leyéndolo (`item.jugadores ?? 2`) y las mesas de tres y cuatro siguen
+   * dibujándose y jugándose enteras — por el online, que es de donde entran
+   * ahora. Devolverlas al menú es volver a poner estas dos líneas.
+   *
+   * Se sacaron del MENÚ, no del juego. Borrar el soporte para sacar dos
+   * botones habría sido tirar la mesa entera para no ver la silla. */
   { id: "skins", label: "Personalización", listo: false },
   { id: "shop", label: "Tienda", listo: false },
 ];
