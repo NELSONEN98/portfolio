@@ -279,9 +279,17 @@ function texturaCara(numero, fondo, punto, puntoUno) {
 
   if (numero === 1) {
     /* Los dos trazos salen del centro hacia las esquinas. `b` es cuánto se
-       alejan: más que el radio de un punto y bastante menos que media cara,
-       para que la X respire dentro del marco en vez de tocar los bordes. */
-    const b = S * 0.24;
+       alejan.
+     *
+     * ►► Ojo con lo que mide de verdad. ◄◄
+     *
+     * `b` no es el largo del brazo: es su proyección sobre cada eje. El
+     * brazo real mide `b * raíz(2)`, y encima las puntas redondeadas suman
+     * medio grosor de trazo en cada extremo. Con el trazo tan grueso como
+     * está, ese sobrante no es un detalle — es casi la mitad de lo que se
+     * ve. Bajar `b` a la mitad NO parte la X a la mitad; la deja bastante
+     * más grande que eso, porque las puntas siguen ocupando lo mismo. */
+    const b = S * 0.12;
     g.strokeStyle = color;
     /* Gruesa de verdad: casi el doble del diámetro de un punto normal. Es lo
        que la hace legible con el cubo girando. */
