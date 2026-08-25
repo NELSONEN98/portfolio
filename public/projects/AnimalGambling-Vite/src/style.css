@@ -540,7 +540,10 @@ body {
   /* El doble que antes. A la mitad de este tamaño la insignia se leía como
      una etiqueta de sistema pegada en un rincón; grande se lee como parte
      del dibujo, que es lo que es — la marca de quién se quedó con el gato. */
-  font-size: clamp(1.7rem, 4vmin, 2.7rem);
+  /* Cuatro veces el tamaño con el que nació. A escala de etiqueta se leía
+     como algo del sistema pegado en un rincón; a ésta se lee como parte del
+     dibujo —una marca estampada sobre el gato— que es lo que de verdad es. */
+  font-size: clamp(3.4rem, 8vmin, 5.4rem);
   letter-spacing: 0.06em;
   line-height: 1;
 
@@ -563,7 +566,17 @@ body {
    * distintas — una pegada, que le dibuja el borde, y una difusa, que lo
    * despega del fondo. Con una sola, el número desaparece contra las zonas
    * claras del gato. */
-  color: var(--c-gold);
+  /* ►► Gris, y no del color del jugador. ◄◄
+   *
+   * Llegó a estar en los cuatro colores de las fichas del tablero, para que
+   * el código de color fuera el mismo en las dos pantallas. Se va, y conviene
+   * saber qué se pierde: la insignia ya no dice quién es por su color, lo
+   * dice por su número — que a este tamaño se lee de lejos igual.
+   *
+   * Lo que gana es dejar de competir. A cuatro veces el tamaño original y a
+   * todo color, el número peleaba con el dibujo por ser lo primero que se
+   * mira; en gris se posa encima y deja al gato adelante. */
+  color: #b8b8b8;
   text-shadow:
     0 0.06em 0 rgba(0, 0, 0, 0.95),
     0 0 0.5em rgba(0, 0, 0, 0.85);
@@ -593,10 +606,10 @@ body {
  * paleta a esta insignia obligaría al jugador a aprender dos códigos para el
  * mismo dato; con estos, el que eligió el gato dorado es el mismo que después
  * ve su ficha dorada dando la vuelta. */
-.char-card.p1 .char-jugador { color: var(--c-gold); }
-.char-card.p2 .char-jugador { color: #fff; }
-.char-card.p3 .char-jugador { color: var(--toxic); }
-.char-card.p4 .char-jugador { color: var(--cyan); }
+/* Acá vivían los cuatro colores de jugador, los mismos de `.token.p1..p4`
+   del tablero. Se fueron con el gris. Las clases `p1..p4` siguen puestas en
+   la carta, así que devolverlos es volver a escribir estas cuatro líneas —
+   no hay que rearmar nada. */
 
 /* Personaje colors — behind the animated PNGs */
 .char-card[data-id="cat1"] .char-art {
