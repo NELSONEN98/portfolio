@@ -65,11 +65,41 @@ export default function SelectScreen({
             <div
               key={c.id}
               className={`char-card${marcado ? " selected" : ""}${marcado ? ` p${puesto + 1}` : ""}${ajeno ? " ajeno" : ""}`}
-              data-player={marcado ? `P${puesto + 1}` : undefined}
               aria-disabled={ajeno || undefined}
               onClick={() => !ajeno && onPick(i)}
             >
-              <div className="char-art boil" data-cat={c.id} role="img" aria-label={c.name} />
+              {/* ►► La insignia va FUERA de lo que se pone gris. ◄◄
+               *
+               * El gris del gato ajeno es un `filter: grayscale`, y un
+               * filtro alcanza a TODO lo que está dentro del elemento,
+               * pseudo-elementos incluidos. Colgada del dibujo, la insignia
+               * salía gris también — justo el dato que hay que poder leer
+               * sobre una carta apagada: el gris dice "no la podés tomar" y
+               * el número dice "porque es de ése".
+               *
+               * Por eso esta caja. El dibujo se filtra adentro; la insignia
+               * es hermana suya y queda a todo color. Y la caja se lleva
+               * además el `transform` que levanta la carta al elegirla, para
+               * que las dos suban juntas: anclada al dibujo, la insignia se
+               * quedaba abajo. */}
+              <div className="char-art-caja">
+                <div
+                  className="char-art boil"
+                  data-cat={c.id}
+                  role="img"
+                  aria-label={
+                    marcado ? `${c.name} — jugador ${puesto + 1}` : c.name
+                  }
+                />
+                {/* `aria-hidden` porque el dibujo de al lado ya dice el
+                    nombre Y el jugador en una sola frase; leerlo dos veces
+                    sería contarlo dos veces. */}
+                {marcado && (
+                  <span className="char-jugador" aria-hidden="true">
+                    P{puesto + 1}
+                  </span>
+                )}
+              </div>
               <div className="char-name">{c.name}</div>
               <div className="char-desc">{c.cond}</div>
             </div>

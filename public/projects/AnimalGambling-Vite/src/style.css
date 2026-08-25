@@ -475,16 +475,38 @@ body {
   cursor: pointer;
   transition: all 0.3s;
 }
+/* ►► La caja del dibujo, y por qué existe. ◄◄
+ *
+ * El gato ajeno se pone gris con `filter: grayscale`, y un filtro alcanza a
+ * todo lo que está DENTRO del elemento — pseudo-elementos incluidos. Con la
+ * insignia del jugador colgada del dibujo salía gris junto con él, que es
+ * justo el dato que hay que poder leer sobre una carta apagada.
+ *
+ * Esta caja separa las dos cosas: el dibujo se filtra adentro, la insignia
+ * es hermana suya y se salva. Y se lleva el `transform` que antes vivía en
+ * el dibujo, para que las dos suban juntas al elegir la carta: dejándolo
+ * abajo, la insignia se quedaba plantada mientras el gato se levantaba.
+ *
+ * El ancho se lo dicta el dibujo —no tiene medida propia— así que la
+ * esquina de la insignia es la esquina del gato y no la de la celda de la
+ * grilla, que es bastante más ancha. */
+.char-art-caja {
+  position: relative;
+  display: block;
+  width: fit-content;
+  transition: transform 0.3s;
+}
+
+.char-card:hover .char-art-caja { transform: translateY(-0.6rem); }
 .char-card:hover .char-art {
-  transform: translateY(-0.6rem);
   box-shadow:
     0 0 0 0.3rem var(--neon-amber),
     0 0 3rem rgba(245, 185, 66, 0.45),
     0 1.8rem 2.8rem rgba(0, 0, 0, 0.5);
 }
 
+.char-card.selected .char-art-caja { transform: translateY(-1rem) scale(1.05); }
 .char-card.selected .char-art {
-  transform: translateY(-1rem) scale(1.05);
   box-shadow:
     0 0 0 0.4rem var(--c-gold),
     0 0 4rem rgba(228, 167, 0, 0.8),
@@ -496,6 +518,85 @@ body {
   text-shadow: 0 0 1.2rem rgba(228, 167, 0, 0.6);
   font-weight: 700;
 }
+
+/* ►► QUIÉN ELIGIÓ ESTE GATO. ◄◄
+ *
+ * El gris ya decía "esto no lo podés tomar". Lo que no decía es de QUIÉN es
+ * — y en una mesa de cuatro eso es la mitad del dato: saber que el gato está
+ * ocupado no te dice si lo tomó el que juega antes que vos o el de enfrente.
+ *
+ * Es un elemento de verdad y no un `::after` con `attr()`, que fue el primer
+ * intento: un pseudo-elemento del dibujo cae DENTRO del `filter: grayscale`
+ * que apaga al gato ajeno, y salía gris junto con él. Como hermano del
+ * dibujo se salva — y eso importa más ahora que el número no tiene fondo:
+ * apagado sobre un gato apagado no quedaría nada que leer. Lleva
+ * `aria-hidden`: el `aria-label` del dibujo ya dice el nombre del gato y el
+ * jugador en una sola frase. */
+.char-jugador {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.8rem;
+  font-family: var(--display);
+  /* El doble que antes. A la mitad de este tamaño la insignia se leía como
+     una etiqueta de sistema pegada en un rincón; grande se lee como parte
+     del dibujo, que es lo que es — la marca de quién se quedó con el gato. */
+  font-size: clamp(1.7rem, 4vmin, 2.7rem);
+  letter-spacing: 0.06em;
+  line-height: 1;
+
+  /* ►► Sin fondo y sin canto: sólo el número y su sombra. ◄◄
+   *
+   * Antes era una pastilla —fondo del color del jugador, letra negra, aro
+   * oscuro alrededor— y esa forma competía con el dibujo en vez de posarse
+   * encima. Un rectángulo opaco sobre la cara del gato tapa justo lo que el
+   * jugador vino a mirar.
+   *
+   * El color del jugador se muda al TEXTO, así que el código de colores
+   * sigue siendo el mismo de las fichas del tablero; lo único que se va es
+   * la caja que lo contenía.
+   *
+   * ►► Y ahí la sombra deja de ser adorno. ◄◄
+   *
+   * Sin fondo, la legibilidad la sostiene ella sola: el dibujo de abajo es
+   * blanco con líneas negras sobre un fondo de color, o sea que el número
+   * puede caer sobre casi cualquier tono. Van dos capas y hacen cosas
+   * distintas — una pegada, que le dibuja el borde, y una difusa, que lo
+   * despega del fondo. Con una sola, el número desaparece contra las zonas
+   * claras del gato. */
+  color: var(--c-gold);
+  text-shadow:
+    0 0.06em 0 rgba(0, 0, 0, 0.95),
+    0 0 0.5em rgba(0, 0, 0, 0.85);
+
+  /* ►► Y un contorno, que no es un borde. ◄◄
+   *
+   * El borde rodea la CAJA; esto rodea la LETRA, así que el número sigue
+   * posado sobre el dibujo sin una forma propia alrededor.
+   *
+   * Hace falta y se ve exactamente dónde: el fondo de cada gato sale de
+   * `--c-gold`, `--c-blue`, `--c-green` y `--c-bronze`, y el color del
+   * jugador 1 es TAMBIÉN `--c-gold`. Dorado sobre dorado no lo salva
+   * ninguna sombra difusa — medido en pantalla, el número desaparecía. El
+   * contorno lo separa del fondo sea cual sea, y de paso le da el peso que
+   * a este tamaño necesita para no verse endeble.
+   *
+   * `paint-order` no es opcional: sin él el trazo se dibuja ENCIMA del
+   * relleno y se come la letra desde afuera hacia adentro, que a 0.055em
+   * sobre una tipografía ya gruesa la deja casi negra. */
+  -webkit-text-stroke: 0.055em rgba(0, 0, 0, 0.92);
+  paint-order: stroke fill;
+}
+
+/* ►► Los mismos cuatro colores que las fichas del tablero. ◄◄
+ *
+ * `.token.p1..p4` ya dice quién es quién sobre el camino. Inventarle otra
+ * paleta a esta insignia obligaría al jugador a aprender dos códigos para el
+ * mismo dato; con estos, el que eligió el gato dorado es el mismo que después
+ * ve su ficha dorada dando la vuelta. */
+.char-card.p1 .char-jugador { color: var(--c-gold); }
+.char-card.p2 .char-jugador { color: #fff; }
+.char-card.p3 .char-jugador { color: var(--toxic); }
+.char-card.p4 .char-jugador { color: var(--cyan); }
 
 /* Personaje colors — behind the animated PNGs */
 .char-card[data-id="cat1"] .char-art {
@@ -4597,12 +4698,29 @@ body {
 /* El gato que ya tomó otro jugador. Se apaga en vez de desaparecer: el
    jugador tiene que ver que existe y que no está disponible, no que la
    mesa tiene menos gatos de los que tiene. */
+/* ►► El gris va POR DENTRO, no sobre la carta entera. ◄◄
+ *
+ * Acá había `filter: grayscale(1); opacity: .42` sobre `.char-card`, y un
+ * filtro se aplica al elemento Y A TODO lo que lleva adentro — incluidos los
+ * pseudo-elementos. O sea que apagaba también la insignia con el número del
+ * jugador, que es justo el dato que hay que poder leer sobre una carta
+ * apagada: el gris dice "no la podés tomar" y el número dice "porque es de
+ * ése".
+ *
+ * Repartido entre las partes, cada una se apaga lo suyo y la insignia queda
+ * afuera, a todo color. */
 .char-card.ajeno {
   cursor: not-allowed;
-  filter: grayscale(1);
-  opacity: 0.42;
 }
-.char-card.ajeno:hover .char-art { transform: none; }
+.char-card.ajeno .char-art {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+.char-card.ajeno .char-name,
+.char-card.ajeno .char-desc {
+  opacity: 0.45;
+}
+.char-card.ajeno:hover .char-art-caja { transform: none; }
 
 /* ============================================
    FINAL — LA TABLA DE LOS QUE NO GANARON
