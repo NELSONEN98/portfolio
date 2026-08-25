@@ -526,8 +526,41 @@ export function seatAfter(
   sentido: Sentido = A_LA_DERECHA,
   saltos: number = 0
 ): number {
-  const pasos = (1 + Math.max(0, saltos)) % total;
+  /* ►► Los saltos NO pueden dar más de una vuelta. ◄◄
+   *
+   * Acá había `(1 + saltos) % total`, que es el anillo puro: dar la vuelta
+   * entera te deja donde empezaste y el paso siguiente sigue de largo.
+   * Geométricamente impecable y como juego, roto.
+   *
+   * Lo que producía, medido:
+   *
+   *   mesa 2 · 2 saltos  ->  el rival     IGUAL que no jugar ninguna
+   *   mesa 3 · 3 saltos  ->  el siguiente IGUAL que no jugar ninguna
+   *   mesa 4 · 4 saltos  ->  el siguiente IGUAL que no jugar ninguna
+   *
+   * Y en el duelo eso son DOS CARTAS, el caso más fácil de alcanzar. Peor
+   * todavía: con dos saltos el resultado es peor que con uno — con uno
+   * jugás de nuevo, con dos no. Gastar una carta de más te quitaba el
+   * premio, que es exactamente al revés de lo que cualquiera espera de
+   * acumular.
+   *
+   * Con el tope, el techo del efecto es "volvés a jugar vos" y los saltos
+   * que sobran se desperdician sin hacer daño. La regla queda en una frase:
+   * los saltos comen turnos hasta que la ronda vuelve a vos, y ahí se
+   * frenan. */
+  const pasos = Math.min(1 + Math.max(0, saltos), total);
   return (((seat + sentido * pasos) % total) + total) % total;
+}
+
+/* Si con esos saltos la ronda se cierra sobre el que los jugó.
+ *
+ * Vive acá y no en la pantalla porque es la MISMA cuenta que decide el
+ * asiento, y tenerla escrita dos veces fue justamente el otro bug: el
+ * cartel usaba `saltos % total` en vez de `(1 + saltos) % total` —olvidarse
+ * de que el turno avanza uno ADEMÁS de los saltos— y mentía en siete de
+ * nueve casos. */
+export function vuelveAJugar(total: number, saltos: number): boolean {
+  return Math.max(0, saltos) >= total - 1;
 }
 
 /* ►► A quién apuntan TUS cartas: al de tu derecha. Siempre. ◄◄

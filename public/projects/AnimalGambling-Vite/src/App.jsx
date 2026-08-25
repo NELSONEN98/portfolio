@@ -21,7 +21,7 @@ import RoomChoiceScreen from "./screens/RoomChoiceScreen";
 import SelectScreen from "./screens/SelectScreen";
 import VersusScreen from "./screens/VersusScreen";
 import GameOverScreen from "./screens/GameOverScreen";
-import { CARD, SQUARE, targetOf, A_LA_DERECHA } from "../convex/rules";
+import { CARD, SQUARE, targetOf, A_LA_DERECHA, vuelveAJugar } from "../convex/rules";
 import { sonarHecho, sonarCarta } from "./audio/hechos";
 import { celdaDe, celdaArriba } from "./mesa";
 import { ms } from "./theme";
@@ -106,10 +106,22 @@ const MENSAJES = {
     "cartel",
   ],
   salto: (e) => [
-    /* Cuando los saltos dan la vuelta entera, el turno vuelve al que los
-       jugó. Decir "saltás a 3" ahí sería contar el mecanismo en vez del
-       resultado, que es el que importa: jugás de nuevo. */
-    e.saltos % e.mesa === 0
+    /* Cuando la ronda se cierra sobre el que los jugó, lo que hay que decir
+       es el RESULTADO —jugás de nuevo— y no el mecanismo.
+     *
+     * ►► La condición sale de las reglas y no se escribe acá. ◄◄
+     *
+     * Acá decía `e.saltos % e.mesa === 0`, que es la cuenta equivocada: el
+     * turno avanza uno ADEMÁS de los saltos, así que la vuelta se cierra
+     * cuando `1 + saltos` llega al tamaño de la mesa, no cuando lo hacen los
+     * saltos solos. Ese olvido hacía que el cartel mintiera en SIETE de nueve
+     * casos — en una mesa de dos con un salto decía "el siguiente se queda
+     * sin turno" cuando el siguiente eras vos.
+     *
+     * Es el mismo error de siempre: la misma regla escrita en dos lugares.
+     * Ahora `vuelveAJugar` la dice una vez, al lado de `seatAfter`, que es
+     * quien mueve el turno de verdad. */
+    vuelveAJugar(e.mesa, e.saltos)
       ? "¡Otra vez vos! La vuelta entera saltada"
       : e.saltos > 1
         ? `${e.saltos} se quedan sin turno`
