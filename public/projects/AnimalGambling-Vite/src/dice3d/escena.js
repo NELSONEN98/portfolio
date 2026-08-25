@@ -254,21 +254,57 @@ function texturaCara(numero, fondo, punto, puntoUno) {
     6: [[p, p], [q, p], [p, m], [q, m], [p, q], [q, q]],
   }[numero];
 
-  /* ►► El as en rojo. ◄◄
+  /* ►► El as no es un punto: es una X. ◄◄
+   *
+   * Y no es decoración. El 1 dejó de mover la ficha —te quema el turno y te
+   * deja donde estabas— así que ya no es "el número más chico", es la única
+   * cara que NO es un número: es una cruz, un cero, una tirada anulada. Un
+   * punto rojo seguía diciendo "uno" y había que saberse la regla aparte;
+   * una X dice lo que hace sin que nadie la explique.
+   *
+   * Por eso también es gruesa y grande. Este dado se mira rodando, chico y
+   * en perspectiva, desde el otro lado de la mesa: un trazo fino se pierde
+   * en el sombreado del cubo y a esa distancia una X flaca y un punto son
+   * la misma mancha.
    *
    * La condición mira el NÚMERO y no la cantidad de puntos, aunque acá sean
-   * lo mismo. Son dos cosas distintas que hoy coinciden: el uno es rojo
-   * porque es el uno —la tirada que te quema el turno— y no porque tenga un
-   * punto solo. Escrito sobre `puntos.length === 1` diría lo otro, y sería
-   * una trampa para el día que alguien dibuje una cara distinta.
+   * lo mismo. Son dos cosas distintas que hoy coinciden: el uno lleva X
+   * porque es el uno, no porque tenga un punto solo. Escrito sobre
+   * `puntos.length === 1` diría lo otro, y sería una trampa para el día que
+   * alguien dibuje una cara distinta.
    *
    * El respaldo a `punto` deja la firma vieja funcionando: quien llame sin
    * el cuarto argumento obtiene el dado de siempre, todo del mismo color. */
-  g.fillStyle = numero === 1 ? puntoUno ?? punto : punto;
-  for (const [x, y] of puntos) {
+  const color = numero === 1 ? puntoUno ?? punto : punto;
+
+  if (numero === 1) {
+    /* Los dos trazos salen del centro hacia las esquinas. `b` es cuánto se
+       alejan: más que el radio de un punto y bastante menos que media cara,
+       para que la X respire dentro del marco en vez de tocar los bordes. */
+    const b = S * 0.24;
+    g.strokeStyle = color;
+    /* Gruesa de verdad: casi el doble del diámetro de un punto normal. Es lo
+       que la hace legible con el cubo girando. */
+    g.lineWidth = S * 0.115;
+    /* Las puntas redondeadas y la unión redonda son lo que evita que el
+       cruce se vea como cuatro palitos sueltos: sin esto, en el centro
+       quedan cuatro esquinas cuadradas pisándose y el trazo se ve sucio
+       justo donde más grueso es. */
+    g.lineCap = "round";
+    g.lineJoin = "round";
     g.beginPath();
-    g.arc(x, y, r, 0, Math.PI * 2);
-    g.fill();
+    g.moveTo(m - b, m - b);
+    g.lineTo(m + b, m + b);
+    g.moveTo(m + b, m - b);
+    g.lineTo(m - b, m + b);
+    g.stroke();
+  } else {
+    g.fillStyle = color;
+    for (const [x, y] of puntos) {
+      g.beginPath();
+      g.arc(x, y, r, 0, Math.PI * 2);
+      g.fill();
+    }
   }
 
   const tex = new THREE.CanvasTexture(c);
