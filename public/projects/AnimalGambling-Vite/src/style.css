@@ -3884,16 +3884,70 @@ body {
 /* El que tira: cuadrado con las esquinas bien redondeadas, como un dado
    visto de frente. Es el que más se aprieta, así que es el más grande. */
 .btn-accion.tirar {
+  /* ►► El color del botón, en seis variables y no escrito a mano. ◄◄
+   *
+   * El oro estaba repetido en CINCO lugares: el degradado, el canto, y
+   * adentro de los dos keyframes más el respaldo sin movimiento. Repetido
+   * así, teñirlo de morado obligaba a duplicar las dos animaciones enteras
+   * —y dos copias de un keyframe son una que se va a quedar vieja.
+   *
+   * Puestas como variables, la maldición redefine SEIS VALORES y el latido,
+   * el destello del dedo apoyado y el resplandor sin movimiento se van con
+   * ellas sin que ninguna animación se escriba dos veces. Es lo mismo que ya
+   * hacen las bombillas de la mesa y el camino más abajo. */
+  --tirar-claro: #ffc93d;
+  --tirar-medio: var(--c-gold);
+  --tirar-oscuro: #b98700;
+  /* El canto: el grosor de la tecla vista de costado. */
+  --tirar-canto-color: #6d5000;
+  /* Los dos extremos del latido. Van en `r, g, b` sueltos porque cada uso
+     les pone su propia opacidad. */
+  --tirar-halo: 228, 167, 0;
+  --tirar-halo-vivo: 255, 201, 61;
+
   width: var(--lado);
   height: var(--lado);
   border-radius: 28%;
   color: #fff;
-  background: linear-gradient(180deg, #ffc93d 0%, var(--c-gold) 46%, #b98700 100%);
+  background: linear-gradient(
+    180deg,
+    var(--tirar-claro) 0%,
+    var(--tirar-medio) 46%,
+    var(--tirar-oscuro) 100%
+  );
   box-shadow:
     inset 0 3px 0 rgba(255, 255, 255, 0.6),
     inset 0 -4px 0 rgba(0, 0, 0, 0.22),
-    0 var(--canto) 0 #6d5000,
+    0 var(--canto) 0 var(--tirar-canto-color),
     0 calc(var(--canto) + 0.5rem) 1rem rgba(0, 0, 0, 0.55);
+}
+
+/* ►► MALDITO: la tecla se pone morada, y con ella todo lo que hace. ◄◄
+ *
+ * La maldición ya tiñe la mesa y el camino; la tecla era lo único que
+ * seguía dorado, y era justo lo que el jugador está mirando cuando decide
+ * si tira. Un botón de oro sobre una mesa morada leía "todo normal" en el
+ * único momento en que nada lo está: con la maldición encima el dado sólo
+ * llega a cuatro y los bonus te cobran en vez de pagarte.
+ *
+ * No se redefine ni un keyframe. Se cambian los seis valores y el latido, el
+ * destello y el respaldo sin movimiento salen morados solos — porque leen
+ * estas variables y no un color escrito adentro.
+ *
+ * Los morados no son nuevos: son los mismos de las bombillas y del aro del
+ * camino, unos renglones más abajo. La condena tiene UN color en toda la
+ * pantalla, no seis parecidos.
+ *
+ * `.versus-screen.maldito` y no una clase en el botón: la señal ya existe y
+ * ya la calcula la pantalla —`players[ladoMano].curseTurns > 0`—, así que no
+ * hay ningún estado nuevo que mantener sincronizado. */
+.versus-screen.maldito .btn-accion.tirar {
+  --tirar-claro: #d6b3ff;
+  --tirar-medio: #a55ff0;
+  --tirar-oscuro: #6b28b8;
+  --tirar-canto-color: #3d1868;
+  --tirar-halo: 150, 80, 235;
+  --tirar-halo-vivo: 205, 155, 255;
 }
 
 /* El que planta: círculo blanco con la mano de alto, y un 40% más chico que
@@ -3943,17 +3997,17 @@ body {
     box-shadow:
       inset 0 3px 0 rgba(255, 255, 255, 0.6),
       inset 0 -4px 0 rgba(0, 0, 0, 0.22),
-      0 var(--canto) 0 #6d5000,
+      0 var(--canto) 0 var(--tirar-canto-color),
       0 calc(var(--canto) + 0.5rem) 1rem rgba(0, 0, 0, 0.55),
-      0 0 1.1rem 0.05rem rgba(228, 167, 0, 0.5);
+      0 0 1.1rem 0.05rem rgba(var(--tirar-halo), 0.5);
   }
   50% {
     box-shadow:
       inset 0 3px 0 rgba(255, 255, 255, 0.78),
       inset 0 -4px 0 rgba(0, 0, 0, 0.22),
-      0 var(--canto) 0 #6d5000,
+      0 var(--canto) 0 var(--tirar-canto-color),
       0 calc(var(--canto) + 0.5rem) 1rem rgba(0, 0, 0, 0.55),
-      0 0 2.6rem 0.45rem rgba(255, 201, 61, 0.9);
+      0 0 2.6rem 0.45rem rgba(var(--tirar-halo-vivo), 0.9);
   }
 }
 
@@ -3965,9 +4019,9 @@ body {
     box-shadow:
       inset 0 3px 0 rgba(255, 255, 255, 0.6),
       inset 0 -4px 0 rgba(0, 0, 0, 0.22),
-      0 var(--canto) 0 #6d5000,
+      0 var(--canto) 0 var(--tirar-canto-color),
       0 calc(var(--canto) + 0.5rem) 1rem rgba(0, 0, 0, 0.55),
-      0 0 1.8rem 0.25rem rgba(228, 167, 0, 0.7);
+      0 0 1.8rem 0.25rem rgba(var(--tirar-halo), 0.7);
   }
 }
 
@@ -3995,14 +4049,14 @@ body {
       inset 0 3px 0 rgba(255, 255, 255, 0.45),
       inset 0 -2px 0 rgba(0, 0, 0, 0.3),
       0 2px 4px rgba(0, 0, 0, 0.5),
-      0 0 0.9rem 0 rgba(228, 167, 0, 0.55);
+      0 0 0.9rem 0 rgba(var(--tirar-halo), 0.55);
   }
   50% {
     box-shadow:
       inset 0 3px 0 rgba(255, 255, 255, 0.7),
       inset 0 -2px 0 rgba(0, 0, 0, 0.3),
       0 2px 4px rgba(0, 0, 0, 0.5),
-      0 0 2.2rem 0.35rem rgba(255, 201, 61, 0.95);
+      0 0 2.2rem 0.35rem rgba(var(--tirar-halo-vivo), 0.95);
   }
 }
 
@@ -4031,7 +4085,7 @@ body {
      recibió el toque, y eso no es decoración. */
   .btn-accion:not(:disabled):active { animation: none; }
   .btn-accion.tirar:not(:disabled):active {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 1.6rem 0.2rem rgba(228, 167, 0, 0.8);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 1.6rem 0.2rem rgba(var(--tirar-halo), 0.8);
   }
   .btn-accion.plantarse:not(:disabled):active {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 1.6rem 0.2rem rgba(255, 255, 255, 0.8);
