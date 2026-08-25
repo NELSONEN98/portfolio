@@ -117,6 +117,80 @@ export default defineSchema({
     // Para que el cron de limpieza no recorra la tabla entera.
     .index("by_expiresAt", ["expiresAt"]),
 
+  /* ►► LO QUE DEJAN LOS QUE PROBARON EL JUEGO. ◄◄
+   *
+   * Es la única tabla que NO es de una partida. Todo lo demás acá vive
+   * treinta minutos y se borra solo; esto se guarda para leerlo después, que
+   * es justamente para lo que sirve.
+   *
+   * ►► Sólo la calificación es obligatoria. ◄◄
+   *
+   * Y no es una preferencia de estilo: es lo que decide cuánta gente
+   * responde. Un formulario donde todo es obligatorio se abandona a la
+   * mitad, y el que abandona no deja NADA — ni siquiera la estrella que ya
+   * había tocado. Con un solo campo pedido, quien tiene diez segundos deja
+   * un número y quien tiene ganas escribe tres párrafos, y las dos cosas
+   * sirven.
+   *
+   * Por eso el nombre y el correo van optional aunque los pida el
+   * formulario: pedirle el correo a alguien que sólo quería decir "estuvo
+   * bueno" es cambiar una respuesta por un dato de contacto que además no
+   * necesitamos.
+   *
+   * ►► El schema NO valida rangos ni largos. ◄◄
+   *
+   * Convex valida FORMA —que `rating` sea un número—, no contenido: acepta
+   * un 47, un −3 y un comentario de diez megas sin chistar. Eso se controla
+   * en la mutación que escriba acá, que todavía no existe. Dicho de otra
+   * forma: esta tabla queda lista para guardar, pero hasta que haya una
+   * mutación con sus topes no se guarda nada.
+   */
+  feedback: defineTable({
+    /* Apodo. Optional Y capaz de ser null: optional cubre a quien no manda
+       el campo, null a quien lo manda vacío. Sin la unión, un formulario
+       que envía `name: null` en vez de omitirlo es rechazado en tiempo de
+       ejecución — el mismo tipo de error que rompió `createRoom` con
+       `beerStacks` y que no agarra ni el build ni un typecheck. */
+    name: v.optional(v.union(v.null(), v.string())),
+    /* Para responderle a quien quiera respuesta. Es un dato personal y es
+       lo único de esta tabla que lo es: si algún día esto se muestra en
+       algún lado, este campo se queda afuera. */
+    email: v.optional(v.union(v.null(), v.string())),
+
+    /* La calificación general, y el único campo pedido de verdad.
+       Va como número —no como "bueno"/"malo"— para poder promediarlo. */
+    rating: v.number(),
+
+    /* Las tres preguntas abiertas, con el nombre de lo que preguntan y no
+       `campo1`/`campo2`: dentro de seis meses, leyendo la base sin el
+       formulario al lado, `gusto` se entiende y `campo1` no. */
+    gusto: v.optional(v.union(v.null(), v.string())),
+    mejoraria: v.optional(v.union(v.null(), v.string())),
+    comentario: v.optional(v.union(v.null(), v.string())),
+
+    /* ►► Contexto que el formulario no pregunta. ◄◄
+     *
+     * "Los controles se traban" es un reporte inservible sin saber en qué
+     * mesa jugó y con qué versión. Preguntárselo al jugador sería sumar
+     * campos a un formulario que ya tiene seis; el cliente lo sabe y lo
+     * puede mandar solo.
+     *
+     * Optional los tres: un formulario que se abra desde fuera de una
+     * partida no tiene ninguno de estos datos y tiene que poder enviar
+     * igual. */
+    sessionId: v.optional(v.string()),
+    // De cuántos era la mesa donde jugó: 2, 3 o 4.
+    mesa: v.optional(v.number()),
+    // Qué versión del juego probó. Sin esto, un bug arreglado hace un mes
+    // vuelve a leerse como un bug abierto.
+    version: v.optional(v.string()),
+
+    createdAt: v.number(),
+  })
+    /* Para leerlas de la más nueva a la más vieja sin recorrer la tabla
+       entera. Es la única forma en que se van a leer. */
+    .index("by_createdAt", ["createdAt"]),
+
   gameEvents: defineTable({
     roomId: v.string(),
     sessionId: v.string(),
