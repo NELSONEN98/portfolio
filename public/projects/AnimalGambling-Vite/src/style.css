@@ -5981,10 +5981,18 @@ body {
   max-height: 88vh;
   max-height: 88dvh;
   width: min(62rem, 90vw);
-  background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.75)),
-    repeating-linear-gradient(45deg, rgba(245, 185, 66, 0.025) 0, rgba(245, 185, 66, 0.025) 2px, transparent 2px, transparent 8px),
-    var(--felt-1);
+  /* ►► Negro sólido, y se van tres capas. ◄◄
+   *
+   * Había un degradado oscuro encima de una trama diagonal ámbar encima del
+   * fieltro de la mesa. Las tres juntas daban un verde apagado con rayas que
+   * casi no se veían — resto del diseño viejo, cuando la ventana quería
+   * parecerse al paño.
+   *
+   * Con la marquesina encendida alrededor ya no hace falta: lo que ubica a
+   * la ventana como parte del casino son las luces del marco, no la textura
+   * del fondo. Y en negro plano el texto de las reglas gana todo el
+   * contraste, que es lo único que esta ventana tiene que hacer bien. */
+  background: #000;
   /* ►► Sin el filo ámbar ni su resplandor. ◄◄
    *
    * Era un borde de un píxel con dos halos gigantes detrás, del diseño
