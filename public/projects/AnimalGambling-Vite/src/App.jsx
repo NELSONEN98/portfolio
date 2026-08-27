@@ -6,6 +6,7 @@ import { useToasts, errorText } from "./hooks/useToasts";
 import { useAlerta } from "./hooks/useAlerta";
 import { useOnlineRoom } from "./hooks/useOnlineRoom";
 import { ROSTER, charFromCatId, warmRosterFrames } from "./roster";
+import { warmEmojis } from "./emojis";
 import { getRoomId } from "./storage";
 
 /* ►► El código de sala que vino en el enlace, si vino alguno. ◄◄
@@ -458,8 +459,16 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (document.readyState === "complete") warmRosterFrames();
-    else window.addEventListener("load", warmRosterFrames, { once: true });
+    /* Los emojis van con los gatos: mismo problema —aparecen sin aviso y
+       pesan— y misma solución. Se calientan los dos juntos, en el mismo
+       momento, que es cuando la página terminó de cargar y todavía faltan
+       dos pantallas para que hagan falta. */
+    const calentar = () => {
+      warmRosterFrames();
+      warmEmojis();
+    };
+    if (document.readyState === "complete") calentar();
+    else window.addEventListener("load", calentar, { once: true });
   }, []);
 
   /* Los hechos del motor se vacían apenas se muestran, o se repetirían en

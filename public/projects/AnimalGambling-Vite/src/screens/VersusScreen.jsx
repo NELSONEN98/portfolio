@@ -112,6 +112,43 @@ export default function VersusScreen({
     return () => clearTimeout(t);
   }, [puedeActuar, active]);
 
+  /* ►► QUÉ EMOJI ESTÁ MOSTRANDO CADA ASIENTO. ◄◄
+   *
+   * Un objeto por asiento y no uno solo: en una mesa de cuatro puede haber
+   * dos emojis en el aire al mismo tiempo, y con un único lugar el segundo
+   * le pisaría el suyo al primero.
+   *
+   * Vive acá y no adentro del peleador aunque hoy sólo lo escriba el propio
+   * jugador. Es el seam para cuando viajen por la red: ahí lo único que
+   * cambia es de dónde sale este objeto —del sondeo en vez del toque— y ni
+   * el peleador ni el anillo se enteran.
+   *
+   * `key` es lo que permite repetir: dos veces el mismo emoji seguido tienen
+   * que volver a animarse, y comparando sólo el `id` la segunda vez no
+   * cambiaría nada. Mismo recurso que el confeti y el golpe. */
+  const [emotes, setEmotes] = useState({});
+  const relojes = useRef({});
+
+  /* Los temporizadores se limpian al desmontar: si la partida termina con un
+     emoji en el aire, el que iba a borrarlo escribiría estado sobre una
+     pantalla que ya no está. */
+  useEffect(() => {
+    const vivos = relojes.current;
+    return () => Object.values(vivos).forEach(clearTimeout);
+  }, []);
+
+  const tirarEmoji = useCallback((asiento, id) => {
+    setEmotes((prev) => ({ ...prev, [asiento]: { id, key: Math.random() } }));
+    clearTimeout(relojes.current[asiento]);
+    relojes.current[asiento] = setTimeout(() => {
+      setEmotes((prev) => {
+        const s = { ...prev };
+        delete s[asiento];
+        return s;
+      });
+    }, ms("emoji.dura"));
+  }, []);
+
   const pendientes = players.flatMap((p) => p?.pendingCards ?? []);
 
   /* De quién son las cartas que se muestran: en online siempre tuyas, en
@@ -256,6 +293,12 @@ export default function VersusScreen({
             impacto={impacto?.lado === i ? impacto.tipo : null}
             defensas={ladoMano === i ? defensas : null}
             festejo={festejos[i] ?? 0}
+            /* Sólo el propio: tirar un emoji desde la cara de otro sería
+               hablar por él. En la mesa local "el propio" es el que tiene el
+               turno, que es quien está con el aparato en la mano. */
+            puedeEmotear={ladoMano === i && playing}
+            emote={emotes[i] ?? null}
+            onEmote={(id) => tirarEmoji(i, id)}
             /* La mira sólo mientras se pueda hacer algo con ella: apuntada
                durante el turno ajeno contaría una decisión que no es tuya, y
                en una mesa de cuatro habría tres miras encendidas a la vez.

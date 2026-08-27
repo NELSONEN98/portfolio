@@ -1,3 +1,8 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import EmojiAnillo from "./EmojiAnillo";
+import { emojiPorId } from "../emojis";
+import { ms } from "../theme";
 import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
 import RivalHand from "./RivalHand";
 import { HeartShieldIcon } from "./icons";
@@ -32,9 +37,71 @@ export default function Fighter({
   festejo = 0,
   /* Si a este peleador apuntan las cartas del que está jugando. */
   objetivo = false,
+  /* Sólo el personaje del propio jugador abre el abanico. Los de los rivales
+     se dibujan igual pero no responden al gesto: tirar un emoji desde la
+     cara de otro sería hablar por él. */
+  puedeEmotear = false,
+  /* El emoji que este peleador está mostrando ahora, o null. Viene de
+     ARRIBA y no se guarda acá: el día que los emojis viajen por la red, lo
+     que cambia es de dónde sale este dato, y este componente no se entera. */
+  emote = null,
+  onEmote,
 }) {
   const score = useAnimatedNumber(jugador?.score ?? 0);
   const current = useAnimatedNumber(jugador?.current ?? 0);
+
+  /* ►► SOSTENER PARA ABRIR. ◄◄
+   *
+   * Un temporizador que arranca al apoyar y se cancela con cualquier cosa
+   * que interrumpa el gesto: soltar, salirse del personaje, o que el sistema
+   * se lleve el puntero (un gesto del navegador, una llamada entrante).
+   *
+   * Se cancela en el `pointerup` TAMBIÉN cuando ya se abrió, y ahí está el
+   * detalle: si el jugador suelta sin haber elegido, el anillo se cierra.
+   * Un abanico que queda abierto tapando media mesa hasta que alguien lo
+   * toque de nuevo es peor que no tenerlo. */
+  const [anillo, setAnillo] = useState(false);
+  const espera = useRef(null);
+
+  const cancelarEspera = useCallback(() => {
+    clearTimeout(espera.current);
+    espera.current = null;
+  }, []);
+
+  useEffect(() => cancelarEspera, [cancelarEspera]);
+
+  /* ►► Abierto se DERIVA, no se sincroniza. ◄◄
+   *
+   * Acá había un efecto que cerraba el anillo cuando el peleador dejaba de
+   * ser tuyo —cambia el turno en la mesa local— y eso es escribir estado
+   * desde un efecto: encadena pintados y React lo marca como error.
+   *
+   * No hace falta ninguno: un anillo sobre un personaje que ya no es tuyo
+   * simplemente no se dibuja. La pregunta "¿está abierto?" es "lo abrí Y
+   * sigue siendo mío", y eso es una cuenta, no un estado que mantener al
+   * día. Es lo mismo que pasó con la barra del reloj: el estado sobraba. */
+  const anilloAbierto = anillo && puedeEmotear;
+
+  const alApoyar = (ev) => {
+    if (!puedeEmotear || anilloAbierto) return;
+    /* Sólo el botón principal: un clic derecho abre el menú del navegador y
+       el anillo quedaría abierto debajo. */
+    if (ev.button != null && ev.button !== 0) return;
+    cancelarEspera();
+    espera.current = setTimeout(() => setAnillo(true), ms("emoji.sostener"));
+  };
+
+  const alSoltar = () => {
+    cancelarEspera();
+    setAnillo(false);
+  };
+
+  const elegir = (id) => {
+    cancelarEspera();
+    setAnillo(false);
+    onEmote?.(id);
+  };
+
 
   /* ►► Volcar el acumulado NO es una noticia. ◄◄
    *
@@ -77,9 +144,36 @@ export default function Fighter({
     .filter(Boolean)
     .join(" ");
 
+  const dibujoEmote = emote ? emojiPorId(emote.id) : null;
+
   return (
     <div className={clases}>
-      <div className="fighter-frame">
+      <div
+        className={`fighter-frame${puedeEmotear ? " emoteable" : ""}${anilloAbierto ? " con-anillo" : ""}`}
+        onPointerDown={alApoyar}
+        onPointerUp={alSoltar}
+        onPointerLeave={alSoltar}
+        onPointerCancel={alSoltar}
+        /* El menú contextual del navegador aparece con el MISMO gesto en
+           teléfono —mantener apretado— y taparía el anillo justo cuando se
+           abre. */
+        onContextMenu={(ev) => puedeEmotear && ev.preventDefault()}
+      >
+        <EmojiAnillo abierto={anilloAbierto} onElegir={elegir} />
+
+        {/* El emoji tirado, encima del personaje. La clave lo reinicia: dos
+            veces el mismo emoji seguido tienen que volver a animarse, y sin
+            algo que cambie React reusa el nodo y la segunda no se ve. Es el
+            mismo recurso del confeti y del golpe. */}
+        {dibujoEmote && (
+          <span
+            key={emote.key}
+            className="fighter-emote"
+            style={{ backgroundImage: `url("${dibujoEmote.img}")` }}
+            aria-label={dibujoEmote.label}
+            role="img"
+          />
+        )}
         <div className="fighter-art boil" data-cat={jugador.char.id}>
           {/* ►► La cara de dolor, encima del boil. ◄◄
            *

@@ -443,6 +443,47 @@ export const MOTION = {
     fichaEntra: { ms: 400, ease: EASE.salida, keyframes: "chip-in", el: ".chip" },
   },
 
+  // ─── LOS EMOJIS ──────────────────────────────────────────────────────
+  emoji: {
+    /* ►► Cuánto hay que sostener para que se abra el abanico. ◄◄
+     *
+     * No es una animación, es un plazo, y va acá por lo mismo que
+     * `red.sondeo` y `boton.confirmar`: es un tiempo que el jugador PERCIBE.
+     *
+     * 320ms es el punto donde un toque deja de ser un toque. Más corto y el
+     * abanico se abre solo al apoyar el dedo sobre el personaje sin querer;
+     * más largo y el jugador suelta antes de que pase nada y concluye que no
+     * se puede. Es el mismo rango que usan los sistemas operativos para su
+     * menú contextual, y eso no es casualidad: el gesto es el mismo y ya
+     * está aprendido. */
+    sostener: {
+      ms: 320,
+      el: ".fighter-frame",
+      nota: "Sostener el personaje abre el abanico de emojis.",
+    },
+    /* La apertura del abanico. Corta porque responde a un gesto que ya
+       terminó: el jugador soltó la espera y quiere ver las opciones YA. */
+    abrir: {
+      ms: 220,
+      ease: EASE.salida,
+      keyframes: "emoji-entra",
+      el: ".emoji-opcion",
+    },
+    /* Cuánto queda el emoji elegido sobre el personaje.
+     *
+     * Largo a propósito. Es un mensaje para los demás de la mesa, y los
+     * demás no están mirando tu personaje cuando lo tirás — están mirando el
+     * dado o sus cartas. Un segundo y medio no alcanza para que alguien
+     * levante la vista; dos y medio sí, y todavía no llega a estorbar el
+     * turno. */
+    dura: {
+      ms: 2500,
+      ease: EASE.suave,
+      keyframes: "emoji-tirado",
+      el: ".fighter-emote",
+    },
+  },
+
   // ─── EL RELOJ DEL TURNO ──────────────────────────────────────────────
   turno: {
     /* ►► Diez segundos para decidir, y el mismo número para las dos cosas. ◄◄

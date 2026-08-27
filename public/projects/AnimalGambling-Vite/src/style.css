@@ -2013,6 +2013,180 @@ body {
   outline-offset: 3px;
 }
 
+/* ============================================
+   LOS EMOJIS
+   ============================================ */
+
+/* ►► El abanico rodea al personaje, menos por la derecha. ◄◄
+ *
+ * El personaje del jugador va clavado al borde derecho de la pantalla
+ * —`justify-self: end` en su línea— así que ese cuarto está literalmente
+ * fuera. El abanico barre la otra media vuelta: arriba, izquierda y abajo.
+ *
+ * El radio sale del alto del peleador y no de un número fijo: el personaje
+ * mide distinto en cada mesa, y con un radio fijo el abanico quedaría
+ * encima del gato en la mesa de cuatro y flotando lejos en la de dos. */
+.emoji-anillo {
+  position: absolute;
+  /* El centro del anillo es el centro del marco. */
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  /* ►► Cerca y grandes, no lejos y chicos. ◄◄
+   *
+   * El primer intento los puso a 0.62 del alto del personaje y a 44px de
+   * lado: quedaban flotando más lejos que el ancho del propio gato, y a ese
+   * tamaño no se distinguían entre sí. Y ahí está el punto — estos no son
+   * emojis de sistema, son dibujos con cara, bigotes y expresión. Un ícono
+   * abstracto se lee a 24px; una cara dibujada necesita el doble.
+   *
+   * Más cerca además reduce el recorrido del dedo, que ya está apoyado
+   * sobre el personaje cuando el abanico se abre: elegir tiene que ser
+   * arrastrar un poco, no cruzar media pantalla. */
+  --emoji-radio: calc(var(--fighter-h) * 0.52);
+  --emoji-lado: clamp(3.4rem, 9.5vmin, 6rem);
+  /* ►► No son círculos: son 5:6, como los dibujos. ◄◄
+   *
+   * Estos emojis no son íconos, son las mismas caras dibujadas que los
+   * gatos, en 420x480. Metidos en un círculo, `contain` los deja con aire
+   * arriba y abajo y el dibujo termina ocupando dos tercios del botón: se
+   * ven más chicos de lo que el botón mide.
+   *
+   * Con la proporción del dibujo el botón se llena entero, y de paso se
+   * lee como pariente de las tarjetas de personaje, que usan ese mismo 5:6.
+   * Un círculo habría dicho "control de interfaz"; esto dice "es un gato
+   * más". */
+  --emoji-alto: calc(var(--emoji-lado) * 1.2);
+}
+
+.emoji-opcion {
+  position: absolute;
+  /* Centrado en el marco, y de ahí sale hacia su ángulo. La mitad de su
+     propio lado se descuenta para que lo que gire sea su CENTRO: sin eso
+     los de arriba y los de abajo quedan corridos medio emoji. */
+  left: calc(50% - var(--emoji-lado) / 2);
+  top: calc(50% - var(--emoji-alto) / 2);
+  width: var(--emoji-lado);
+  height: var(--emoji-alto);
+  transform: translate(
+    calc(var(--x) * var(--emoji-radio)),
+    calc(var(--y) * var(--emoji-radio))
+  );
+
+  padding: 0;
+  border: 0.16rem solid rgba(228, 167, 0, 0.75);
+  border-radius: 22%;
+  background: rgba(0, 0, 0, 0.82);
+  overflow: hidden;
+  box-shadow: 0 0.3rem 1rem rgba(0, 0, 0, 0.75);
+  cursor: pointer;
+  /* El anillo entero ignora los toques salvo sus botones: así el hueco
+     entre emojis no le roba el gesto al personaje que hay debajo. */
+  pointer-events: auto;
+  /* Sin esto, sostener sobre un emoji en el teléfono selecciona el dibujo
+     y arrastra la imagen en vez de elegirla. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  animation: emoji-entra var(--dur-emoji-abrir) var(--ease-emoji-abrir) backwards;
+  animation-delay: var(--retraso);
+}
+
+.emoji-opcion img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* `cover` y no `contain`: el botón ya tiene la proporción del dibujo, así
+     que no hay nada que recortar — y si un emoji futuro viniera con otra
+     medida, es mejor que llene el botón y pierda un filo a que quede
+     flotando con dos franjas negras. */
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.emoji-opcion:hover,
+.emoji-opcion:focus-visible {
+  border-color: var(--c-gold);
+  box-shadow: 0 0 1.2rem rgba(228, 167, 0, 0.7);
+  outline: none;
+}
+
+/* Nace en el centro del personaje y sale hacia su lugar: el abanico se
+   ABRE, no aparece. Es la diferencia entre entender de dónde salieron los
+   emojis y encontrarlos ya puestos. */
+@keyframes emoji-entra {
+  from {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3);
+  }
+}
+
+/* ►► El emoji elegido, sobre el personaje. ◄◄
+ *
+ * Grande y centrado en el marco: es un mensaje para los demás de la mesa,
+ * que no están mirando ese rincón de la pantalla cuando se tira. Chico y en
+ * una esquina no lo vería nadie. */
+.fighter-emote {
+  position: absolute;
+  inset: 8%;
+  z-index: 28;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  pointer-events: none;
+  filter: drop-shadow(0 0.4rem 0.9rem rgba(0, 0, 0, 0.85));
+  animation: emoji-tirado var(--dur-emoji-dura) var(--ease-emoji-dura) forwards;
+}
+
+/* Entra de golpe con un rebote, se queda, y recién al final se va. El
+   grueso del tiempo lo pasa quieto y legible: una animación que se mueve
+   los dos segundos y medio se lee como un adorno, no como algo que alguien
+   dijo. */
+@keyframes emoji-tirado {
+  0%   { opacity: 0; transform: scale(0.4) translateY(12%); }
+  12%  { opacity: 1; transform: scale(1.12) translateY(0); }
+  20%  { transform: scale(1); }
+  82%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.9) translateY(-10%); }
+}
+
+/* El personaje propio avisa que se lo puede sostener. El cursor es la única
+   pista que existe en escritorio; en el teléfono el gesto se descubre solo
+   porque mantener apretado ya significa "dame opciones" en todos lados. */
+.fighter-frame.emoteable {
+  cursor: pointer;
+  /* Sostener sobre un dibujo lo selecciona o lo arrastra si no se dice lo
+     contrario, y en el teléfono además hace aparecer la lupa de selección
+     justo encima del anillo. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+}
+
+/* Mientras el abanico está abierto, el personaje se hunde un poco: es la
+   respuesta al dedo que sigue apoyado, y de paso lo separa de los emojis
+   que ahora lo rodean. */
+.fighter-frame.con-anillo {
+  filter: brightness(0.72);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emoji-opcion { animation: none; }
+  /* El emoji tirado NO pierde su animación: sin ella se quedaría en
+     pantalla para siempre —la animación es lo que lo desvanece— y el
+     personaje quedaría tapado el resto de la partida. Se le saca el
+     movimiento y se le deja el tiempo. */
+  .fighter-emote {
+    animation-name: emoji-tirado-quieto;
+  }
+}
+
+@keyframes emoji-tirado-quieto {
+  0%, 88%  { opacity: 1; }
+  100%     { opacity: 0; }
+}
+
 /* ►► LA SALIDA DE LA PARTIDA. ◄◄
  *
  * Esquina de arriba a la IZQUIERDA, enfrentada al botón de reglas. Mismo
