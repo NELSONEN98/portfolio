@@ -77,8 +77,20 @@ export function newPlayers(chars) {
    hechos, no como llamadas a notify() o a animaciones. El hook dice qué
    pasó; que se vea como un cartel o como un temblor lo decide la capa de
    arriba, que es la única que cambia entre web y móvil. */
+/* ►► `tipo` va DESPUÉS del spread, y no es un detalle de estilo. ◄◄
+ *
+ * Estaba antes —`{ tipo, ...datos }`— y ahí cualquier campo llamado `tipo`
+ * dentro de la carga le pisaba el nombre al hecho. Pasó de verdad:
+ * `evento("bonusLleno", { tipo: ganada.type })` producía un hecho llamado
+ * "defense", y como la pantalla busca su mensaje por `MENSAJES[e.tipo]`, no
+ * encontraba nada y no decía NADA. La carta perdida se iba en silencio.
+ *
+ * Es el peor tipo de bug: no rompe, no avisa, y desde afuera se ve como que
+ * el juego decidió no contarte algo. Ahora el nombre del hecho gana siempre
+ * y esa colisión no puede volver a ocurrir, se llame como se llame el campo
+ * que alguien agregue mañana. */
 function evento(tipo, datos = {}) {
-  return { tipo, ...datos, id: Math.random().toString(36).slice(2) };
+  return { ...datos, tipo, id: Math.random().toString(36).slice(2) };
 }
 
 export function useGame() {
@@ -201,7 +213,12 @@ export function useGame() {
         /* El tipo viaja con el hecho: "no te entra otro escudo" y "tenés la
            mano llena" son dos cosas distintas, y con un solo mensaje el
            jugador no sabría cuál de los dos bolsillos destrabar. */
-        hechos.push(evento("bonusLleno", { tipo: ganada.type }));
+        /* `tipoCarta` y no `tipo`: `tipo` es el nombre del HECHO y ya está
+           ocupado. Con la corrección de arriba el choque ya no rompería
+           nada, pero el campo seguiría siendo imposible de leer —el hecho
+           ganaría y el mensaje recibiría "bonusLleno" donde espera un tipo
+           de carta—. Dos cosas distintas, dos nombres distintos. */
+        hechos.push(evento("bonusLleno", { tipoCarta: ganada.type }));
       }
     }
 

@@ -114,7 +114,7 @@ const MENSAJES = {
      Dos bolsillos, dos textos: los escudos y las cartas jugables se llenan
      por separado, y decir "mazo lleno" cuando lo que sobra son escudos
      mandaría a hacer lugar donde ya lo había. */
-  bonusLleno: (e) => [TEXTO_LLENO(e.tipo), "cartel"],
+  bonusLleno: (e) => [TEXTO_LLENO(e.tipoCarta), "cartel"],
   vuelta: (e) => [`Vuelta completa — ${e.nombre} se lleva ${e.puntos}`],
   dosDados: () => ["Dos dados en tu próxima tirada"],
   cartaPuesta: (e) => [
