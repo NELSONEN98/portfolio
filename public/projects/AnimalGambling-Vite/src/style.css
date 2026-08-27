@@ -5950,8 +5950,19 @@ body {
 .rules-overlay {
   position: fixed;
   inset: 0;
+  /* ►► Negro, no verde. ◄◄
+   *
+   * Era un radial de dos verdes muy oscuros —rgba(6,26,16) al centro y
+   * rgba(5,17,10) en los bordes—: el velo estaba teñido del paño de la mesa,
+   * del mismo diseño viejo que el fondo de la ventana. Se notaba poco hasta
+   * que la ventana quedó negra, y ahí el verde apareció rodeándola.
+   *
+   * El degradado se mantiene, sólo cambia el color. No es adorno: un velo de
+   * un tono plano se lee como una placa gris encima del juego, mientras que
+   * uno un poco más claro en el centro deja la sensación de que la mesa
+   * sigue ahí abajo, apenas iluminada por lo que hay delante. */
   background:
-    radial-gradient(ellipse 60% 60% at 50% 50%, rgba(6, 26, 16, 0.85), rgba(5, 17, 10, 0.95));
+    radial-gradient(ellipse 60% 60% at 50% 50%, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.94));
   z-index: 500;
   display: flex;
   align-items: center;
