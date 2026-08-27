@@ -148,6 +148,39 @@ export default function Fighter({
 
   return (
     <div className={clases}>
+      {/* ►► Una caja alrededor del marco, sin recorte. ◄◄
+       *
+       * `.fighter-frame` lleva `overflow: hidden` —lo necesita: es lo que
+       * redondea las esquinas del retrato— así que todo lo que viva adentro
+       * queda recortado a la silueta del gato. El anillo aparecía y se
+       * cortaba contra ese borde.
+       *
+       * Esta caja tiene la misma medida que el marco pero no recorta, así
+       * que el anillo y el emoji pueden salirse. Y NO lleva `z-index`
+       * propia a propósito: sin ella no crea contexto de apilamiento, y
+       * entonces la `z-index` del anillo compite al nivel de la LÍNEA del
+       * peleador, que es donde están las cartas contra las que tiene que
+       * ganar. Puesta acá, el anillo quedaría encerrado en esta caja y
+       * volveríamos al mismo problema una capa más arriba. */}
+      <div className="fighter-marco">
+        <EmojiAnillo abierto={anilloAbierto} onElegir={elegir} />
+
+        {/* El emoji tirado, encima del personaje. Va acá y no dentro del
+            marco por lo mismo: rebota hasta 1,12 al entrar y el marco le
+            comía el rebote.
+            La clave lo reinicia — dos veces el mismo emoji seguido tienen
+            que volver a animarse, y sin algo que cambie React reusa el nodo
+            y la segunda no se ve. Mismo recurso del confeti y del golpe. */}
+        {dibujoEmote && (
+          <span
+            key={emote.key}
+            className="fighter-emote"
+            style={{ backgroundImage: `url("${dibujoEmote.img}")` }}
+            aria-label={dibujoEmote.label}
+            role="img"
+          />
+        )}
+
       <div
         className={`fighter-frame${puedeEmotear ? " emoteable" : ""}${anilloAbierto ? " con-anillo" : ""}`}
         onPointerDown={alApoyar}
@@ -159,21 +192,6 @@ export default function Fighter({
            abre. */
         onContextMenu={(ev) => puedeEmotear && ev.preventDefault()}
       >
-        <EmojiAnillo abierto={anilloAbierto} onElegir={elegir} />
-
-        {/* El emoji tirado, encima del personaje. La clave lo reinicia: dos
-            veces el mismo emoji seguido tienen que volver a animarse, y sin
-            algo que cambie React reusa el nodo y la segunda no se ve. Es el
-            mismo recurso del confeti y del golpe. */}
-        {dibujoEmote && (
-          <span
-            key={emote.key}
-            className="fighter-emote"
-            style={{ backgroundImage: `url("${dibujoEmote.img}")` }}
-            aria-label={dibujoEmote.label}
-            role="img"
-          />
-        )}
         <div className="fighter-art boil" data-cat={jugador.char.id}>
           {/* ►► La cara de dolor, encima del boil. ◄◄
            *
@@ -232,6 +250,7 @@ export default function Fighter({
             ))}
           </span>
         ) : null}
+      </div>
       </div>
 
       <div className="fighter-readout">

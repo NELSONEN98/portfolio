@@ -2026,12 +2026,33 @@ body {
  * El radio sale del alto del peleador y no de un número fijo: el personaje
  * mide distinto en cada mesa, y con un radio fijo el abanico quedaría
  * encima del gato en la mesa de cuatro y flotando lejos en la de dos. */
+/* ►► La caja que NO recorta. ◄◄
+ *
+ * `.fighter-frame` lleva `overflow: hidden` —es lo que redondea las esquinas
+ * del retrato— así que el anillo, dibujado adentro, se cortaba contra el
+ * borde del gato. Esta caja tiene su misma medida y no recorta nada.
+ *
+ * `position: relative` SIN `z-index`, y esa ausencia es el punto: así no
+ * crea contexto de apilamiento y la `z-index` del anillo compite al nivel de
+ * la línea del peleador, que es donde están las cartas. Con un z-index acá,
+ * el anillo quedaría encerrado en esta caja y el problema se repetiría una
+ * capa más arriba. */
+.fighter-marco {
+  position: relative;
+  display: flex;
+}
+
 .emoji-anillo {
   position: absolute;
   /* El centro del anillo es el centro del marco. */
   inset: 0;
   pointer-events: none;
-  z-index: 30;
+  /* ►► Por encima de las cartas, que están en 60. ◄◄
+   *
+   * Estaba en 30 y el abanico salía detrás del abanico de cartas del propio
+   * jugador — que vive en la misma línea y es justo lo que tiene al lado.
+   * Este número no se eligió: se leyó de `.hand-fan`. */
+  z-index: 80;
   /* ►► Cerca y grandes, no lejos y chicos. ◄◄
    *
    * El primer intento los puso a 0.62 del alto del personaje y a 44px de
@@ -2074,7 +2095,14 @@ body {
   );
 
   padding: 0;
-  border: 0.16rem solid rgba(228, 167, 0, 0.75);
+  /* ►► Blanco, no dorado. ◄◄
+   *
+   * El dorado es el color del TURNO en este juego: lo lleva la tecla de
+   * tirar, el borde del peleador activo y las bombillas de la mesa. Un
+   * abanico dorado se leía como si tirar un emoji fuera una jugada. Es un
+   * gesto aparte, y el blanco es el único color de esta paleta que no dice
+   * nada más. */
+  border: 0.16rem solid rgba(255, 255, 255, 0.85);
   border-radius: 22%;
   background: rgba(0, 0, 0, 0.82);
   overflow: hidden;
@@ -2106,8 +2134,8 @@ body {
 
 .emoji-opcion:hover,
 .emoji-opcion:focus-visible {
-  border-color: var(--c-gold);
-  box-shadow: 0 0 1.2rem rgba(228, 167, 0, 0.7);
+  border-color: #fff;
+  box-shadow: 0 0 1.3rem rgba(255, 255, 255, 0.75);
   outline: none;
 }
 
@@ -2129,7 +2157,10 @@ body {
 .fighter-emote {
   position: absolute;
   inset: 8%;
-  z-index: 28;
+  /* Junto al anillo y por el mismo motivo: si el emoji tirado quedara
+     debajo de las cartas, el mensaje se perdería justo en el momento en que
+     alguien tiene la mano abierta. */
+  z-index: 78;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
