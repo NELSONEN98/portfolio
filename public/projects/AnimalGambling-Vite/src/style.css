@@ -3853,8 +3853,20 @@ body {
    Cada capa dibuja cuatro tiras — una por lado — con un radial-gradient
    que se repite. Sin marcado extra: son pseudo-elementos, y la mesa no
    tenía ninguno ocupado. */
+/* ►► Y la ventana de reglas usa la MISMA marquesina. ◄◄
+ *
+ * Entra en esta regla en vez de copiarla. Son las mismas cuatro tiras, la
+ * misma animación y los mismos dos keyframes: si algún día cambia el titileo
+ * —o el color, que la maldición ya mueve— los dos lo siguen. Copiado serían
+ * dos marquesinas que se van a despegar el día que alguien toque una.
+ *
+ * Es además lo que la ventana tenía que ser desde el principio: la mesa es
+ * un cartel de casino con luces alrededor, y el reglamento colgaba de un
+ * borde ámbar de un solo píxel que no se parecía a nada del juego. */
 .pool-table::before,
-.pool-table::after {
+.pool-table::after,
+.rules-modal::before,
+.rules-modal::after {
   content: "";
   position: absolute;
   /* Sobre el marco de madera, por fuera del fieltro. */
@@ -3888,13 +3900,15 @@ body {
   will-change: opacity, filter;
 }
 
-.pool-table::before {
+.pool-table::before,
+.rules-modal::before {
   background-position: left top, left bottom, left top, right top;
 }
 
 /* Media separación de corrimiento: así las de esta capa caen justo en los
    huecos que deja la otra. */
-.pool-table::after {
+.pool-table::after,
+.rules-modal::after {
   background-position:
     left calc(var(--bulb-gap) / 2) top,
     left calc(var(--bulb-gap) / 2) bottom,
@@ -3950,8 +3964,14 @@ body {
    pidió eso, no una mesa peor iluminada. Es la misma sombra doble del
    keyframe encendido, quieta. */
 @media (prefers-reduced-motion: reduce) {
+  /* La ventana de reglas entra acá también: si no, la mesa respeta la
+     preferencia y el reglamento le sigue titilando encima al mismo jugador
+     — que es peor que no respetarla en ningún lado, porque la lámpara que
+     queda parpadeando es la que está más cerca del texto que hay que leer. */
   .pool-table::before,
-  .pool-table::after {
+  .pool-table::after,
+  .rules-modal::before,
+  .rules-modal::after {
     animation: none;
     opacity: 0.9;
     filter:
@@ -5965,11 +5985,29 @@ body {
     linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.75)),
     repeating-linear-gradient(45deg, rgba(245, 185, 66, 0.025) 0, rgba(245, 185, 66, 0.025) 2px, transparent 2px, transparent 8px),
     var(--felt-1);
-  border: 1px solid var(--neon-amber);
+  /* ►► Sin el filo ámbar ni su resplandor. ◄◄
+   *
+   * Era un borde de un píxel con dos halos gigantes detrás, del diseño
+   * viejo: la ventana entera brillaba como si fuera ella la noticia. Ahora
+   * la luz la ponen las bombillas del marco —las mismas de la mesa— y el
+   * borde vuelve a ser lo que tiene que ser: madera oscura que sostiene las
+   * luces, no otra fuente de luz compitiendo con ellas. */
+  border: 1px solid rgba(0, 0, 0, 0.55);
   box-shadow:
-    0 0 4rem rgba(245, 185, 66, 0.3),
-    0 0 10rem rgba(245, 185, 66, 0.1),
+    0 1.6rem 4rem rgba(0, 0, 0, 0.7),
     inset 0 0 3rem rgba(0, 0, 0, 0.6);
+
+  /* Lo que la marquesina necesita para dibujarse. Viven en `.pool-table` y
+     de ahí no se heredan: la ventana no es hija de la mesa, es hermana de
+     todas las pantallas. Mismos valores, un solo lugar donde se leen. */
+  --bombilla: var(--c-gold);
+  --bombilla-halo: 228, 167, 0;
+  --bulb: clamp(0.34rem, 0.9vmin, 0.56rem);
+  --bulb-gap: clamp(1.3rem, 3.4vmin, 2.1rem);
+  /* Un poco más chicas y más juntas que las de la mesa: la ventana es más
+     chica que el tablero, y a la misma escala las luces se leían como
+     lamparitas de patio en vez de marquesina. */
+
   transform: scale(0.9) translateY(2rem);
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   overflow: hidden;
@@ -5978,17 +6016,9 @@ body {
   transform: scale(1) translateY(0);
 }
 
-/* top amber line decoration */
-.rules-modal::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--neon-amber), var(--neon-amber-glow), var(--neon-amber), transparent);
-  box-shadow: 0 0 1.2rem var(--neon-amber);
-}
+/* Acá había una línea ámbar decorativa pegada al borde de arriba, dibujada
+   con este mismo `::before`. Se fue con el resto del filo amarillo: ahora
+   ese pseudo-elemento es una de las dos capas de la marquesina. */
 
 /* Sin borde inferior: antes separaba el título del contenido, pero ahora
    abajo vienen las pestañas y quedaban dos líneas casi pegadas. */
@@ -6003,9 +6033,16 @@ body {
   font-size: 4rem;
   color: var(--neon-amber);
   letter-spacing: 0.3rem;
+  /* ►► La mitad del resplandor que tenía. ◄◄
+   *
+   * Eran dos halos de 0,8 y 2rem, y con las bombillas ahora encendidas
+   * alrededor eran dos fuentes de luz peleando en la misma ventana: el
+   * título tiraba tanto del ojo que las luces del marco se leían como ruido.
+   * El halo corto alcanza para que la letra se despegue del fieltro, que es
+   * todo lo que tenía que hacer. */
   text-shadow:
-    0 0 0.8rem var(--neon-amber),
-    0 0 2rem var(--neon-amber-glow);
+    0 0 0.5rem rgba(245, 185, 66, 0.55),
+    0 0 1.1rem rgba(245, 185, 66, 0.22);
   animation: flicker var(--dur-pantalla-flicker-reglas) infinite;
 }
 .rules-close {
