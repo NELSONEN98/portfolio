@@ -314,13 +314,18 @@ export default function App() {
      estado, eso vuelve a pintar y el efecto se evalúa de nuevo—. Acá estamos
      en el manejador del hecho, que es donde va a parar cualquier cosa que se
      le quiera CONTAR al jugador. El efecto queda sólo con la ejecución. */
+  /* `canal` decide DÓNDE se cuenta, con los mismos dos valores que usa la
+     tabla `MENSAJES`: "cartel" va al anuncio grande del medio, cualquier
+     otra cosa al aviso del costado. Se repite la convención en vez de
+     inventar una segunda para lo mismo. */
   const forzarPlante = useCallback(
-    (motivo = "Casilla maldita — se te acabó el turno") => {
+    (motivo = "Casilla maldita — se te acabó el turno", canal = "aviso") => {
       plantarForzado.current = true;
       setPlantarKey(Math.random());
-      notify(motivo, "error");
+      if (canal === "cartel") anunciar(motivo);
+      else notify(motivo, "error");
     },
-    [notify]
+    [notify, anunciar]
   );
 
   /* ►► Se acabaron los diez segundos. ◄◄
@@ -345,8 +350,22 @@ export default function App() {
    * Va por `forzarPlante` y no por `plantarse` directo por lo mismo que la
    * casilla: el efecto que ejecuta el plante espera a que la ficha esté
    * quieta. Llamado en crudo, plantaría sin la última tirada. */
+  /* ►► Va al cartel del medio, como el resto de las malas noticias. ◄◄
+   *
+   * Estaba como aviso al costado, y ahí estaba mal: el jugador que se queda
+   * sin tiempo es, por definición, el que NO estaba mirando la pantalla. Un
+   * aviso en una esquina se lo pierde y vuelve sin entender por qué le pasó
+   * el turno. El cartel del medio es imposible de no ver.
+   *
+   * Y es el mismo lugar donde ya sale "PIERDES TURNO" al quemarse: las dos
+   * son la misma noticia —tu turno se terminó sin que vos lo decidieras— y
+   * contarlas en dos lugares distintos las haría parecer cosas distintas.
+   *
+   * El texto va corto a propósito: el cartel no parte renglones
+   * (`white-space: nowrap`) y crece con el ancho de la ventana, así que una
+   * frase larga se sale por los costados en un teléfono. */
   const alAgotarseElTiempo = useCallback(() => {
-    forzarPlante("Se acabó el tiempo — pierdes el turno");
+    forzarPlante("TIEMPO AGOTADO", "cartel");
   }, [forzarPlante]);
 
   const golpear = useCallback((lado, tipo) => {

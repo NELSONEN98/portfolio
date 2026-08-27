@@ -4031,7 +4031,11 @@ body {
      plantarse. Sin sumar nada a mano y sin quedarse viejo si cambian. */
   left: 0;
   width: 100%;
-  height: 0.55rem;
+  /* Un 20% más gruesa. Estirada a lo ancho de los dos botones, la altura
+     anterior la dejaba en un hilo: cuanto más larga es una barra, más
+     gruesa tiene que ser para leerse como una barra y no como un subrayado
+     del botón. */
+  height: 0.66rem;
   border-radius: 999px;
   /* El carril oscuro es lo que hace legible lo que FALTA. Sin él, una barra
      al 20% se lee como una barra chica y no como una casi vacía. */
