@@ -472,16 +472,83 @@ body {
  * Y eso vale para el que venga: con seis, siete o tres, la última fila se
  * centra sola. Es lo que el comentario viejo prometía y la regla no hacía. */
 .char-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: clamp(1.4rem, 3vw, 3.4rem);
+  /* ►► DOS COLUMNAS, contadas por la grilla y no por aritmética. ◄◄
+   *
+   * Primero probé con flex y un tope de "dos tarjetas más la separación".
+   * No alcanza: los sub-píxeles se redondean para arriba y a ciertos anchos
+   * la suma se pasa por una décima, así que la segunda tarjeta se caía al
+   * renglón de abajo y las dos columnas se volvían una. Medido a 620px, dos
+   * tarjetas de 105 más 11 de separación daban 221 contra un tope de 222 y
+   * aun así se partía. Perseguir ese píxel con márgenes es perderlo en otro
+   * tamaño.
+   *
+   * `repeat(2, ...)` no se puede equivocar: son dos columnas porque están
+   * declaradas, no porque la cuenta dé.
+   *
+   * ►► Y el huérfano se centra con una regla, no con suerte. ◄◄
+   *
+   * Lo que había hecho a la grilla insuficiente la primera vez era la fila
+   * incompleta: con cinco gatos el quinto caía en la columna izquierda y
+   * quedaba descolgado. `:last-child:nth-child(odd)` lo dice exacto —"el
+   * último, cuando son impares"— y ahí se lo hace ocupar el ancho entero y
+   * centrarse. Con cuatro o seis la regla no coincide con nadie y no hace
+   * nada. */
+  --char-gap: clamp(0.8rem, 1.8vw, 2.2rem);
+  /* ►► El alto manda, porque ahora son TRES filas. ◄◄
+   *
+   * Con cinco en una fila el límite era el ancho. Con dos columnas son
+   * tres filas —2, 2 y 1— y cada tarjeta se lleva su alto tres veces. Por
+   * eso el `dvh` es tan bajo comparado con el `vw`: en una ventana normal
+   * lo que se acaba primero es el alto, no el costado. */
+  /* ►► El piso baja a 4.5rem, y ahí estaba el error de antes. ◄◄
+   *
+   * Estaba en `6rem`, y en una ventana baja —1440x700, un portátil con la
+   * barra del navegador— ese piso GANABA: 10dvh daba 60px y el piso pedía
+   * 96, así que bajar el `dvh` no movía un píxel. Estuve ajustando un
+   * número que no mandaba. */
+  --char-card-w: clamp(4.5rem, min(38vw, 14dvh), 20rem);
+
+  display: grid;
+  grid-template-columns: repeat(2, var(--char-card-w));
+  gap: var(--char-gap);
   flex-basis: 0;
   flex-grow: 1;
-  align-content: center;
+  /* ►► `safe center`, no `center` a secas. ◄◄
+   *
+   * Centrado normal, cuando el contenido no entra, reparte el sobrante para
+   * los dos lados — incluido el de ARRIBA, que queda en negativo. La
+   * primera fila se va del borde superior y no hay forma de alcanzarla: ni
+   * con la barra de desplazamiento, porque lo que se sale por arriba no
+   * genera barra. `safe` dice "centrá salvo que eso corte algo, y ahí pegá
+   * al principio". */
+  align-content: safe center;
   justify-content: center;
   width: 100%;
-  max-width: 100rem;
   margin-inline: auto;
+  /* Y si aun así no entra, que se pueda llegar. Cinco gatos en dos columnas
+     son tres filas, y hay ventanas —anchas y muy bajas— donde eso no cabe a
+     ningún tamaño razonable. Antes que achicar las tarjetas hasta que no se
+     distinga un gato de otro, se desplaza. `min-height: 0` es lo que le
+     permite a un hijo de flex encogerse por debajo de su contenido, que es
+     el requisito para que el desplazamiento se active. */
+  min-height: 0;
+  overflow-y: auto;
+  /* ►► Reserva el ancho de la barra SIEMPRE. ◄◄
+   *
+   * Sin esto hay un lazo que se realimenta: el contenido se pasa por poco,
+   * aparece la barra, eso angosta la fila, los nombres parten en más
+   * renglones, la fila se hace MÁS alta y hace falta más barra todavía.
+   *
+   * Se notó midiendo: achicar las tarjetas de 14 a 13.6dvh EMPEORABA el
+   * desborde en vez de mejorarlo, que es exactamente lo que no puede pasar.
+   * Con el hueco reservado el ancho no cambia y la cuenta es estable. */
+  scrollbar-gutter: stable;
+}
+
+/* El último, cuando son impares: ocupa las dos columnas y se centra. */
+.char-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  justify-self: center;
 }
 
 /* Las tarjetas ya no se estiran a una fracción de la grilla: miden lo que
@@ -500,14 +567,35 @@ body {
    * Puesto en la tarjeta, el nombre se ajusta al ancho del dibujo en vez de
    * imponerlo. Es lo mismo que se hizo con la banda de botones y su barra:
    * quien manda el ancho tiene que ser uno solo. */
-  width: clamp(7rem, min(15vw, 26dvh), 15.5rem);
+  width: var(--char-card-w);
+  /* ►► Sin esto, el nombre le pone un piso al ancho. ◄◄
+   *
+   * Un elemento flex arranca con `min-width: auto`, que significa "no te
+   * encojas por debajo de tu contenido". El contenido más ancho de esta
+   * tarjeta es el nombre, y una palabra no se parte: en una ventana angosta
+   * "MAISIE" le ponía a su tarjeta un ancho mínimo mayor que el que pide
+   * `--char-card-w`, las dos ya no entraban en el tope de la fila y la
+   * segunda se caía al renglón de abajo.
+   *
+   * Se veía como que en pantallas chicas las dos columnas se volvían una,
+   * sin ninguna regla que lo pidiera. */
+  min-width: 0;
 }
 
 .char-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.2rem;
+  /* ►► El hueco interno también sigue a la tarjeta. ◄◄
+   *
+   * Era `1.2rem` fijo. Con dos columnas grandes no molestaba; con cinco
+   * gatos en tres filas resultó ser el que más pesaba: dos huecos por
+   * tarjeta, unos 38px, por tres filas — 115px de aire que no encogía
+   * nunca, pasara lo que pasara con el dibujo.
+   *
+   * Medido: bajar la tarjeta de 108 a 97px sólo recuperó 51 de los 56px que
+   * faltaban. El dibujo no era el problema, el aire sí. */
+  gap: calc(var(--char-card-w) * 0.115);
   cursor: pointer;
   transition: all 0.3s;
 }
@@ -702,20 +790,42 @@ body {
    * tarjeta crece con `min(15vw, 26dvh)`. En una ventana ancha y baja los
    * dos se iban para lados distintos. Ahora los dos miran las mismas dos
    * medidas y no se pueden despegar. */
-  font-size: clamp(0.95rem, min(2.1vw, 3.6dvh), 1.6rem);
+  /* ►► Atado a la TARJETA, no a la ventana. ◄◄
+   *
+   * Miraba `min(2.1vw, 3.6dvh)` mientras la tarjeta mira `min(38vw,
+   * 16dvh)`: dos medidas distintas para dos cosas que tienen que ir juntas.
+   * En dos columnas eso se hizo visible — el nombre quedaba más ancho que
+   * su tarjeta y se partía a la mitad de la palabra: "BONIFAC / IO".
+   *
+   * Como fracción del ancho de la tarjeta, la proporción entre el nombre y
+   * el dibujo es la misma en toda ventana, y lo que entra en un renglón
+   * entra siempre. El `clamp` sólo pone un piso legible y un techo. */
+  font-size: clamp(0.8rem, calc(var(--char-card-w) * 0.135), 1.7rem);
   color: var(--bone);
   letter-spacing: 0.06rem;
   text-align: center;
-  /* Que parta si hace falta —hay nombres de tres palabras— pero sin
-     desbordar nunca la tarjeta. */
+  /* ►► Que parta CON GUIÓN, no en seco. ◄◄
+   *
+   * Hay nombres largos —"Hermenegildo" son doce letras— y en una tarjeta
+   * angosta ninguno entra en un renglón sin achicar la letra hasta que deje
+   * de leerse. Así que va a partir; lo que se elige acá es cómo.
+   *
+   * Con `overflow-wrap` solo, el corte es mudo: "HERMENEGI / LDO" se lee
+   * como un error de la pantalla. Con `hyphens: auto` el navegador corta
+   * donde la palabra se corta de verdad y deja el guión a la vista, que es
+   * la señal de "sigue abajo". El idioma sale del `lang="es"` del documento.
+   *
+   * `overflow-wrap` queda de respaldo para el navegador que no separe en
+   * sílabas: mejor un corte feo que un nombre saliéndose de su tarjeta. */
   max-width: 100%;
+  hyphens: auto;
   overflow-wrap: break-word;
   /* Dos renglones de alto reservados SIEMPRE. Sin esto la tarjeta del
      nombre largo empuja sus etiquetas más abajo que las demás y la fila
      queda desprolija; con esto los cinco pies quedan a la misma altura, use
      una línea o dos. */
-  min-height: 2.4em;
-  line-height: 1.2;
+  min-height: 2.3em;
+  line-height: 1.15;
 }
 
 .char-desc {

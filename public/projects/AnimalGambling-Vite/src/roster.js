@@ -98,10 +98,12 @@ export const ROSTER = [
      * ES el lugar donde cada gato dice en qué se diferencia. */
     ext: "png",
     img: "cat5/frame0000.png",
-    /* Sin cara de daño: no hay archivo. `Fighter` ya pregunta antes de
-       dibujarla y la precarga también, así que no falta nada — simplemente
-       esta gata no cambia de cara cuando le pegan. El día que llegue el
-       dibujo, es una línea. */
+    /* Y acá está el TERCER patrón de nombre de los cinco: `cat1-damage`,
+       `damaged-catN` y ahora `damage-cat5`. Es exactamente lo que este
+       campo venía diciendo desde el principio — por eso es una ruta
+       completa y no una plantilla. Sumarla fue una línea, sin renombrar
+       nada ni escribir un caso especial. */
+    damage: "cat5/damage-cat5.png",
     age: "3",
     cond: "Tres nombres, ni un amigo. Juega como si le debieran algo.",
     quote: "Obviamente. ¿Esperaban otra cosa?",
