@@ -441,18 +441,25 @@ export const MOTION = {
      * deja jugar. Un jugador aprende a confiar en la barra en dos turnos, y
      * a partir de ahí cualquier diferencia es el juego mintiéndole.
      *
-     * Diez y no menos: el reloj corre sólo mientras SE PUEDE actuar. Se
-     * reinicia después de cada tirada y no corre mientras los dados ruedan
-     * ni mientras la ficha camina, así que estos diez segundos son de pensar
-     * de verdad, no de mirar animaciones. Con un dado rodando adentro del
-     * presupuesto, diez se sentirían como cuatro.
+     * ►► Seis, y son seis de PENSAR. ◄◄
+     *
+     * El reloj corre sólo mientras se puede actuar: se reinicia después de
+     * cada tirada y no corre mientras los dados ruedan ni mientras la ficha
+     * camina. Así que estos seis segundos son de decidir, no de mirar
+     * animaciones — con el dado rodando adentro del presupuesto se
+     * sentirían como dos, y el reloj castigaría por ver el juego.
+     *
+     * Bajó de diez a seis: con diez la barra casi no se miraba, porque una
+     * decisión de este juego —tirar de nuevo o plantarse— se toma en dos o
+     * tres. Diez segundos de reloj para una decisión de tres es un reloj
+     * decorativo. Seis todavía alcanzan de sobra y encima se SIENTEN.
      *
      * Lineal a propósito. Toda otra animación del juego tiene curva porque
      * imita algo físico; ésta representa TIEMPO, y el tiempo no acelera al
      * final. Con una curva, la mitad de la barra valdría más segundos que la
      * otra mitad y sería imposible calcular cuánto queda. */
     reloj: {
-      ms: 10000,
+      ms: 6000,
       ease: "linear",
       keyframes: "reloj-turno",
       el: ".turno-reloj i",
