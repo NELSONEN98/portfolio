@@ -43,7 +43,7 @@ export default function SelectScreen({
       <div className="select-header">
         <div className="prompt-title">
           {online || elegidos.length < 3
-            ? "ELIGE TU GATO APOSTADOR"
+            ? "ELIGE TU GATO"
             : faltan > 0
               ? `JUGADOR ${turno} — ELIGE TU GATO`
               : "MESA COMPLETA"}

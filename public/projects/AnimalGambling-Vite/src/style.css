@@ -445,7 +445,14 @@ body {
 }
 .select-header .prompt-title {
   font-family: var(--display);
-  font-size: clamp(2.8rem, 7vw, 4.4rem);
+  /* ►► Mucho más chico, porque el rótulo se acortó. ◄◄
+   *
+   * Llegaba a 4,4rem —70px— y con "ELIGE TU GATO APOSTADOR" eso se
+   * justificaba: veintitrés letras necesitan cuerpo para no verse
+   * apretadas. Con trece no. Era grande porque el texto era largo, no
+   * porque el título fuera lo importante de esta pantalla; lo importante
+   * son los gatos, y cada píxel que suelta acá se lo llevan ellos. */
+  font-size: clamp(1.8rem, 4.2vw, 3rem);
   color: var(--neon-amber);
   letter-spacing: 0.15rem;
   text-shadow: 0 0 1.6rem rgba(245, 185, 66, 0.5);
@@ -506,7 +513,7 @@ body {
    * barra del navegador— ese piso GANABA: 10dvh daba 60px y el piso pedía
    * 96, así que bajar el `dvh` no movía un píxel. Estuve ajustando un
    * número que no mandaba. */
-  --char-card-w: clamp(4.5rem, min(38vw, 14dvh), 20rem);
+  --char-card-w: clamp(4.5rem, min(38vw, 18.1dvh), 20rem);
 
   display: grid;
   grid-template-columns: repeat(2, var(--char-card-w));
@@ -557,6 +564,22 @@ body {
    necesita para poder centrarla. */
 .char-card {
   flex: 0 0 auto;
+  /* ►► Ancla del nombre, que ahora va encima del dibujo. ◄◄
+   *
+   * Tiene que estar acá y no en `.char-art-caja`: el nombre es HERMANO de
+   * la caja, no hijo, así que su `absolute` busca el primer ancestro
+   * POSICIONADO y la caja no lo es para él. Sin esto se anclaba a la
+   * pantalla entera: los cinco nombres se apilaban en el borde de abajo y
+   * sólo se veía el último.
+   *
+   * Y sirve igual porque la tarjeta ahora contiene sólo el dibujo: su borde
+   * de abajo ES el borde de abajo del gato. */
+  position: relative;
+  /* Recorta el nombre a la MISMA curva del dibujo. El valor se copia de
+     `.char-art` y no se inventa: puesto fijo, a tamaños grandes la esquina
+     de la tarjeta y la del gato dejaban de coincidir y se veía un filo. */
+  border-radius: clamp(1.4rem, 3vmin, 3rem);
+  overflow: hidden;
   /* ►► El ancho vive acá y no en el dibujo. ◄◄
    *
    * Estaba en `.char-art`, y con la tarjeta en `flex: 0 0 auto` eso dejaba
@@ -777,7 +800,47 @@ body {
   transition: all 0.3s;
 }
 
+/* ►► EL NOMBRE VA SOBRE EL DIBUJO, no debajo. ◄◄
+ *
+ * Y esto no es un gusto: es lo único que hacía a los gatos más grandes.
+ *
+ * Cinco gatos en dos columnas son tres filas, y cada fila se lleva su alto
+ * tres veces. Medido: recortar la cabecera y el pie liberó 35px, que
+ * repartidos en tres filas no movieron la tarjeta ni un píxel — seguía en
+ * 113px. El techo no lo ponía el aire de la pantalla sino el nombre, que
+ * ocupaba unos 36px POR FILA debajo de cada dibujo. Ciento ocho píxeles de
+ * texto compitiendo con los personajes por el mismo alto.
+ *
+ * Encima del dibujo no compite: la tarjeta pasa a medir lo que mide el
+ * gato, y esos 108px se convierten en gato.
+ *
+ * El degradado no es decoración tampoco. Estos dibujos son tinta negra
+ * sobre fondo claro y el nombre es hueso: sin algo detrás, la letra
+ * desaparece justo donde el gato es blanco. El degradado sólo oscurece la
+ * franja de abajo y deja la cara intacta. */
 .char-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.55em 0.35em 0.45em;
+  /* ►► Más oscuro de lo que parecía necesario, y por un motivo. ◄◄
+   *
+   * Estos gatos son tinta negra sobre cuerpo BLANCO. La primera versión de
+   * este degradado se veía bien sobre Bonifacio, que tiene manchas oscuras
+   * abajo, y desaparecía sobre Hermenegildo, que ahí es todo blanco. El
+   * fondo de una etiqueta no puede depender de qué dibujo le tocó. */
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(0, 0, 0, 0.72) 38%,
+    rgba(0, 0, 0, 0.93)
+  );
+  /* Y la letra lleva su propio contorno: el degradado resuelve el fondo, no
+     el borde de la tipografía contra una mancha negra del gato. */
+  text-shadow:
+    0 0 0.35rem rgba(0, 0, 0, 0.95),
+    0 0.15rem 0.4rem rgba(0, 0, 0, 0.9);
   font-family: var(--display);
   /* ►► Achicado con las tarjetas, y atado a ellas. ◄◄
    *
@@ -824,7 +887,9 @@ body {
      nombre largo empuja sus etiquetas más abajo que las demás y la fila
      queda desprolija; con esto los cinco pies quedan a la misma altura, use
      una línea o dos. */
-  min-height: 2.3em;
+  /* Ya no reserva dos renglones: encima del dibujo no empuja a nadie, así
+     que puede medir lo que el nombre necesite. Las tarjetas de una fila
+     siguen alineadas porque su alto lo da el dibujo, que es igual en todas. */
   line-height: 1.15;
 }
 
@@ -838,7 +903,7 @@ body {
   gap: 2rem;
   justify-content: center;
   align-items: center;
-  margin-top: 2rem;
+  margin-top: clamp(0.6rem, 1.6vh, 1.4rem);
 }
 
 .select-footer .btn-nav {
@@ -846,8 +911,8 @@ body {
      más peso que un botón de navegación cualquiera, por eso pisan el
      tamaño base de .btn-nav en vez de agrandarlo para todo el juego. */
   min-width: 20rem;
-  font-size: 1.7rem;
-  padding: 1.4rem 2.6rem;
+  font-size: clamp(1.1rem, 1.4vw, 1.4rem);
+  padding: clamp(0.7rem, 1.2vh, 1.1rem) clamp(1.4rem, 2vw, 2.2rem);
   border-radius: 1.5rem;
 }
 
