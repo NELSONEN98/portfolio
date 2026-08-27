@@ -1728,6 +1728,70 @@ body {
   outline-offset: 3px;
 }
 
+/* ►► LA SALIDA DE LA PARTIDA. ◄◄
+ *
+ * Esquina de arriba a la IZQUIERDA, enfrentada al botón de reglas. Mismo
+ * tamaño y misma forma que aquél a propósito: los dos son controles de la
+ * aplicación y no del juego, así que conviene que se lean como una familia y
+ * no como dos cosas sueltas. Y separados por el ancho entero de la pantalla,
+ * que es lo que impide dar uno por el otro.
+ *
+ * ►► En reposo NO es rojo, y eso es deliberado. ◄◄
+ *
+ * Un botón rojo permanente en la esquina de una partida grita "peligro" toda
+ * la partida, y lo que grita todo el tiempo deja de decir nada. Además
+ * ATRAE el dedo: en una pantalla donde lo único encendido es la tecla de
+ * tirar, una mancha roja compite con ella.
+ *
+ * Así que en reposo es hueso apagado —está, no molesta— y el rojo aparece
+ * recién al armarse, que es el único momento en que un toque más significa
+ * abandonar. El color llega cuando el peligro llega. */
+.salir-partida {
+  position: fixed;
+  top: clamp(0.6rem, 2vh, 1.4rem);
+  left: clamp(0.8rem, 2.5vw, 2rem);
+  z-index: 400;
+
+  height: clamp(2.4rem, 5vmin, 3.2rem);
+  /* Ancho y no `aspect-ratio` como el de reglas: armado dice "¿SALIR?" y
+     tiene que poder estirarse. En reposo el mínimo lo deja cuadrado. */
+  min-width: clamp(2.4rem, 5vmin, 3.2rem);
+  padding: 0 0.7em;
+  border-radius: 999px;
+  border: 2px solid rgba(232, 225, 204, 0.55);
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(232, 225, 204, 0.75);
+
+  font-family: var(--display);
+  font-size: clamp(1rem, 2.2vmin, 1.35rem);
+  letter-spacing: 0.06em;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.18s, background 0.18s, box-shadow 0.18s,
+    color 0.18s, border-color 0.18s, min-width 0.18s;
+}
+
+.salir-partida:hover {
+  border-color: var(--c-rojo, #c70000);
+  color: #fff;
+  background: rgba(199, 0, 0, 0.75);
+  transform: scale(1.08);
+}
+
+/* Armado: un toque más y se sale. Acá sí el rojo es pleno — no está
+   avisando de una posibilidad, está diciendo lo que va a pasar. */
+.salir-partida.armado {
+  border-color: #ff4d4d;
+  background: rgba(199, 0, 0, 0.9);
+  color: #fff;
+  box-shadow: 0 0 1.4rem rgba(199, 0, 0, 0.7);
+}
+
+.salir-partida:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
 /* ============================================
    CAMINO DE CASILLAS
    ============================================ */

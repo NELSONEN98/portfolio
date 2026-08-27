@@ -474,6 +474,21 @@ export const MOTION = {
       loop: true,
       nota: "Cada botón destella de su propio color: dorado el del dado, blanco el de plantarse.",
     },
+    /* ►► Cuánto queda armado el botón de salir antes de arrepentirse solo. ◄◄
+     *
+     * No es una animación, es un plazo — igual que `red.sondeo`, que también
+     * vive en este catálogo. Está acá porque es un tiempo que el jugador
+     * PERCIBE, y todos los que se perciben se afinan mirándolos juntos.
+     *
+     * Tres segundos: alcanzan para leer "¿SALIR?" y decidir, y son pocos
+     * para que el botón se quede armado esperando un dedo distraído. Si se
+     * desarma solo, el error se deshace sin que nadie haga nada — que es la
+     * mejor forma de deshacer un error. */
+    confirmar: {
+      ms: 3000,
+      el: ".salir-partida.armado",
+      nota: "Pasado esto, el botón de salir vuelve a su estado normal solo.",
+    },
     /* El latido permanente del botón de tirar, mientras se pueda tirar.
        Tres veces más lento que el destello del toque a propósito: aquél es
        una respuesta a algo que hiciste y tiene que ser inmediato; éste es

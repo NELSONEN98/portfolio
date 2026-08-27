@@ -28,6 +28,7 @@ const INVITACION = (() => {
 import Preloader from "./components/Preloader";
 import Toasts from "./components/Toasts";
 import RulesModal from "./components/RulesModal";
+import SalirPartida from "./components/SalirPartida";
 import Alerta from "./components/Alerta";
 import CardGained from "./components/CardGained";
 import CardCast, { COLOR_IMPACTO } from "./components/CardCast";
@@ -1385,6 +1386,23 @@ export default function App() {
           ?
         </button>
       )}
+
+      {/* ►► La salida de la partida. ◄◄
+       *
+       * Acá afuera y no adentro de VersusScreen, por el mismo motivo que el
+       * botón de reglas: las pantallas se apagan con `display:none` y estos
+       * dos tienen que sobrevivir a los cambios.
+       *
+       * Reusa `volverAlMenu`, que ya suelta el asiento con `sala.salir()` —
+       * el mismo camino del abandono, ya probado: la mesa se cierra sobre el
+       * hueco, los objetivos se recalculan y a los demás les llega el aviso.
+       * Un "salir" escrito aparte sería una segunda copia de esa salida
+       * esperando a desincronizarse con la primera.
+       *
+       * Sin condición de turno ni de estado: está siempre. La razón de que
+       * exista es justamente el rato en que NADA responde, y un botón que se
+       * apaga cuando el juego se traba no serviría para nada. */}
+      {screen === "game" && <SalirPartida onSalir={volverAlMenu} />}
 
       <CardCast
         key={lanzada?.key}
