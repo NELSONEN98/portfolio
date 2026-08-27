@@ -1004,6 +1004,46 @@ export function applyPenalty(score: number, puntos: number = PENALTY_POINTS): nu
   return Math.max(0, score - puntos);
 }
 
+/* ►► LA PENITENCIA CONTRA EL ESCUDO. ◄◄
+ *
+ * Caer en rojo con un escudo encima ya no cuesta puntos: el escudo la tapa y
+ * se gasta, exactamente igual que cuando tapa una carta de ataque.
+ *
+ * ►► Absorbe, no se rompe al pedo. ◄◄
+ *
+ * Era la decisión del cambio y podía ir para el otro lado —romperse ADEMÁS
+ * de cobrar—, pero eso le habría dado a la palabra "escudo" un segundo
+ * significado dentro del mismo juego: en las cartas protege, en el tablero
+ * no. Dos reglas donde el jugador ya aprendió una. Acá protege siempre, y no
+ * hay nada nuevo que explicar.
+ *
+ * Lo que sí cambia es cuánto valen: hasta ahora un escudo sólo servía si
+ * alguien te atacaba, así que en una mesa tranquila eran tres cartas
+ * muertas ocupando lugar. Ahora el tablero también los gasta, y guardarlos
+ * pasa a ser una apuesta con dos formas de pagar.
+ *
+ * ►► Mismas dos funciones que `applyCard`, a propósito. ◄◄
+ *
+ * `hasDefense` para preguntar y `dropFirstOfType` para gastar: si algún día
+ * cambia qué cuenta como escudo o cuál se gasta primero, cambia en un solo
+ * lugar y las dos formas de bloquear lo siguen. Escrito a mano acá serían
+ * dos copias de la misma pregunta.
+ *
+ * `blocked` se llama igual que en `applyCard` por el mismo motivo: es el
+ * mismo hecho —algo te iba a pegar y el escudo lo tapó— y quien lo consume
+ * del otro lado ya sabe qué hacer con esa palabra.
+ */
+export function aplicarPenitencia(
+  score: number,
+  puntos: number,
+  hand: Card[]
+): { score: number; hand: Card[]; blocked: boolean } {
+  if (hasDefense(hand)) {
+    return { score, hand: dropFirstOfType(hand, CARD.DEFENSE), blocked: true };
+  }
+  return { score: applyPenalty(score, puntos), hand, blocked: false };
+}
+
 /* Cuánto cobra la casilla donde caíste.
  *
  * Existe para que la respuesta viva en UN lugar. El cliente y el servidor

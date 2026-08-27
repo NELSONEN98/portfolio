@@ -13,7 +13,7 @@ import {
   randomBonusCard,
   resolveRoll,
   pasosDe,
-  applyPenalty,
+  aplicarPenitencia,
   penaltyFor,
   targetOf,
   seatAfter,
@@ -149,12 +149,24 @@ export function useGame() {
     if (casilla === SQUARE.PENALTY) {
       /* Cuánto cobra lo decide la regla, no este archivo: el bonus que la
          maldición convirtió sale más barato que una casilla roja, y esa
-         cuenta tiene que dar igual acá y en el servidor. */
+         cuenta tiene que dar igual acá y en el servidor.
+         Y si hay escudo, la tapa entera y se gasta — misma función que usa
+         el servidor, así que los dos no pueden discrepar sobre si el
+         castigo entró. */
       const puntos = penaltyFor(tablero, p.pos ?? 0, maldito);
-      score = applyPenalty(score, puntos);
+      const castigo = aplicarPenitencia(score, puntos, hand ?? []);
+      score = castigo.score;
+      hand = castigo.hand;
       /* El lado viaja con el hecho: la pantalla necesita saber a quién
-         teñir de rojo, y el nombre no alcanza para ubicarlo. */
-      hechos.push(evento("penitencia", { nombre: p.char.name, puntos, lado }));
+         teñir de rojo, y el nombre no alcanza para ubicarlo.
+         Dos hechos y no uno con una bandera: son dos noticias distintas
+         —"perdiste puntos" y "tu escudo te salvó"— y cada una tiene su
+         texto, su color y su sonido. */
+      hechos.push(
+        castigo.blocked
+          ? evento("penitenciaBloqueada", { nombre: p.char.name, lado })
+          : evento("penitencia", { nombre: p.char.name, puntos, lado })
+      );
     } else if (casilla === SQUARE.BONUS) {
       /* Se sortea PRIMERO y se pregunta después, porque ahora la respuesta
          depende de qué salió: un escudo mira el tope de escudos y el resto

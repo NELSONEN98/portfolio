@@ -26,7 +26,7 @@ import {
   randomBonusCard,
   resolveRoll,
   pasosDe,
-  applyPenalty,
+  aplicarPenitencia,
   penaltyFor,
   cappedScore,
   applyCard,
@@ -635,6 +635,12 @@ export const rollDice = mutation({
        cuando lo que sobra son escudos manda a hacer lugar donde ya lo había.
        El servidor sí lo sabe: acaba de sortearla. */
     let lostCard: string | null = null;
+    /* La penitencia rebotó en un escudo. Viaja en la respuesta porque el
+       cliente NO lo puede deducir: él sabe que la casilla es roja —la lee
+       del tablero, que es el mismo para todos— pero no si esta ficha en
+       particular llevaba escudo encima. Sin esto le teñiría el peleador de
+       rojo a alguien que no perdió nada. */
+    let penitenciaBloqueada = false;
     /* La borrachera arranca en lo que ya tenía y sólo la mueve la cerveza
        del bonus. Se declara acá para que el patch de abajo la escriba una
        sola vez, salga o no salga la carta. */
@@ -642,8 +648,17 @@ export const rollDice = mutation({
 
     if (square === SQUARE.PENALTY) {
       /* Misma regla que el cliente, llamada desde el mismo lugar: el bonus
-         convertido por la maldición cobra menos que una casilla roja. */
-      score = applyPenalty(score, penaltyFor(room.board as any, pos, cursed));
+         convertido por la maldición cobra menos que una casilla roja, y un
+         escudo la tapa entera. Las dos cuentas viven en las reglas para que
+         los dos lados no puedan discrepar. */
+      const castigo = aplicarPenitencia(
+        score,
+        penaltyFor(room.board as any, pos, cursed),
+        hand
+      );
+      score = castigo.score;
+      hand = castigo.hand;
+      penitenciaBloqueada = castigo.blocked;
       landed = SQUARE.PENALTY;
     } else if (square === SQUARE.TURN_LOSS) {
       /* No toca puntos ni mano: lo único que hace es avisar. El plantarse
@@ -739,7 +754,7 @@ export const rollDice = mutation({
           ...tickBeer(borrachera),
         }),
       });
-      return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, lostCard, newTurn: siguiente, score };
+      return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, lostCard, penitenciaBloqueada, newTurn: siguiente, score };
     }
 
     const newCurrent = me.player.current + outcome.gained;
@@ -747,7 +762,7 @@ export const rollDice = mutation({
       players: withSeat(me.seats, me.seat, { ...base, current: newCurrent }),
     });
 
-    return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, lostCard, newCurrent, score };
+    return { ...outcome, roll: outcome.dice[0], pos, landed, gainedCard, lostCard, penitenciaBloqueada, newCurrent, score };
   },
 });
 

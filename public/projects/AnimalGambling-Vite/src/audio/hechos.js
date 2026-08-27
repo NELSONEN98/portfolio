@@ -27,8 +27,13 @@ import { SONIDOS } from "./sonidos";
 /* Los hechos cuyo sonido NO se llama igual que ellos. Vacía a propósito:
    mientras siga así, agregar un sonido es una línea en `sonidos.js`. */
 const EXCEPCIONES = {
-  /* Ejemplo de la forma, para cuando haga falta:
-     cartaRevelada: (e) => `carta-${e.carta.type}`,   */
+  /* La penitencia que rebotó en un escudo suena al escudo. Es la primera
+     entrada de esta tabla y es exactamente para lo que existía: el hecho se
+     llama `penitenciaBloqueada` porque eso es lo que pasó, y el sonido se
+     llama `shield` porque un archivo de audio no se llama por el hecho que
+     lo dispara sino por lo que suena. Renombrar cualquiera de los dos para
+     que coincidieran habría empeorado el que se renombra. */
+  penitenciaBloqueada: () => "shield",
 };
 
 /* Algunos hechos merecen sonar más fuerte que otros aunque compartan

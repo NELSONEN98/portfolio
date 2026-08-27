@@ -96,6 +96,14 @@ function gritoDeGolpe(ultimo) {
 
 const MENSAJES = {
   penitencia: (e) => [`Penitencia — ${e.nombre} pierde ${e.puntos}`, "error"],
+  /* Va al cartel del medio y no al aviso del costado, y es la única
+     penitencia que lo hace. La razón es que es la buena noticia: el jugador
+     ve su ficha frenar en una casilla roja y se prepara para perder puntos.
+     Si lo que lo salvó se cuenta en una esquina, el susto queda y el alivio
+     no llega — y encima creería que perdió puntos que no perdió.
+     Sin el nombre: el cartel del medio sólo sale en TU pantalla cuando es
+     TU turno, así que decir quién fue sobra. */
+  penitenciaBloqueada: () => ["¡ESCUDO ROTO!", "cartel"],
   /* Sin aviso cuando la carta se muestra sola: dos anuncios de lo mismo se
      pisan. El texto queda para el caso en que no hay carta que enseñar. */
   bonus: (e) => (e.carta ? null : [`Bonus — carta nueva para ${e.nombre}`]),
@@ -253,6 +261,10 @@ export default function App() {
   /* La carta que el servidor ya entregó pero que todavía no se mostró:
      espera a que la ficha frene para aparecer. */
   const cartaEnCamino = useRef(null);
+  /* La penitencia de la tirada en curso rebotó en un escudo. Sólo lo usa el
+     online: en local el motor lo cuenta como hecho y esa corriente ya llega
+     sola a la pantalla. */
+  const penitenciaBloqueada = useRef(false);
 
   /* La casilla a la que el servidor mandó tu ficha, esperando a que el dado
      termine de girar. Viene en la respuesta de la propia tirada, no del
@@ -859,6 +871,15 @@ export default function App() {
          ahora el recorrido dura lo que diga el dado: con una tirada larga
          la carta aparecía con la ficha todavía a mitad de camino. */
       if (r.gainedCard) cartaEnCamino.current = r.gainedCard;
+      /* El escudo tapó la casilla roja. El cliente no lo puede deducir del
+         tablero —ése sabe el color de la casilla, no lo que llevaba encima
+         la ficha— así que viene dicho por el servidor. Se guarda y se usa
+         cuando la ficha frena, como todo lo demás del turno. */
+      if (r.penitenciaBloqueada) {
+        penitenciaBloqueada.current = true;
+        anunciar("¡ESCUDO ROTO!");
+        sonarCarta(CARD.DEFENSE, true);
+      }
       /* Caíste en bonus y no vino carta: la única razón es que la mano ya
          está en el tope. En local ese aviso lo emite el motor como hecho,
          pero en online las casillas las resuelve el servidor y ese hecho
@@ -969,7 +990,20 @@ export default function App() {
          tablero ve dónde frenó la ficha en los dos modos, y en online las
          casillas las resuelve el servidor, así que aquel hecho nunca
          llegaría a esta pantalla. */
-      const castiga = tipo === SQUARE.PENALTY;
+      /* ►► Rojo sólo si de verdad cobró. ◄◄
+       *
+       * `tipo` sale del TABLERO, que lee el camino y nada más: sabe que la
+       * casilla es roja, no si esta ficha llevaba escudo. Sin la segunda
+       * mitad, a alguien que no perdió un punto se le teñía el peleador de
+       * rojo — el destello diría lo contrario del cartel.
+       *
+       * En online la respuesta la trae el servidor y espera acá adentro de
+       * un ref, igual que la carta ganada: quien resuelve las casillas es
+       * él, así que la respuesta viaja con la tirada y se usa recién cuando
+       * la ficha frena. */
+      const bloqueada = penitenciaBloqueada.current;
+      penitenciaBloqueada.current = false;
+      const castiga = tipo === SQUARE.PENALTY && !bloqueada;
       /* La casilla convertida por la maldición. En local la reconoce el
          tablero, que ya lee cada casilla con los ojos del que la pisa. */
       if (!online && tipo === SQUARE.TURN_LOSS && lado === juego.active) {
