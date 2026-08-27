@@ -16,13 +16,21 @@ export function CardFace({ carta }) {
     return (
       <>
         <span className="card-icon">{Dibujo ? <Dibujo /> : null}</span>
-        {/* Sin la palabra "ROBAR": el dibujo ya dice de qué carta se trata y
-            el rótulo sólo le robaba lugar a la cifra, que es el único dato
-            que cambia entre una y otra. Con dos denominaciones —3 y 6— lo
-            que hay que leer de un vistazo es CUÁNTO, no cómo se llama.
-            Usa `.card-value`, el mismo tamaño que llevan los números del
-            resto del mazo, en vez del rótulo chico de antes. */}
+        {/* La cifra grande en el cuerpo: con dos denominaciones —3 y 6— lo
+            que hay que leer de un vistazo es CUÁNTO, no cómo se llama. */}
         <span className="card-value">−{carta.value}</span>
+        {/* ►► Y vuelve la palabra "ROBAR". ◄◄
+         *
+         * La había perdido, y por un buen motivo: compartía el cuerpo de la
+         * carta con la cifra y le robaba lugar al único dato que cambia
+         * entre una y otra. Ese motivo desapareció cuando el nombre se mudó
+         * a su propia franja abajo — ahora no compite con nada.
+         *
+         * Y hacía falta que volviera por dos razones. Sin ella, el robo era
+         * la única carta del mazo sin franja blanca y se veía como un error
+         * de la pantalla. Y para quien recién aprende, un dibujo con un
+         * número no dice qué hace: los otros siete se nombran solos. */}
+        <span className="card-kind">{CARD_LABEL[CARD.STEAL]}</span>
       </>
     );
   }

@@ -3890,12 +3890,23 @@ body {
      avanza sobre el fieltro, y con cinco en la mano el abanico terminaba
      apoyado encima de la mesa. */
   --card-w: var(--carta-ancho);
+  /* El alto de la franja del nombre. Vive acá porque lo necesitan dos: la
+     franja misma y el relleno de abajo del cuerpo, que tiene que dejarle
+     ese hueco libre. Escrito dos veces, el dibujo se le monta encima el día
+     que alguien retoque uno solo. */
+  --card-rotulo: calc(var(--card-w) * 0.2);
   width: var(--card-w);
   aspect-ratio: 5 / 7;
   border: none;
   border-radius: 0.8rem;
-  padding: 0.5rem 0.3rem;
+  /* La franja va de borde a borde, así que el relleno lateral se lo queda el
+     cuerpo y no la carta. Abajo se reserva el alto del rótulo. */
+  padding: 0.5rem 0.3rem var(--card-rotulo);
   cursor: pointer;
+  /* Ancla de la franja, y recorte a la curva de la carta: sin el recorte,
+     las esquinas de abajo del rótulo asoman cuadradas fuera del naipe. */
+  position: relative;
+  overflow: hidden;
 
   display: flex;
   flex-direction: column;
@@ -3927,11 +3938,47 @@ body {
 /* Las dos medidas escalan con la carta: en em sobre --card-w el texto
    mantiene la proporción sin tener que retocarlo cada vez que cambia el
    tamaño de la carta. */
+/* ►► EL NOMBRE, EN SU FRANJA ABAJO. ◄◄
+ *
+ * Estaba en el cuerpo, debajo del dibujo y del color de la carta. Dos
+ * problemas de una vez: le robaba alto al dibujo —que es lo que se reconoce
+ * de lejos— y quedaba escrito sobre cuatro fondos distintos, así que el
+ * contraste dependía de qué carta te tocó.
+ *
+ * En su propia franja blanca con letra negra, el contraste es el mismo
+ * siempre, y el cuerpo entero le queda al dibujo.
+ */
 .card-kind {
-  font-size: calc(var(--card-w) * 0.13);
-  letter-spacing: 0.06em;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--card-rotulo);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.2em;
+
+  background: #fff;
+  color: #000;
+  /* ►► El cuerpo lo fija el rótulo MÁS LARGO, no el promedio. ◄◄
+   *
+   * "MEDIA VUELTA" son doce letras y es el más largo del mazo. A 0.135 se
+   * salía de la franja y quedaba como "MEDIA VUEL…", que es peor que no
+   * ponerle nombre: un rótulo cortado se lee como un error de la pantalla.
+   *
+   * Medido carta por carta: a 0.125 todavía se corta, a 0.115 entran las
+   * ocho. Achicar un punto las siete que sí entraban es barato; dejar una
+   * con puntos suspensivos, no. */
+  font-size: calc(var(--card-w) * 0.115);
+  letter-spacing: 0.04em;
   text-align: center;
-  line-height: 1.15;
+  line-height: 1;
+  /* Los nombres largos —"MEDIA VUELTA"— entran achicándose antes que
+     partirse: dos renglones no caben en la franja y saldrían cortados. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .card-value {
   font-size: calc(var(--card-w) * 0.42);
@@ -3939,10 +3986,19 @@ body {
 }
 
 /* El ícono ocupa el lugar del número en las cartas que no llevan valor. */
+/* ►► El dibujo se lleva lo que soltó el nombre. ◄◄
+ *
+ * Era 0.5 del ancho y compartía el cuerpo con el rótulo. Con el nombre
+ * mudado abajo, el cuerpo entero es suyo: 0.78 lo llena casi hasta los
+ * costados, que es lo que hace que la carta se reconozca de un vistazo con
+ * cinco en la mano y en diagonal.
+ *
+ * No llega a 1: el naipe necesita un margen o el dibujo se lee como
+ * recortado contra el filo. */
 .card-icon {
   display: block;
-  width: calc(var(--card-w) * 0.5);
-  height: calc(var(--card-w) * 0.5);
+  width: calc(var(--card-w) * 0.78);
+  height: calc(var(--card-w) * 0.78);
 }
 .card-icon svg {
   width: 100%;
