@@ -471,13 +471,17 @@ export const MOTION = {
     },
     /* Cuánto queda el emoji elegido sobre el personaje.
      *
-     * Largo a propósito. Es un mensaje para los demás de la mesa, y los
-     * demás no están mirando tu personaje cuando lo tirás — están mirando el
-     * dado o sus cartas. Un segundo y medio no alcanza para que alguien
-     * levante la vista; dos y medio sí, y todavía no llega a estorbar el
-     * turno. */
+     * Largo a propósito, y más desde que flota. Es un mensaje para los demás
+     * de la mesa, y los demás no están mirando tu personaje cuando lo tirás
+     * — están mirando el dado o sus cartas. Un segundo y medio no alcanza
+     * para que alguien levante la vista.
+     *
+     * Subió de 2500 a 3600 al pasar de aparecer a FLOTAR: un recorrido que
+     * dura lo mismo que duraba una aparición se ve apurado, y lo que se pidió
+     * fue que subiera lento. Con 3,6s el emoji sube despacio, se lee todo el
+     * camino, y todavía se va antes de que el turno cambie. */
     dura: {
-      ms: 2500,
+      ms: 3600,
       ease: EASE.suave,
       keyframes: "emoji-tirado",
       el: ".fighter-emote",

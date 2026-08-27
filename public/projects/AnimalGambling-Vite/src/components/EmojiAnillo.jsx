@@ -49,12 +49,27 @@ export default function EmojiAnillo({ abierto, onElegir }) {
                  cinco cosas apareciendo juntas. */
               "--retraso": `${i * 35}ms`,
             }}
+            /* Lo lee el personaje al soltar el dedo: con el puntero
+               capturado, esto es lo único que dice qué emoji hay debajo. */
+            data-emoji={e.id}
             title={e.label}
             aria-label={e.label}
-            /* `pointerdown` y no `click`: el dedo YA está apoyado desde que
-               se abrió el anillo, así que el gesto natural es arrastrar
-               hasta el emoji y soltar. Esperando el click habría que
-               levantar el dedo y volver a tocar. */
+            /* ►► Esto cubre el segundo gesto, no el primero. ◄◄
+             *
+             * Hay dos formas de llegar acá y sólo una pasa por este
+             * manejador:
+             *
+             *  · sostener, ARRASTRAR hasta el emoji y soltar — el puntero
+             *    quedó capturado por el personaje desde el primer apoyo,
+             *    así que estos botones NO reciben eventos. Ese caso lo
+             *    resuelve el personaje leyendo qué hay debajo del dedo al
+             *    soltar (ver `alSoltar` en Fighter).
+             *  · sostener, soltar sin elegir —el anillo queda abierto un
+             *    instante— y tocar un emoji: ahí sí es un puntero nuevo y
+             *    este manejador es el que corre.
+             *
+             * `pointerdown` y no `click` porque el segundo también es un
+             * toque, y esperar el click agrega una espera que no aporta. */
             onPointerDown={(ev) => {
               ev.stopPropagation();
               ev.preventDefault();

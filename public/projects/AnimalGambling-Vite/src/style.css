@@ -2154,9 +2154,23 @@ body {
  * Grande y centrado en el marco: es un mensaje para los demás de la mesa,
  * que no están mirando ese rincón de la pantalla cuando se tira. Chico y en
  * una esquina no lo vería nadie. */
+/* ►► FLOTA SOBRE LA CABEZA, no encima de la cara. ◄◄
+ *
+ * Antes aparecía centrado sobre el personaje y lo tapaba entero: durante
+ * esos segundos no se veía de quién era el emoji, que es la mitad del
+ * mensaje. Ahora sale de arriba de la cabeza y sube despacio, como un globo
+ * de historieta que se suelta.
+ *
+ * `bottom: 100%` lo apoya justo sobre el borde superior del marco y desde
+ * ahí sube: el punto de partida es la cabeza, no un lugar cualquiera.
+ * `left: 50%` con el `translateX(-50%)` que lleva la animación lo centra
+ * sobre el gato. */
 .fighter-emote {
   position: absolute;
-  inset: 8%;
+  bottom: 100%;
+  left: 50%;
+  width: 52%;
+  aspect-ratio: 5 / 6;
   /* Junto al anillo y por el mismo motivo: si el emoji tirado quedara
      debajo de las cartas, el mensaje se perdería justo en el momento en que
      alguien tiene la mano abierta. */
@@ -2169,16 +2183,41 @@ body {
   animation: emoji-tirado var(--dur-emoji-dura) var(--ease-emoji-dura) forwards;
 }
 
-/* Entra de golpe con un rebote, se queda, y recién al final se va. El
-   grueso del tiempo lo pasa quieto y legible: una animación que se mueve
-   los dos segundos y medio se lee como un adorno, no como algo que alguien
-   dijo. */
+/* ►► Sube despacio y se apaga arriba. ◄◄
+ *
+ * Tres tramos, y el del medio es el que importa:
+ *
+ *  · sale de la cabeza en un salto corto, con un rebote apenas — tiene que
+ *    verse de dónde salió, y algo que aparece quieto no cuenta eso;
+ *  · sube lento la mayor parte del tiempo, ya opaco y legible. Acá está el
+ *    grueso de los 3,6 segundos: es cuando alguien que estaba mirando el
+ *    dado levanta la vista y todavía lo encuentra;
+ *  · se desvanece en el último tramo, sin frenar. Un globo que se para en
+ *    el aire y recién ahí desaparece se ve como un error de la pantalla.
+ *
+ * El `translateX(-50%)` se repite en cada cuadro y no es de más: `transform`
+ * se reemplaza entero, así que un cuadro que sólo diga `translateY` pierde
+ * el centrado y el emoji salta medio ancho a la derecha. */
 @keyframes emoji-tirado {
-  0%   { opacity: 0; transform: scale(0.4) translateY(12%); }
-  12%  { opacity: 1; transform: scale(1.12) translateY(0); }
-  20%  { transform: scale(1); }
-  82%  { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.9) translateY(-10%); }
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(38%) scale(0.5);
+  }
+  10% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-4%) scale(1.08);
+  }
+  16% {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  70% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-52%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-92%) scale(0.94);
+  }
 }
 
 /* El personaje propio avisa que se lo puede sostener. El cursor es la única
@@ -2213,9 +2252,56 @@ body {
   }
 }
 
+/* ►► Los de arriba flotan HACIA ABAJO. ◄◄
+ *
+ * Hoy sólo emotea el jugador propio, que siempre está en la fila de abajo,
+ * así que esto no se ve. Va igual porque el día que los emojis viajen por
+ * la red los rivales de la fila de arriba van a emotear también, y un globo
+ * que sube desde ahí se va de la pantalla — nadie lo vería y no habría
+ * ningún error que investigar, sólo emojis que "no funcionan".
+ *
+ * La clase `arriba` ya existe y ya la pone la pantalla: es la misma que
+ * decide hacia dónde vuelan las cartas. Se reusa en vez de inventar otra
+ * forma de preguntar lo mismo. */
+.fighter-linea.arriba .fighter-emote {
+  bottom: auto;
+  top: 100%;
+  animation-name: emoji-tirado-abajo;
+}
+
+@keyframes emoji-tirado-abajo {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-38%) scale(0.5);
+  }
+  10% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(4%) scale(1.08);
+  }
+  16% {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  70% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(52%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(92%) scale(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fighter-linea.arriba .fighter-emote {
+    animation-name: emoji-tirado-quieto;
+  }
+}
+
+/* Sin movimiento se queda sobre la cabeza y sólo se apaga. Conserva el
+   centrado, que es transform y no movimiento. */
 @keyframes emoji-tirado-quieto {
-  0%, 88%  { opacity: 1; }
-  100%     { opacity: 0; }
+  0%, 88%  { opacity: 1; transform: translateX(-50%); }
+  100%     { opacity: 0; transform: translateX(-50%); }
 }
 
 /* ►► LA SALIDA DE LA PARTIDA. ◄◄

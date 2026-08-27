@@ -62,6 +62,10 @@ export default function Fighter({
    * toque de nuevo es peor que no tenerlo. */
   const [anillo, setAnillo] = useState(false);
   const espera = useRef(null);
+  /* El elemento del marco y el puntero que lo está apretando. Los dos hacen
+     falta para tomar la captura cuando el abanico se abre. */
+  const marco = useRef(null);
+  const puntero = useRef(null);
 
   const cancelarEspera = useCallback(() => {
     clearTimeout(espera.current);
@@ -88,11 +92,68 @@ export default function Fighter({
        el anillo quedaría abierto debajo. */
     if (ev.button != null && ev.button !== 0) return;
     cancelarEspera();
-    espera.current = setTimeout(() => setAnillo(true), ms("emoji.sostener"));
+    puntero.current = ev.pointerId;
+    espera.current = setTimeout(() => {
+      /* ►► Tomar la captura es lo que hace posible arrastrar. ◄◄
+       *
+       * Sin esto, mover el dedo o el mouse fuera del personaje dispara
+       * `pointerleave` — y como ese evento también cierra el abanico, el
+       * jugador no llegaba nunca hasta un emoji: el anillo se cerraba en
+       * cuanto salía del gato para ir a buscarlo.
+       *
+       * Con la captura, todos los eventos de este puntero siguen llegando
+       * acá hasta que se suelte, salga por donde salga. Es lo mismo que hace
+       * cualquier control que se arrastra, y es lo que unifica el teléfono
+       * —donde el navegador la toma solo— con el escritorio, donde no. */
+      try {
+        marco.current?.setPointerCapture?.(puntero.current);
+      } catch {
+        /* Un puntero que ya se soltó no se puede capturar. Si falla, el
+           abanico igual se abre y se elige con un segundo toque. */
+      }
+      setAnillo(true);
+    }, ms("emoji.sostener"));
   };
 
-  const alSoltar = () => {
+  /* ►► Soltar sobre un emoji lo elige. ◄◄
+   *
+   * Este es el gesto natural y era el que no funcionaba: sostener, arrastrar
+   * hasta el emoji, soltar. Y no funcionaba por una razón que no se ve
+   * leyendo el código del anillo — al apoyar el dedo sobre el personaje, el
+   * navegador le da a ESE elemento la captura del puntero, así que todo lo
+   * que pase después le llega a él y nunca a los botones de abajo. El
+   * `pointerdown` de cada emoji jamás se disparaba mientras el dedo siguiera
+   * apoyado.
+   *
+   * `elementFromPoint` pregunta qué hay en esas coordenadas, que es
+   * exactamente el dato que la captura esconde. Es la misma pregunta que se
+   * haría el navegador si el puntero no estuviera capturado.
+   *
+   * Si al soltar no hay ningún emoji debajo —el dedo se fue al vacío o
+   * volvió sobre el gato— el anillo simplemente se cierra, que es la forma
+   * de arrepentirse sin elegir nada. */
+  /* Sólo cancela: no elige. Se usa para el puntero que se va o que el
+     sistema se lleva, y para el dedo que sale del personaje ANTES de que el
+     abanico se abriera —ahí todavía no hay captura y `pointerleave` sí
+     llega—. Un gesto interrumpido no debería elegir nada. */
+  const alCancelar = () => {
     cancelarEspera();
+    setAnillo(false);
+  };
+
+  const alSoltar = (ev) => {
+    cancelarEspera();
+    if (anilloAbierto && ev?.clientX != null) {
+      const bajoElDedo = document
+        .elementFromPoint(ev.clientX, ev.clientY)
+        ?.closest?.(".emoji-opcion");
+      const id = bajoElDedo?.dataset?.emoji;
+      if (id) {
+        setAnillo(false);
+        onEmote?.(id);
+        return;
+      }
+    }
     setAnillo(false);
   };
 
@@ -182,11 +243,16 @@ export default function Fighter({
         )}
 
       <div
+        ref={marco}
         className={`fighter-frame${puedeEmotear ? " emoteable" : ""}${anilloAbierto ? " con-anillo" : ""}`}
         onPointerDown={alApoyar}
         onPointerUp={alSoltar}
-        onPointerLeave={alSoltar}
-        onPointerCancel={alSoltar}
+        /* Salir del personaje sólo cancela mientras NO haya captura, o sea
+           antes de que el abanico se abra. Después la captura impide que
+           este evento llegue, que es justo lo que permite ir a buscar un
+           emoji sin que el anillo se cierre en el camino. */
+        onPointerLeave={alCancelar}
+        onPointerCancel={alCancelar}
         /* El menú contextual del navegador aparece con el MISMO gesto en
            teléfono —mantener apretado— y taparía el anillo justo cuando se
            abre. */
