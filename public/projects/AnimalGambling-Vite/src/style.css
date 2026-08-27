@@ -451,20 +451,56 @@ body {
   text-shadow: 0 0 1.6rem rgba(245, 185, 66, 0.5);
 }
 
-/* Auto-fit, not a fixed column count: the grid follows however many
-   fighters ROSTER holds. Two today, and a third one drops in without
-   anybody touching this rule. The max-width is what stops two cards from
-   inflating to half a monitor each on a wide screen. */
+/* ►► Flex y no grid, y el motivo es la fila incompleta. ◄◄
+ *
+ * Acá había `grid-template-columns: repeat(2, ...)` con un comentario que
+ * decía "auto-fit, no un número fijo de columnas". El comentario describía
+ * una versión anterior: la regla eran DOS columnas fijas, y con cuatro
+ * gatos daba un 2×2 perfecto que tapaba el problema.
+ *
+ * Con cinco aparecieron los dos que el 2×2 escondía. Medido en Chrome antes
+ * de tocar nada, a 1440, 1280 y 900:
+ *
+ *   filas 2 · 2 · 1   — el quinto solo, y PEGADO A LA IZQUIERDA
+ *   se_sale: true     — tres filas no entran en el alto, en los tres tamaños
+ *
+ * Una grilla no sabe centrar su última fila: los ítems caen en columnas, y
+ * una columna vacía al final no se reparte. Flex sí — `justify-content:
+ * center` centra cada línea por su cuenta, así que la fila incompleta queda
+ * en el medio sin importar cuántos gatos sobren.
+ *
+ * Y eso vale para el que venga: con seis, siete o tres, la última fila se
+ * centra sola. Es lo que el comentario viejo prometía y la regla no hacía. */
 .char-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(3rem, 5vw, 5rem);
-  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(1.4rem, 3vw, 3.4rem);
+  flex-basis: 0;
+  flex-grow: 1;
   align-content: center;
   justify-content: center;
   width: 100%;
   max-width: 100rem;
   margin-inline: auto;
+}
+
+/* Las tarjetas ya no se estiran a una fracción de la grilla: miden lo que
+   mide su dibujo, y el dibujo se dimensiona solo (ver `.char-art`). Así el
+   ancho de la fila es la suma de lo que ocupan, que es justo lo que flex
+   necesita para poder centrarla. */
+.char-card {
+  flex: 0 0 auto;
+  /* ►► El ancho vive acá y no en el dibujo. ◄◄
+   *
+   * Estaba en `.char-art`, y con la tarjeta en `flex: 0 0 auto` eso dejaba
+   * que el ancho lo decidiera el hijo MÁS ANCHO — que resultó ser el
+   * nombre, no el dibujo. "Maisie Pixie Lou" en una línea estiraba su
+   * tarjeta y hacía que sólo entraran cuatro por fila.
+   *
+   * Puesto en la tarjeta, el nombre se ajusta al ancho del dibujo en vez de
+   * imponerlo. Es lo mismo que se hizo con la banda de botones y su barra:
+   * quien manda el ancho tiene que ser uno solo. */
+  width: clamp(7rem, min(15vw, 26dvh), 15.5rem);
 }
 
 .char-card {
@@ -493,7 +529,10 @@ body {
 .char-art-caja {
   position: relative;
   display: block;
-  width: fit-content;
+  /* Sigue al ancho de la tarjeta. Era `fit-content`, que servía cuando el
+     dibujo traía su propio ancho; ahora el dibujo va al 100% y con
+     `fit-content` la caja colapsaría a cero. */
+  width: 100%;
   transition: transform 0.3s;
 }
 
@@ -629,7 +668,18 @@ body {
    drawings on white paper, not cut-out sprites. You pick the fighter as it
    will actually look in play — moving, framed, identical. */
 .char-art {
-  width: clamp(14rem, min(40vw, 45dvh), 38rem);
+  /* ►► Cinco en una fila, no dos. ◄◄
+   *
+   * Era `min(40vw, 45dvh)`: cada dibujo se llevaba el 40% del ancho, que es
+   * exactamente lo que corresponde cuando hay DOS columnas. Con cinco gatos
+   * eso obliga a tres filas y la pantalla se desborda.
+   *
+   * A 17vw entran los cinco en una sola fila en un escritorio, y en una
+   * ventana angosta flex los reparte en dos filas centradas sin que nadie
+   * toque nada. El tope en `dvh` sigue siendo el que manda cuando la
+   * ventana es baja y ancha: ahí el problema nunca fue el ancho. */
+  /* Llena la tarjeta, que es quien decide cuánto mide. */
+  width: 100%;
   aspect-ratio: 5 / 6;
   border-radius: clamp(1.4rem, 3vmin, 3rem);
   background-color: #fff;
@@ -641,10 +691,31 @@ body {
 
 .char-name {
   font-family: var(--display);
-  font-size: clamp(1.8rem, 4.2vw, 2.7rem);
+  /* ►► Achicado con las tarjetas, y atado a ellas. ◄◄
+   *
+   * Era `clamp(1.8rem, 4.2vw, 2.7rem)`: un cuerpo pensado para tarjetas del
+   * doble de ancho. Con cinco gatos en fila, "HERMENEGILDO" se salía por los
+   * costados y se pisaba con el vecino, y "MAISIE PIXIE LOU" partía en TRES
+   * renglones y desalineaba su tarjeta del resto.
+   *
+   * El `4.2vw` era lo peor: el nombre crecía con la VENTANA mientras la
+   * tarjeta crece con `min(15vw, 26dvh)`. En una ventana ancha y baja los
+   * dos se iban para lados distintos. Ahora los dos miran las mismas dos
+   * medidas y no se pueden despegar. */
+  font-size: clamp(0.95rem, min(2.1vw, 3.6dvh), 1.6rem);
   color: var(--bone);
-  letter-spacing: 0.1rem;
+  letter-spacing: 0.06rem;
   text-align: center;
+  /* Que parta si hace falta —hay nombres de tres palabras— pero sin
+     desbordar nunca la tarjeta. */
+  max-width: 100%;
+  overflow-wrap: break-word;
+  /* Dos renglones de alto reservados SIEMPRE. Sin esto la tarjeta del
+     nombre largo empuja sus etiquetas más abajo que las demás y la fila
+     queda desprolija; con esto los cinco pies quedan a la misma altura, use
+     una línea o dos. */
+  min-height: 2.4em;
+  line-height: 1.2;
 }
 
 .char-desc {
@@ -1108,6 +1179,20 @@ body {
 .char-art[data-cat="cat4"],
 .fighter-art[data-cat="cat4"] { background-color: var(--c-bronze); }
 
+/* ►► El quinto color, y hubo que inventarlo. ◄◄
+ *
+ * Los cuatro fondos que había —oro, azul, verde, bronce— eran justo los
+ * cuatro colores de la paleta que NO significan nada más. Los que quedaban
+ * libres ya tienen trabajo: el rojo es el robo y la penitencia, el morado es
+ * la maldición. Un gato de fondo morado se leería como un gato maldito.
+ *
+ * Este rosa vino es nuevo y no significa nada, que es exactamente lo que
+ * tiene que ser un color de identidad. Y le queda: es la broma del
+ * personaje —un nombre de concurso de belleza sobre una cara furiosa— hecha
+ * color. */
+.char-art[data-cat="cat5"],
+.fighter-art[data-cat="cat5"] { background-color: #8f2f52; }
+
 /* ---- the boil ----
    Shared by the selection cards and the versus fighters: one definition,
    both screens. `data-cat` is the only wiring — JS writes it, CSS picks
@@ -1140,6 +1225,11 @@ body {
 .boil[data-cat="cat4"] {
   background-image: url("cat4/frame0000.webp");
   animation: cat4-boil var(--dur-peleador-boil-cat4) var(--ease-peleador-boil-cat4) infinite;
+}
+
+.boil[data-cat="cat5"] {
+  background-image: url("cat5/frame0000.png");
+  animation: cat5-boil var(--dur-peleador-boil-cat5) var(--ease-peleador-boil-cat5) infinite;
 }
 
 /* Negative delay, not positive: it starts immediately, just out of phase,
@@ -1187,6 +1277,26 @@ body {
   70%  { background-image: url("cat3/frame0007.webp"); }
   80%  { background-image: url("cat3/frame0008.webp"); }
   90%  { background-image: url("cat3/frame0009.webp"); }
+}
+
+/* ►► Tres pasos y no siete, aunque haya siete archivos. ◄◄
+ *
+ * Los siete dibujos de esta gata son sólo TRES imágenes distintas:
+ * 0000=0001=0002, 0003=0004=0005, y el 0006. Listar los siete no agregaría
+ * un cuadro de animación —mostraría la misma imagen tres veces seguidas— y
+ * encima haría un ciclo desparejo: dos poses quietas tres tiempos cada una y
+ * la tercera pasando en uno solo. Se vería como un tirón, no como un boil.
+ *
+ * Con los tres únicos y pasos iguales el ciclo respira parejo. Los cuatro
+ * archivos repetidos siguen precargándose —`frames: 7` en el catálogo cubre
+ * lo que existe en el disco— pero no se dibujan.
+ *
+ * El día que lleguen siete dibujos de verdad, esto pasa a listar los siete y
+ * `boilCat5` sube a 500ms. */
+@keyframes cat5-boil {
+  0%    { background-image: url("cat5/frame0000.png"); }
+  33.3% { background-image: url("cat5/frame0003.png"); }
+  66.6% { background-image: url("cat5/frame0006.png"); }
 }
 
 @keyframes cat4-boil {

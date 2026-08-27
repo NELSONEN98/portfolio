@@ -317,6 +317,19 @@ export const MOTION = {
     boilCat2: { ms: 500, ease: EASE.cuadro, keyframes: "cat2-boil", el: '.boil[data-cat="cat2"]', loop: true },
     boilCat3: { ms: 560, ease: EASE.cuadro, keyframes: "cat3-boil", el: '.boil[data-cat="cat3"]', loop: true },
     boilCat4: { ms: 560, ease: EASE.cuadro, keyframes: "cat4-boil", el: '.boil[data-cat="cat4"]', loop: true },
+    /* ►► Más corto que los otros porque tiene TRES dibujos, no diez. ◄◄
+     *
+     * Los otros cuatro reparten 9 o 10 cuadros en medio segundo: unos 56ms
+     * cada uno. Con tres, ese mismo ritmo daría un ciclo de 168ms — tan
+     * corto que deja de leerse como una línea viva y pasa a ser un
+     * parpadeo. Y estirarlo a 560 dejaría cada dibujo casi 190ms, que ya no
+     * es un boil sino tres poses pasando.
+     *
+     * 360 reparte 120ms por dibujo: el ciclo se siente del mismo tipo que
+     * el de los demás sin estrobar. Si algún día llegan los siete dibujos
+     * de verdad, este número sube a 500 y el keyframes de abajo pasa a
+     * listarlos todos. */
+    boilCat5: { ms: 360, ease: EASE.cuadro, keyframes: "cat5-boil", el: '.boil[data-cat="cat5"]', loop: true },
     maldito: {
       ms: 2200,
       ease: EASE.suave,

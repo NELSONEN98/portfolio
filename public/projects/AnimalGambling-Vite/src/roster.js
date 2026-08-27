@@ -1,4 +1,4 @@
-/* Los cuatro peleadores.
+/* Los cinco peleadores.
  *
  * Cada uno es un boil: `frames` dibujos hechos a mano en `dir` que el CSS
  * cicla, elegidos por `id` a través de .boil[data-cat="…"]. Sumar un gato
@@ -70,6 +70,44 @@ export const ROSTER = [
     loseQuote: "...",
     tags: ["MISTERIO", "SILENCIO"],
   },
+  {
+    id: "cat5",
+    /* ►► Tres nombres y una cara de pocos amigos. ◄◄
+     *
+     * El personaje ES ese contraste: se llama como una campeona de concurso
+     * y mira como si le hubieran servido el agua tibia. Los otros cuatro se
+     * definen por lo que hacen en la mesa —el que debe plata, el que dice
+     * que se retiró, el que no entiende, el que no habla—; ésta se define
+     * por lo que cree que merece. */
+    name: "Maisie Pixie Lou",
+    dir: "cat5",
+    /* Siete archivos, y eso es lo que hay que precargar. Ojo: son sólo TRES
+       dibujos distintos —0000=0001=0002, 0003=0004=0005, y el 0006— así que
+       el boil de abajo usa los tres únicos y no los siete. El número de acá
+       es de la PRECARGA, que tiene que cubrir los archivos que existen. */
+    frames: 7,
+    /* ►► La única en `png`, y por eso la extensión se declara. ◄◄
+     *
+     * Los otros cuatro son `.webp` y la precarga la tenía escrita a mano en
+     * la plantilla. Con esta gata pedía `cat5/frame0000.webp`, que no
+     * existe: los siete dibujos se bajaban recién al entrar a elegir gato,
+     * que es justo lo que la precarga viene a evitar.
+     *
+     * Se declara acá por el mismo motivo que `damage` es una ruta completa y
+     * que `frames` vale 9 para dos gatos y 10 para otros dos: este catálogo
+     * ES el lugar donde cada gato dice en qué se diferencia. */
+    ext: "png",
+    img: "cat5/frame0000.png",
+    /* Sin cara de daño: no hay archivo. `Fighter` ya pregunta antes de
+       dibujarla y la precarga también, así que no falta nada — simplemente
+       esta gata no cambia de cara cuando le pegan. El día que llegue el
+       dibujo, es una línea. */
+    age: "3",
+    cond: "Tres nombres, ni un amigo. Juega como si le debieran algo.",
+    quote: "Obviamente. ¿Esperaban otra cosa?",
+    loseQuote: "Esta mesa está sucia. Todo esto está sucio.",
+    tags: ["PEDIGRÍ", "MAL GENIO"],
+  },
 ];
 
 export function charFromCatId(catId) {
@@ -88,7 +126,10 @@ export function warmRosterFrames() {
       const img = new Image();
       // Baja prioridad: son para dos pantallas más adelante.
       img.fetchPriority = "low";
-      img.src = `${c.dir}/frame${String(i).padStart(4, "0")}.webp`;
+      /* La extensión sale del catálogo y ya no está escrita acá: cuatro
+         gatos son `.webp` y uno es `.png`, y con la plantilla fija la
+         precarga de ése pedía archivos que no existen. */
+      img.src = `${c.dir}/frame${String(i).padStart(4, "0")}.${c.ext ?? "webp"}`;
     }
     /* ►► La cara de daño se calienta acá o no se ve nunca. ◄◄
      *
