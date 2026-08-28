@@ -4016,6 +4016,39 @@ body {
   width: calc(var(--card-w) * 0.78);
   height: calc(var(--card-w) * 0.78);
 }
+/* ►► El dibujo hecho a mano de una carta. ◄◄
+ *
+ * Convive con los íconos vectoriales: cinco cartas tienen dibujo y tres
+ * siguen con su `svg` hasta que lleguen los suyos.
+ *
+ * `object-fit: contain` y no `cover`: estos dibujos traen aire alrededor y
+ * cosas que sobresalen —las estrellas del golpe, las bolsas del robo— y
+ * `cover` recortaría justo eso, que es lo que da la lectura de un vistazo. */
+.card-dibujo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ►► La caja se hace 5:6 cuando lleva dibujo. ◄◄
+ *
+ * `.card-icon` es CUADRADA porque los íconos vectoriales lo son. Los
+ * dibujos son 420x480, así que dentro de un cuadrado `contain` los
+ * encajaría dejando franjas a los costados: el dibujo se vería más chico de
+ * lo que la caja mide, que es justo el problema que se arregló en los
+ * emojis.
+ *
+ * `:has()` deja preguntar por el contenido sin tener que ponerle una clase
+ * extra a la caja desde el JSX — el componente sigue sin saber de qué está
+ * hecho lo que dibuja. */
+.card-icon:has(.card-dibujo) {
+  height: auto;
+  aspect-ratio: 420 / 480;
+}
+
 .card-icon svg {
   width: 100%;
   height: 100%;
@@ -4032,13 +4065,35 @@ body {
    confundiría con el de tenerla en la mano. */
 .card.steal   { background: var(--c-black); color: #fff; }
 
-/* El pescado es lo que identifica la carta de lejos, así que se lleva casi
+/* El dibujo es lo que identifica la carta de lejos, así que se lleva casi
    todo el alto disponible. Puede ser más grande que los íconos de las
    otras porque el rótulo y el número comparten una sola línea abajo en vez
    de ocupar dos. */
 .card.steal .card-icon {
   width: calc(var(--card-w) * 0.68);
   height: calc(var(--card-w) * 0.68);
+}
+
+/* ►► El gato ladrón, contorneado en blanco. ◄◄
+ *
+ * Es la única carta con fondo NEGRO y el dibujo es tinta negra: sobre su
+ * propia carta desaparecía. Las otras cuatro caen sobre morado, oro, rojo y
+ * azul, donde el negro contrasta solo.
+ *
+ * El fondo no se toca —el negro es la identidad del robo, la única carta sin
+ * color— así que lo que cambia es el dibujo. Cuatro sombras blancas de 1px
+ * en cruz le dan un contorno parejo: es el recurso de siempre para separar
+ * un PNG transparente de un fondo del mismo tono, y no altera un solo píxel
+ * del dibujo, sólo agrega borde.
+ *
+ * Cuatro y no una: una sola sombra deja el contorno de un solo lado y se lee
+ * como un error de impresión. */
+.card.steal .card-dibujo {
+  filter:
+    drop-shadow(1px 0 0 #fff)
+    drop-shadow(-1px 0 0 #fff)
+    drop-shadow(0 1px 0 #fff)
+    drop-shadow(0 -1px 0 #fff);
 }
 
 /* El número dentro del rótulo, no debajo: se lee "GOLPE −2" de un saque.

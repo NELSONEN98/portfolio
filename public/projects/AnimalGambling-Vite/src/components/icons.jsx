@@ -249,6 +249,30 @@ export const SQUARE_ICON = {
   [SQUARE.TURN_LOSS]: DeathNoteIcon,
 };
 
+/* ►► LOS DIBUJOS DE LAS CARTAS. ◄◄
+ *
+ * Cinco de las ocho cartas tienen dibujo hecho a mano; las otras tres siguen
+ * con su ícono vectorial hasta que lleguen los suyos.
+ *
+ * Van en una tabla aparte y NO reemplazando la entrada de `CARD_ICON` porque
+ * son dos cosas distintas de dibujar: un ícono es un `<svg>` que toma el
+ * color de la carta con `currentColor`, y un dibujo es un `<img>` con sus
+ * propios colores. Metiéndolos en la misma tabla, quien la consume tendría
+ * que preguntar de qué tipo es cada valor en cada uso.
+ *
+ * Con dos tablas la pregunta se hace una sola vez, en `CardArt`, y el resto
+ * del proyecto pide "el dibujo de esta carta" sin saber de qué está hecho.
+ * El día que lleguen los tres que faltan, son tres líneas acá y las
+ * entradas de `CARD_ICON` quedan de respaldo.
+ */
+export const CARD_ART = {
+  [CARD.STEAL]: "cards/steal-card-cat.png",
+  [CARD.CURSE]: "cards/curse-cat.png",
+  [CARD.DOUBLE]: "cards/double-dice.png",
+  [CARD.PUNCH]: "cards/punch-cat.png",
+  [CARD.SKIP]: "cards/jump-card.png",
+};
+
 export const CARD_ICON = {
   [CARD.STEAL]: FishCorpseIcon,
   [CARD.DEFENSE]: ShieldIcon,
@@ -259,3 +283,23 @@ export const CARD_ICON = {
   [CARD.SKIP]: LeapfrogIcon,
   [CARD.REVERSE]: ReverseIcon,
 };
+
+/* ►► El dibujo de una carta, sea de lo que sea. ◄◄
+ *
+ * Un solo lugar donde se decide entre dibujo e ícono. Quien lo usa escribe
+ * `<CardArt tipo={carta.type} />` y no se entera de la diferencia — que es
+ * justo lo que permite que las tres cartas que todavía no tienen dibujo
+ * sigan andando sin un caso especial en cada pantalla.
+ *
+ * `alt` vacío a propósito: el nombre de la carta ya está escrito debajo, en
+ * su franja. Repetirlo acá le haría oír dos veces lo mismo a quien usa un
+ * lector de pantalla.
+ */
+export function CardArt({ tipo }) {
+  const dibujo = CARD_ART[tipo];
+  if (dibujo) {
+    return <img className="card-dibujo" src={dibujo} alt="" draggable="false" />;
+  }
+  const Icono = CARD_ICON[tipo];
+  return Icono ? <Icono /> : null;
+}

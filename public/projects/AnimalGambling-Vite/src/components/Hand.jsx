@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CARD, CARD_LABEL, PUNCH_POINTS, cardHint } from "../../convex/rules";
-import { CARD_ICON } from "./icons";
+import { CardArt } from "./icons";
 import { GESTO, ms } from "../theme";
 
 /* La cara de una carta: el robo muestra su valor en negativo —es lo que le
@@ -12,10 +12,9 @@ export function CardFace({ carta }) {
      es lo que decide si conviene jugarla ahora o guardarla, así que tiene
      que leerse en el mismo golpe de vista que la palabra. */
   if (carta.type === CARD.STEAL) {
-    const Dibujo = CARD_ICON[CARD.STEAL];
     return (
       <>
-        <span className="card-icon">{Dibujo ? <Dibujo /> : null}</span>
+        <span className="card-icon"><CardArt tipo={CARD.STEAL} /></span>
         {/* La cifra grande en el cuerpo: con dos denominaciones —3 y 6— lo
             que hay que leer de un vistazo es CUÁNTO, no cómo se llama. */}
         <span className="card-value">−{carta.value}</span>
@@ -34,7 +33,6 @@ export function CardFace({ carta }) {
       </>
     );
   }
-  const Icono = CARD_ICON[carta.type];
 
   /* El golpe dice cuánto saca, igual que el robo — pero sin soltar el
      rótulo.
@@ -49,7 +47,7 @@ export function CardFace({ carta }) {
   if (carta.type === CARD.PUNCH) {
     return (
       <>
-        <span className="card-icon">{Icono ? <Icono /> : null}</span>
+        <span className="card-icon"><CardArt tipo={carta.type} /></span>
         <span className="card-kind">
           {CARD_LABEL[CARD.PUNCH]}
           <span className="card-kind-num">−{PUNCH_POINTS}</span>
@@ -60,7 +58,7 @@ export function CardFace({ carta }) {
 
   return (
     <>
-      <span className="card-icon">{Icono ? <Icono /> : null}</span>
+      <span className="card-icon"><CardArt tipo={carta.type} /></span>
       <span className="card-kind">{CARD_LABEL[carta.type]}</span>
     </>
   );
