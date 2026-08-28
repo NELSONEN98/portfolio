@@ -251,8 +251,8 @@ export const SQUARE_ICON = {
 
 /* ►► LOS DIBUJOS DE LAS CARTAS. ◄◄
  *
- * Cinco de las ocho cartas tienen dibujo hecho a mano; las otras tres siguen
- * con su ícono vectorial hasta que lleguen los suyos.
+ * Seis de las ocho cartas tienen dibujo hecho a mano; el martini y la media
+ * vuelta siguen con su ícono vectorial hasta que lleguen los suyos.
  *
  * Van en una tabla aparte y NO reemplazando la entrada de `CARD_ICON` porque
  * son dos cosas distintas de dibujar: un ícono es un `<svg>` que toma el
@@ -267,6 +267,7 @@ export const SQUARE_ICON = {
  */
 export const CARD_ART = {
   [CARD.STEAL]: "cards/steal-card-cat.png",
+  [CARD.DEFENSE]: "cards/shield-card.png",
   [CARD.CURSE]: "cards/curse-cat.png",
   [CARD.DOUBLE]: "cards/double-dice.png",
   [CARD.PUNCH]: "cards/punch-cat.png",

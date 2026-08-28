@@ -4069,9 +4069,19 @@ body {
    todo el alto disponible. Puede ser más grande que los íconos de las
    otras porque el rótulo y el número comparten una sola línea abajo en vez
    de ocupar dos. */
-/* Acá el dibujo iba a 0.68 porque la cifra le compartía el cuerpo. Ahora la
-   cifra vive en la franja de abajo, junto al rótulo, así que el robo usa el
-   mismo tamaño que las otras siete y la fila se lee pareja. */
+/* ►► El gato ladrón, un 30% más grande que el resto. ◄◄
+ *
+ * Acá el dibujo iba a 0.68 porque la cifra grande le compartía el cuerpo.
+ * Con la cifra mudada a la franja quedó libre todo el alto, y este dibujo lo
+ * necesita más que los otros: es el único que se ve en NEGATIVO —tinta
+ * negra contorneada en blanco sobre fondo negro— y a un contorno de un
+ * píxel el tamaño le importa el doble que a una silueta llena.
+ *
+ * `0.78` es lo que miden los otros; el `1.3` es el 30%, escrito aparte para
+ * que se lea como lo que es y no quede escondido en un número suelto. */
+.card.steal .card-icon {
+  width: calc(var(--card-w) * 0.78 * 1.3);
+}
 
 /* ►► El gato ladrón, contorneado en blanco. ◄◄
  *
