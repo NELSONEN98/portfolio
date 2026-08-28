@@ -45,21 +45,27 @@ const CopyGlyph = () => (
  *
  * Van acá y no en `icons.jsx` porque no son del juego: ese archivo dibuja
  * cartas y casillas, cosas de la mesa. Esto es una pantalla de espera. */
+/* ►► La silla ocupada lleva el dibujo, no un icono. ◄◄
+ *
+ * Acá había una cabeza de gato hecha con `path`: dos orejas, dos ojos y una
+ * nariz. Cumplía, pero era un ícono de interfaz en una pantalla que no tiene
+ * otra cosa que mirar — el vestíbulo es puro esperar.
+ *
+ * El dibujo es el mismo de todos: en el vestíbulo nadie eligió gato todavía,
+ * así que no hay nada que distinga a un jugador de otro salvo el número.
+ * Poner cinco caras distintas prometería una identidad que la mesa aún no
+ * repartió.
+ *
+ * Va como `img` y no como fondo de CSS para que pueda llevar `alt`: es lo
+ * único que le dice a un lector de pantalla que ahí hay alguien sentado —el
+ * número solo no lo dice—. */
 const GatoLleno = () => (
-  <svg viewBox="0 0 64 64" aria-hidden="true">
-    <path
-      d="M14 26 L11 9 L24 18 A28 28 0 0 1 40 18 L53 9 L50 26
-         A22 21 0 1 1 14 26 Z"
-      fill="currentColor"
-    />
-    <circle cx="24" cy="34" r="3.4" fill="#000" opacity="0.75" />
-    <circle cx="40" cy="34" r="3.4" fill="#000" opacity="0.75" />
-    <path
-      d="M32 42 l-3 3 h6 z"
-      fill="#000"
-      opacity="0.75"
-    />
-  </svg>
+  <img
+    className="room-seat-gato"
+    src="waitroom/cat-waiting.png"
+    alt=""
+    draggable="false"
+  />
 );
 
 const GatoVacio = () => (

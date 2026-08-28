@@ -32,3 +32,14 @@ local_cache/
 # PNG duplicado— y el publish del juego los copia al directorio publicado,
 # asi que sin esto se cuelan por dos lados a la vez.
 *~
+
+# Archivos fuente de dibujo. Viven al lado de lo exportado porque es donde el
+# artista los guarda, pero no son de la web: un .kra son 427KB que ningun
+# navegador puede abrir.
+#
+# OJO: esto los saca de GIT, no de la publicacion. Vite copia public/ entero
+# a dist/ sin mirar el .gitignore, asi que mientras el .kra siga adentro de
+# public/ se publica igual. Para que deje de subirse hay que moverlo afuera.
+*.kra
+*.xcf
+*.psd

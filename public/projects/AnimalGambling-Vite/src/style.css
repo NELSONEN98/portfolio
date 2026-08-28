@@ -5706,10 +5706,39 @@ body {
    mismo gesto y no dos reglas separadas. */
 .room-seat-figura {
   display: block;
-  width: 58%;
+  /* ►► Más grande que antes, porque ya no es un ícono. ◄◄
+   *
+   * El 58% estaba bien para una cabeza hecha con cuatro trazos: a ese
+   * tamaño se reconocía igual. El dibujo tiene bigotes, ojos, una lengua y
+   * estrellitas alrededor, y a 40px eso se convierte en una mancha con
+   * orejas. Es además lo único que hay para mirar en el vestíbulo.
+   *
+   * El gato vacío usa el mismo contenedor y crece con él, que es lo
+   * correcto: las sillas se comparan entre sí y con dos tamaños distintos
+   * la fila se leería despareja. */
+  width: 78%;
   line-height: 0;
 }
 .room-seat-figura svg { width: 100%; height: auto; display: block; }
+
+/* ►► El dibujo del gato que espera. ◄◄
+ *
+ * `aspect-ratio` y `object-fit` en vez de dejarlo llegar con su alto: el
+ * archivo es 420x480 y sin fijar la proporción la silla cambia de alto entre
+ * que la imagen se pide y llega. Con cuatro sillas en fila eso es un salto de
+ * toda la hilera justo cuando alguien entra a la mesa.
+ *
+ * `contain` y no `cover`: el dibujo trae estrellitas alrededor de la cabeza y
+ * `cover` las recortaría contra los bordes. */
+.room-seat-gato {
+  width: 100%;
+  aspect-ratio: 420 / 480;
+  object-fit: contain;
+  display: block;
+  /* Sostenerlo con el dedo en el teléfono lo arrastra como imagen suelta. */
+  user-select: none;
+  -webkit-user-select: none;
+}
 
 /* ►► El número, de marca de agua. ◄◄
  *
