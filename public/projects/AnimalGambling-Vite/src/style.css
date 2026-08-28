@@ -5659,7 +5659,17 @@ body {
 
   border: 0.2rem dashed rgba(232, 225, 204, 0.35);
   border-radius: clamp(0.8rem, 2vmin, 1.4rem);
-  background: rgba(255, 255, 255, 0.03);
+  /* ►► Negro sólido, y el estado lo dice el BORDE. ◄◄
+   *
+   * Las tres sillas se tiñen distinto —libre en blanco al 3%, lista en verde
+   * al 9%, la tuya en ámbar al 12%— y sobre esos tintes el dibujo perdía
+   * fuerza: es tinta negra y cuerpo blanco, y cualquier velo de color le
+   * baja el contraste justo donde hace falta.
+   *
+   * El color no se pierde: sigue en el borde, en el rótulo y en el número,
+   * que son tres señales del mismo estado. Lo que se va es el velo detrás
+   * del gato, que era la única de las cuatro que estorbaba. */
+  background: #000;
   color: var(--bone-dim);
   transition: border-color 0.3s, background 0.3s, color 0.3s, transform 0.3s;
 }
@@ -5686,7 +5696,6 @@ body {
   opacity: 1;
   border-style: solid;
   border-color: var(--toxic);
-  background: rgba(126, 224, 107, 0.09);
   color: var(--toxic);
   transform: translateY(-0.3rem);
 }
@@ -5696,7 +5705,6 @@ body {
    poder encontrar sin contar asientos. */
 .room-seat.yo {
   border-color: var(--neon-amber);
-  background: rgba(245, 185, 66, 0.12);
   color: var(--neon-amber);
   box-shadow: 0 0 2.4rem rgba(245, 185, 66, 0.25);
 }
@@ -5716,7 +5724,13 @@ body {
    * El gato vacío usa el mismo contenedor y crece con él, que es lo
    * correcto: las sillas se comparan entre sí y con dos tamaños distintos
    * la fila se leería despareja. */
-  width: 78%;
+  /* ►► Casi toda la silla. ◄◄
+   *
+   * Venía de 58% a 78% y todavía sobraba aire alrededor. El vestíbulo no
+   * tiene nada más que mirar: la silla ES el dibujo, y el rótulo y el número
+   * son notas al pie. Con el fondo negro además ya no hay velo de color que
+   * lo recorte, así que puede ocupar el ancho entero sin verse apretado. */
+  width: 96%;
   line-height: 0;
 }
 .room-seat-figura svg { width: 100%; height: auto; display: block; }
