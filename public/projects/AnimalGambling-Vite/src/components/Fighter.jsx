@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import EmojiAnillo from "./EmojiAnillo";
 import { emojiPorId } from "../emojis";
+import { warmDanio } from "../roster";
 import { ms } from "../theme";
 import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
 import RivalHand from "./RivalHand";
@@ -46,6 +47,8 @@ export default function Fighter({
      que cambia es de dónde sale este dato, y este componente no se entera. */
   emote = null,
   onEmote,
+  /* En qué etapa de daño está: 0 es entero, 3 es molido. */
+  danio = 0,
 }) {
   const score = useAnimatedNumber(jugador?.score ?? 0);
   const current = useAnimatedNumber(jugador?.current ?? 0);
@@ -73,6 +76,26 @@ export default function Fighter({
   }, []);
 
   useEffect(() => cancelarEspera, [cancelarEspera]);
+
+  /* ►► Se pide la etapa que VIENE, no la que se está viendo. ◄◄
+   *
+   * Un cambio de etapa es instantáneo: el golpe entra y el dibujo tiene que
+   * ser otro en el mismo cuadro. Si los archivos se pidieran ahí, el gato
+   * desaparecería medio segundo mientras bajan 230KB — justo en el momento
+   * de más atención de la partida.
+   *
+   * Pidiendo la siguiente apenas se entra en una, para cuando haga falta ya
+   * está en el navegador. Y la etapa 1 se pide con `danio` en 0, o sea al
+   * montar: el primer cambio también llega calentado.
+   *
+   * `warmDanio` se acuerda de lo que ya pidió, así que repetir esto en cada
+   * pintado no cuesta nada. */
+  const dirGato = jugador?.char?.dir;
+  const tieneDanios = (jugador?.char?.danios ?? 0) > 0;
+  useEffect(() => {
+    if (!tieneDanios) return;
+    warmDanio(dirGato, danio + 1);
+  }, [dirGato, tieneDanios, danio]);
 
   /* ►► Abierto se DERIVA, no se sincroniza. ◄◄
    *
@@ -258,7 +281,15 @@ export default function Fighter({
            abre. */
         onContextMenu={(ev) => puedeEmotear && ev.preventDefault()}
       >
-        <div className="fighter-art boil" data-cat={jugador.char.id}>
+        {/* `data-danio` y no una clase: el CSS elige el juego de dibujos
+            combinando gato y etapa —`[data-cat="cat1"][data-danio="2"]`— y
+            con clases habría que inventar quince nombres para decir lo
+            mismo. Es el mismo recurso que ya usa `data-cat`. */}
+        <div
+          className="fighter-art boil"
+          data-cat={jugador.char.id}
+          data-danio={danio > 0 ? danio : undefined}
+        >
           {/* ►► La cara de dolor, encima del boil. ◄◄
            *
            * Va DENTRO de `.fighter-art` y no en su lugar porque el boil es

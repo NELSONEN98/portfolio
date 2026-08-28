@@ -329,6 +329,24 @@ export const MOTION = {
      * el de los demás sin estrobar. Si algún día llegan los siete dibujos
      * de verdad, este número sube a 500 y el keyframes de abajo pasa a
      * listarlos todos. */
+    /* ►► El boil de las etapas de daño, uno para todas. ◄◄
+     *
+     * Las seis carpetas tienen la misma forma: tres dibujos distintos. Así
+     * que comparten duración y no hace falta una entrada por etapa — seis
+     * números iguales son cinco oportunidades de que uno quede distinto sin
+     * que nadie se dé cuenta.
+     *
+     * 360ms es lo mismo que usa el boil de tres cuadros de Maisie, y por el
+     * mismo motivo: con tres dibujos, el ritmo de los de nueve daría un
+     * parpadeo. */
+    boilDanio: {
+      ms: 360,
+      ease: EASE.cuadro,
+      keyframes: "cat1-danio1 … cat5-danio3",
+      el: '.boil[data-danio]',
+      loop: true,
+      nota: "Cada dos golpes el personaje cambia de juego de dibujos, hasta la tercera etapa.",
+    },
     boilCat5: { ms: 360, ease: EASE.cuadro, keyframes: "cat5-boil", el: '.boil[data-cat="cat5"]', loop: true },
     maldito: {
       ms: 2200,

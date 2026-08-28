@@ -74,6 +74,10 @@ export default function VersusScreen({
    * dónde sale el dato y ni el peleador ni el anillo se enteraron. */
   emotes = {},
   onEmote,
+  /* Cuántos golpes lleva cada asiento. La etapa se calcula abajo y no acá
+     arriba porque es una cuenta de una línea y sólo la necesita el
+     peleador. */
+  golpes = {},
   retrasoCasilla,
 }) {
   const total = players.length;
@@ -310,6 +314,21 @@ export default function VersusScreen({
                turno, que es quien está con el aparato en la mano. */
             puedeEmotear={ladoMano === i && playing}
             emote={emotes[i] ?? null}
+            /* ►► Cada dos golpes, una etapa. ◄◄
+             *
+             * `min` con las etapas que el gato tenga: los que no tienen
+             * dibujos de daño reciben 0 siempre y siguen con su boil normal
+             * por más golpes que coman. Los que sí, se detienen en la
+             * tercera — de ahí en adelante ya está molido y no hay más
+             * dibujo que mostrar.
+             *
+             * Se calcula acá y no se guarda: es `golpes` dividido dos, y un
+             * segundo estado que hay que mantener de acuerdo con el primero
+             * es un estado que se va a desincronizar. */
+            danio={Math.min(
+              Math.floor((golpes[i] ?? 0) / 2),
+              p?.char?.danios ?? 0
+            )}
             onEmote={(id) => onEmote?.(i, id)}
             /* La mira sólo mientras se pueda hacer algo con ella: apuntada
                durante el turno ajeno contaría una decisión que no es tuya, y

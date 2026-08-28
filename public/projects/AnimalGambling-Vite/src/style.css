@@ -2384,6 +2384,102 @@ body {
   outline-offset: 3px;
 }
 
+
+/* ============================================
+   LAS ETAPAS DE DAÑO
+   ============================================ */
+
+/* ►► Cada dos golpes, otro juego de dibujos. ◄◄
+ *
+ * El gato no sólo se tiñe de rojo cuando le pegan: se va gastando. A los dos
+ * golpes aparece el primero magullado, a los cuatro el segundo, a los seis
+ * el tercero — y ahí se queda, porque no hay un cuarto dibujo y porque a esa
+ * altura la idea ya está contada.
+ *
+ * ►► TRES cuadros por etapa, aunque en la carpeta haya siete. ◄◄
+ *
+ * Las seis carpetas tienen la misma forma: 0000=0001=0002, 0003=0004=0005 y
+ * el 0006. Listar los siete no agregaría un solo cuadro de animación
+ * —mostraría la misma imagen tres veces seguidas— y haría un ciclo
+ * desparejo: dos poses quietas tres tiempos cada una y la tercera pasando en
+ * uno. Se vería como un tirón, no como un boil.
+ *
+ * Y acá pesa el doble que en el vestíbulo: son 78KB por archivo, así que los
+ * cuatro repetidos de cada etapa son 312KB que se bajarían en medio de una
+ * partida para no mostrar nada.
+ *
+ * Sólo cat1 y cat5 tienen dibujos de daño. Los otros tres no llevan
+ * `data-danio` nunca —el roster no les declara `danios`— así que ninguna de
+ * estas reglas los alcanza y siguen con su boil de siempre. No hace falta
+ * escribir esa excepción: no existir es la excepción. */
+
+.boil[data-cat="cat1"][data-danio="1"] {
+  background-image: url("cat1/damage1/frame0000.png");
+  animation: cat1-danio1 var(--dur-peleador-boil-danio) var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat1-danio1 {
+  0.0%  { background-image: url("cat1/damage1/frame0000.png"); }
+  33.3% { background-image: url("cat1/damage1/frame0003.png"); }
+  66.7% { background-image: url("cat1/damage1/frame0006.png"); }
+}
+
+.boil[data-cat="cat1"][data-danio="2"] {
+  background-image: url("cat1/damage2/frame0000.png");
+  animation: cat1-danio2 var(--dur-peleador-boil-danio) var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat1-danio2 {
+  0.0%  { background-image: url("cat1/damage2/frame0000.png"); }
+  33.3% { background-image: url("cat1/damage2/frame0003.png"); }
+  66.7% { background-image: url("cat1/damage2/frame0006.png"); }
+}
+
+.boil[data-cat="cat1"][data-danio="3"] {
+  background-image: url("cat1/damage3/frame0000.png");
+  animation: cat1-danio3 var(--dur-peleador-boil-danio) var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat1-danio3 {
+  0.0%  { background-image: url("cat1/damage3/frame0000.png"); }
+  33.3% { background-image: url("cat1/damage3/frame0003.png"); }
+  66.7% { background-image: url("cat1/damage3/frame0006.png"); }
+}
+
+.boil[data-cat="cat5"][data-danio="1"] {
+  background-image: url("cat5/damage1/frame0000.png");
+  animation: cat5-danio1 var(--dur-peleador-boil-danio) var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat5-danio1 {
+  0.0%  { background-image: url("cat5/damage1/frame0000.png"); }
+  33.3% { background-image: url("cat5/damage1/frame0003.png"); }
+  66.7% { background-image: url("cat5/damage1/frame0006.png"); }
+}
+
+.boil[data-cat="cat5"][data-danio="2"] {
+  background-image: url("cat5/damage2/frame0000.png");
+  animation: cat5-danio2 var(--dur-peleador-boil-danio) var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat5-danio2 {
+  0.0%  { background-image: url("cat5/damage2/frame0000.png"); }
+  33.3% { background-image: url("cat5/damage2/frame0003.png"); }
+  66.7% { background-image: url("cat5/damage2/frame0006.png"); }
+}
+
+.boil[data-cat="cat5"][data-danio="3"] {
+  background-image: url("cat5/damage3/frame0000.png");
+  animation: cat5-danio3 var(--dur-peleador-boil-danio) var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat5-danio3 {
+  0.0%  { background-image: url("cat5/damage3/frame0000.png"); }
+  33.3% { background-image: url("cat5/damage3/frame0003.png"); }
+  66.7% { background-image: url("cat5/damage3/frame0006.png"); }
+}
+
+/* Sin movimiento se queda en el primer dibujo de su etapa. El CAMBIO de
+   etapa sigue viéndose —es información: te están moliendo— y lo único que
+   se apaga es el temblor. */
+@media (prefers-reduced-motion: reduce) {
+  .boil[data-danio] { animation: none; }
+}
+
 /* ============================================
    CAMINO DE CASILLAS
    ============================================ */

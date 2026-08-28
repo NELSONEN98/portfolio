@@ -419,10 +419,33 @@ export default function App() {
     forzarPlante("TIEMPO AGOTADO", "cartel");
   }, [forzarPlante]);
 
+  /* ►► CUÁNTOS GOLPES LLEVA CADA ASIENTO. ◄◄
+   *
+   * Cada dos, el personaje cambia de dibujo. Se cuenta acá y no en el motor
+   * por un motivo que se ve mirando quién llama a `golpear`: los TRES
+   * caminos por los que a alguien le pegan pasan por esta función.
+   *
+   *   · una carta que aterriza          — `alAterrizar`
+   *   · una penitencia en la mesa local — `alLlegar`
+   *   · una penitencia en online        — la misma, por la otra rama
+   *
+   * Contando en un solo lugar, "de carta o de penitencia" deja de ser dos
+   * reglas y pasa a ser ninguna: es simplemente lo que ya significaba
+   * `golpear`.
+   *
+   * Y cuenta sólo lo que ENTRÓ. Los dos llamadores ya filtran: una carta
+   * bloqueada por un escudo vuelve antes de llegar acá, y una penitencia
+   * tapada por un escudo llega con `castiga` en falso. Un golpe que no dolió
+   * no marca la cara, que es exactamente lo que uno esperaría.
+   */
+  const [golpes, setGolpes] = useState({});
+
   const golpear = useCallback((lado, tipo) => {
     setImpacto({ lado, tipo, key: Math.random() });
     setTimeout(() => setImpacto(null), IMPACTO_MS);
+    setGolpes((prev) => ({ ...prev, [lado]: (prev[lado] ?? 0) + 1 }));
   }, []);
+
 
   const online = modo === "online";
 
@@ -825,6 +848,12 @@ export default function App() {
        Sin esto el guardia la veía en false y devolvía al título justo al
        entrar a la mesa. */
     hayPartida.current = true;
+    /* La cuenta de golpes arranca de cero. Va acá y no en un efecto que
+       espíe `playing`: escribir estado desde un efecto encadena pintados, y
+       además esto no es una reacción a nada — es parte de empezar. Sin el
+       reseteo, la revancha empieza con los personajes molidos de la
+       partida anterior. */
+    setGolpes({});
     setPlaying(true);
     setFinished(false);
     go("game");
@@ -1498,6 +1527,7 @@ export default function App() {
             onTiempoAgotado={alAgotarseElTiempo}
             emotes={emotes}
             onEmote={tirarEmoji}
+            golpes={golpes}
             retrasoCasilla={ESPERA_CASILLA}
           />
         )}

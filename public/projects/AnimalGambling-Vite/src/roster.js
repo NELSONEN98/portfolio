@@ -22,6 +22,17 @@ export const ROSTER = [
     id: "cat1",
     name: "Bonifacio",
     dir: "cat1",
+    /* ►► Cuántas etapas de daño tiene este gato. ◄◄
+     *
+     * Cada dos golpes recibidos el personaje cambia de dibujo, hasta la
+     * tercera, que es la última: de ahí en adelante se queda molido.
+     *
+     * Va por gato y no como una constante porque HOY sólo dos de los cinco
+     * tienen sus carpetas dibujadas. Los otros tres siguen con su boil
+     * normal por más golpes que reciban, y eso no es un caso especial que
+     * haya que escribir en ningún lado: sin este campo, no hay etapas.
+     * Cuando lleguen sus dibujos es esta línea y sus reglas de CSS. */
+    danios: 3,
     frames: 9,
     img: "cat1/frame0000.webp",
     damage: "cat1/cat1-damage.png",
@@ -85,6 +96,17 @@ export const ROSTER = [
        dibujos distintos —0000=0001=0002, 0003=0004=0005, y el 0006— así que
        el boil de abajo usa los tres únicos y no los siete. El número de acá
        es de la PRECARGA, que tiene que cubrir los archivos que existen. */
+    /* ►► Cuántas etapas de daño tiene este gato. ◄◄
+     *
+     * Cada dos golpes recibidos el personaje cambia de dibujo, hasta la
+     * tercera, que es la última: de ahí en adelante se queda molido.
+     *
+     * Va por gato y no como una constante porque HOY sólo dos de los cinco
+     * tienen sus carpetas dibujadas. Los otros tres siguen con su boil
+     * normal por más golpes que reciban, y eso no es un caso especial que
+     * haya que escribir en ningún lado: sin este campo, no hay etapas.
+     * Cuando lleguen sus dibujos es esta línea y sus reglas de CSS. */
+    danios: 3,
     frames: 7,
     /* ►► La única en `png`, y por eso la extensión se declara. ◄◄
      *
@@ -149,4 +171,38 @@ export function warmRosterFrames() {
       golpe.src = c.damage;
     }
   });
+}
+
+/* ►► LOS CUADROS DE UNA ETAPA DE DAÑO. ◄◄
+ *
+ * Se piden aparte y no con el resto del gato: son TRES etapas de tres
+ * dibujos cada una, y precargarlas todas al arrancar sería más de un mega
+ * por gato para una etapa a la que quizá nadie llegue. La mayoría de las
+ * partidas terminan sin que nadie coma seis golpes.
+ *
+ * Se llama con la etapa que VIENE, no con la actual: cuando el jugador entra
+ * en la primera se pide la segunda, y así. Para cuando el dibujo hace falta,
+ * hace rato que está en el navegador — y si la partida termina antes, esas
+ * imágenes nunca se pidieron.
+ *
+ * ►► Sólo tres archivos de los siete que hay. ◄◄
+ *
+ * Cada carpeta tiene siete cuadros que son TRES dibujos: 0000=0001=0002,
+ * 0003=0004=0005 y el 0006. Pedir los siete serían cuatro descargas para
+ * mostrar lo mismo, y este es justo el caso donde eso importa — son 78KB
+ * cada una y se piden en medio de una partida.
+ */
+export const CUADROS_DANIO = [0, 3, 6];
+
+const danioCalentado = new Set();
+export function warmDanio(dir, etapa) {
+  if (!dir || !etapa || etapa > 3) return;
+  const clave = `${dir}/${etapa}`;
+  if (danioCalentado.has(clave)) return;
+  danioCalentado.add(clave);
+  for (const n of CUADROS_DANIO) {
+    const img = new Image();
+    img.fetchPriority = "low";
+    img.src = `${dir}/damage${etapa}/frame${String(n).padStart(4, "0")}.png`;
+  }
 }
