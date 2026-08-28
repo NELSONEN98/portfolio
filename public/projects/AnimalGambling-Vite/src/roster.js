@@ -22,17 +22,25 @@ export const ROSTER = [
     id: "cat1",
     name: "Bonifacio",
     dir: "cat1",
-    /* ►► Cuántas etapas de daño tiene este gato. ◄◄
+    /* ►► Los cuadros de cada etapa de daño, leídos de las carpetas. ◄◄
      *
-     * Cada dos golpes recibidos el personaje cambia de dibujo, hasta la
-     * tercera, que es la última: de ahí en adelante se queda molido.
+     * Una lista por etapa, y cada una son los ÍNDICES de los dibujos
+     * distintos. No es un adorno: las carpetas traen archivos repetidos y no
+     * todas repiten igual.
      *
-     * Va por gato y no como una constante porque HOY sólo dos de los cinco
-     * tienen sus carpetas dibujadas. Los otros tres siguen con su boil
-     * normal por más golpes que reciban, y eso no es un caso especial que
-     * haya que escribir en ningún lado: sin este campo, no hay etapas.
-     * Cuando lleguen sus dibujos es esta línea y sus reglas de CSS. */
-    danios: 3,
+     *   cat1, cat2, cat5   7 u 8 archivos ->  3 dibujos: 0, 3, 6
+     *   cat3               10 archivos    ->  4 dibujos: 0, 3, 6, 9
+     *   cat4 etapa 1       10 archivos    ->  4 dibujos: 0, 3, 6, 9
+     *   cat4 etapas 2 y 3  11 archivos    ->  4 dibujos: 0, 3, 6, 10
+     *
+     * Una constante única —"usá 0, 3 y 6"— servía cuando sólo estaban cat1 y
+     * cat5, y al llegar los otros tres les habría comido el CUARTO dibujo sin
+     * dar ningún error: la animación andaría igual, sólo que más pobre. Ese
+     * es justo el tipo de fallo que no se encuentra mirando.
+     *
+     * La cantidad de etapas sale del largo de esta lista, así que un gato con
+     * dos etapas dibujadas funcionaría sin tocar nada más. */
+    danios: [[0, 3, 6], [0, 3, 6], [0, 3, 6]],
     frames: 9,
     img: "cat1/frame0000.webp",
     damage: "cat1/cat1-damage.png",
@@ -46,6 +54,25 @@ export const ROSTER = [
     id: "cat2",
     name: "Abilio",
     dir: "cat2",
+    /* ►► Los cuadros de cada etapa de daño, leídos de las carpetas. ◄◄
+     *
+     * Una lista por etapa, y cada una son los ÍNDICES de los dibujos
+     * distintos. No es un adorno: las carpetas traen archivos repetidos y no
+     * todas repiten igual.
+     *
+     *   cat1, cat2, cat5   7 u 8 archivos ->  3 dibujos: 0, 3, 6
+     *   cat3               10 archivos    ->  4 dibujos: 0, 3, 6, 9
+     *   cat4 etapa 1       10 archivos    ->  4 dibujos: 0, 3, 6, 9
+     *   cat4 etapas 2 y 3  11 archivos    ->  4 dibujos: 0, 3, 6, 10
+     *
+     * Una constante única —"usá 0, 3 y 6"— servía cuando sólo estaban cat1 y
+     * cat5, y al llegar los otros tres les habría comido el CUARTO dibujo sin
+     * dar ningún error: la animación andaría igual, sólo que más pobre. Ese
+     * es justo el tipo de fallo que no se encuentra mirando.
+     *
+     * La cantidad de etapas sale del largo de esta lista, así que un gato con
+     * dos etapas dibujadas funcionaría sin tocar nada más. */
+    danios: [[0, 3, 6], [0, 3, 6], [0, 3, 6]],
     frames: 9,
     img: "cat2/frame0000.webp",
     damage: "cat2/damaged-cat2.png",
@@ -59,6 +86,25 @@ export const ROSTER = [
     id: "cat3",
     name: "Hermenegildo",
     dir: "cat3",
+    /* ►► Los cuadros de cada etapa de daño, leídos de las carpetas. ◄◄
+     *
+     * Una lista por etapa, y cada una son los ÍNDICES de los dibujos
+     * distintos. No es un adorno: las carpetas traen archivos repetidos y no
+     * todas repiten igual.
+     *
+     *   cat1, cat2, cat5   7 u 8 archivos ->  3 dibujos: 0, 3, 6
+     *   cat3               10 archivos    ->  4 dibujos: 0, 3, 6, 9
+     *   cat4 etapa 1       10 archivos    ->  4 dibujos: 0, 3, 6, 9
+     *   cat4 etapas 2 y 3  11 archivos    ->  4 dibujos: 0, 3, 6, 10
+     *
+     * Una constante única —"usá 0, 3 y 6"— servía cuando sólo estaban cat1 y
+     * cat5, y al llegar los otros tres les habría comido el CUARTO dibujo sin
+     * dar ningún error: la animación andaría igual, sólo que más pobre. Ese
+     * es justo el tipo de fallo que no se encuentra mirando.
+     *
+     * La cantidad de etapas sale del largo de esta lista, así que un gato con
+     * dos etapas dibujadas funcionaría sin tocar nada más. */
+    danios: [[0, 3, 6, 9], [0, 3, 6, 9], [0, 3, 6, 9]],
     frames: 10,
     img: "cat3/frame0000.webp",
     damage: "cat3/damaged-cat3.png",
@@ -72,6 +118,25 @@ export const ROSTER = [
     id: "cat4",
     name: "El Mago",
     dir: "cat4",
+    /* ►► Los cuadros de cada etapa de daño, leídos de las carpetas. ◄◄
+     *
+     * Una lista por etapa, y cada una son los ÍNDICES de los dibujos
+     * distintos. No es un adorno: las carpetas traen archivos repetidos y no
+     * todas repiten igual.
+     *
+     *   cat1, cat2, cat5   7 u 8 archivos ->  3 dibujos: 0, 3, 6
+     *   cat3               10 archivos    ->  4 dibujos: 0, 3, 6, 9
+     *   cat4 etapa 1       10 archivos    ->  4 dibujos: 0, 3, 6, 9
+     *   cat4 etapas 2 y 3  11 archivos    ->  4 dibujos: 0, 3, 6, 10
+     *
+     * Una constante única —"usá 0, 3 y 6"— servía cuando sólo estaban cat1 y
+     * cat5, y al llegar los otros tres les habría comido el CUARTO dibujo sin
+     * dar ningún error: la animación andaría igual, sólo que más pobre. Ese
+     * es justo el tipo de fallo que no se encuentra mirando.
+     *
+     * La cantidad de etapas sale del largo de esta lista, así que un gato con
+     * dos etapas dibujadas funcionaría sin tocar nada más. */
+    danios: [[0, 3, 6, 9], [0, 3, 6, 10], [0, 3, 6, 10]],
     frames: 10,
     img: "cat4/frame0000.webp",
     damage: "cat4/damaged-cat4.png",
@@ -96,17 +161,25 @@ export const ROSTER = [
        dibujos distintos —0000=0001=0002, 0003=0004=0005, y el 0006— así que
        el boil de abajo usa los tres únicos y no los siete. El número de acá
        es de la PRECARGA, que tiene que cubrir los archivos que existen. */
-    /* ►► Cuántas etapas de daño tiene este gato. ◄◄
+    /* ►► Los cuadros de cada etapa de daño, leídos de las carpetas. ◄◄
      *
-     * Cada dos golpes recibidos el personaje cambia de dibujo, hasta la
-     * tercera, que es la última: de ahí en adelante se queda molido.
+     * Una lista por etapa, y cada una son los ÍNDICES de los dibujos
+     * distintos. No es un adorno: las carpetas traen archivos repetidos y no
+     * todas repiten igual.
      *
-     * Va por gato y no como una constante porque HOY sólo dos de los cinco
-     * tienen sus carpetas dibujadas. Los otros tres siguen con su boil
-     * normal por más golpes que reciban, y eso no es un caso especial que
-     * haya que escribir en ningún lado: sin este campo, no hay etapas.
-     * Cuando lleguen sus dibujos es esta línea y sus reglas de CSS. */
-    danios: 3,
+     *   cat1, cat2, cat5   7 u 8 archivos ->  3 dibujos: 0, 3, 6
+     *   cat3               10 archivos    ->  4 dibujos: 0, 3, 6, 9
+     *   cat4 etapa 1       10 archivos    ->  4 dibujos: 0, 3, 6, 9
+     *   cat4 etapas 2 y 3  11 archivos    ->  4 dibujos: 0, 3, 6, 10
+     *
+     * Una constante única —"usá 0, 3 y 6"— servía cuando sólo estaban cat1 y
+     * cat5, y al llegar los otros tres les habría comido el CUARTO dibujo sin
+     * dar ningún error: la animación andaría igual, sólo que más pobre. Ese
+     * es justo el tipo de fallo que no se encuentra mirando.
+     *
+     * La cantidad de etapas sale del largo de esta lista, así que un gato con
+     * dos etapas dibujadas funcionaría sin tocar nada más. */
+    danios: [[0, 3, 6], [0, 3, 6], [0, 3, 6]],
     frames: 7,
     /* ►► La única en `png`, y por eso la extensión se declara. ◄◄
      *
@@ -192,17 +265,19 @@ export function warmRosterFrames() {
  * mostrar lo mismo, y este es justo el caso donde eso importa — son 78KB
  * cada una y se piden en medio de una partida.
  */
-export const CUADROS_DANIO = [0, 3, 6];
-
 const danioCalentado = new Set();
-export function warmDanio(dir, etapa) {
-  if (!dir || !etapa || etapa > 3) return;
-  const clave = `${dir}/${etapa}`;
+
+/* `char` entero y no sólo la carpeta: los cuadros de cada etapa viven en el
+   catálogo y son distintos entre gatos, así que hay que leerlos de ahí. */
+export function warmDanio(char, etapa) {
+  const cuadros = char?.danios?.[etapa - 1];
+  if (!cuadros) return;
+  const clave = `${char.dir}/${etapa}`;
   if (danioCalentado.has(clave)) return;
   danioCalentado.add(clave);
-  for (const n of CUADROS_DANIO) {
+  for (const n of cuadros) {
     const img = new Image();
     img.fetchPriority = "low";
-    img.src = `${dir}/damage${etapa}/frame${String(n).padStart(4, "0")}.png`;
+    img.src = `${char.dir}/damage${etapa}/frame${String(n).padStart(4, "0")}.png`;
   }
 }

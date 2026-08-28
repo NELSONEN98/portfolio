@@ -2396,81 +2396,180 @@ body {
  * el tercero — y ahí se queda, porque no hay un cuarto dibujo y porque a esa
  * altura la idea ya está contada.
  *
- * ►► TRES cuadros por etapa, aunque en la carpeta haya siete. ◄◄
+ * ►► Estas quince reglas están GENERADAS a partir de las carpetas. ◄◄
  *
- * Las seis carpetas tienen la misma forma: 0000=0001=0002, 0003=0004=0005 y
- * el 0006. Listar los siete no agregaría un solo cuadro de animación
- * —mostraría la misma imagen tres veces seguidas— y haría un ciclo
- * desparejo: dos poses quietas tres tiempos cada una y la tercera pasando en
- * uno. Se vería como un tirón, no como un boil.
+ * No se escribieron a mano y no conviene editarlas a mano. Cada carpeta trae
+ * archivos repetidos, y no todas repiten igual: cat1, cat2 y cat5 tienen
+ * tres dibujos en los índices 0, 3 y 6; cat3 y cat4 tienen CUATRO, y el
+ * cuarto está en el 9 para unos y en el 10 para otros.
  *
- * Y acá pesa el doble que en el vestíbulo: son 78KB por archivo, así que los
- * cuatro repetidos de cada etapa son 312KB que se bajarían en medio de una
- * partida para no mostrar nada.
+ * Cuando sólo existían cat1 y cat5 esto era una constante —"usá 0, 3 y 6"— y
+ * al llegar los otros tres les habría comido el cuarto dibujo sin dar ningún
+ * error: la animación andaría igual, sólo que más pobre. Los índices salen
+ * ahora de comparar los archivos, no de suponerlos.
  *
- * Sólo cat1 y cat5 tienen dibujos de daño. Los otros tres no llevan
- * `data-danio` nunca —el roster no les declara `danios`— así que ninguna de
- * estas reglas los alcanza y siguen con su boil de siempre. No hace falta
- * escribir esa excepción: no existir es la excepción. */
+ * ►► La duración sale de la CANTIDAD de cuadros, no es fija. ◄◄
+ *
+ * 120ms por dibujo en todos: 360ms los de tres, 480ms los de cuatro. Con una
+ * duración única, el gato de cuatro dibujos correría un tercio más rápido
+ * que el de tres y en una mesa de cuatro eso se ve — dos personajes al lado
+ * del otro temblando a ritmos distintos.
+ */
 
 .boil[data-cat="cat1"][data-danio="1"] {
   background-image: url("cat1/damage1/frame0000.png");
-  animation: cat1-danio1 var(--dur-peleador-boil-danio) var(--ease-peleador-boil-danio) infinite;
+  animation: cat1-danio1 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat1-danio1 {
-  0.0%  { background-image: url("cat1/damage1/frame0000.png"); }
-  33.3% { background-image: url("cat1/damage1/frame0003.png"); }
-  66.7% { background-image: url("cat1/damage1/frame0006.png"); }
+  0.0%   { background-image: url("cat1/damage1/frame0000.png"); }
+  33.3%  { background-image: url("cat1/damage1/frame0003.png"); }
+  66.7%  { background-image: url("cat1/damage1/frame0006.png"); }
 }
 
 .boil[data-cat="cat1"][data-danio="2"] {
   background-image: url("cat1/damage2/frame0000.png");
-  animation: cat1-danio2 var(--dur-peleador-boil-danio) var(--ease-peleador-boil-danio) infinite;
+  animation: cat1-danio2 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat1-danio2 {
-  0.0%  { background-image: url("cat1/damage2/frame0000.png"); }
-  33.3% { background-image: url("cat1/damage2/frame0003.png"); }
-  66.7% { background-image: url("cat1/damage2/frame0006.png"); }
+  0.0%   { background-image: url("cat1/damage2/frame0000.png"); }
+  33.3%  { background-image: url("cat1/damage2/frame0003.png"); }
+  66.7%  { background-image: url("cat1/damage2/frame0006.png"); }
 }
 
 .boil[data-cat="cat1"][data-danio="3"] {
   background-image: url("cat1/damage3/frame0000.png");
-  animation: cat1-danio3 var(--dur-peleador-boil-danio) var(--ease-peleador-boil-danio) infinite;
+  animation: cat1-danio3 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat1-danio3 {
-  0.0%  { background-image: url("cat1/damage3/frame0000.png"); }
-  33.3% { background-image: url("cat1/damage3/frame0003.png"); }
-  66.7% { background-image: url("cat1/damage3/frame0006.png"); }
+  0.0%   { background-image: url("cat1/damage3/frame0000.png"); }
+  33.3%  { background-image: url("cat1/damage3/frame0003.png"); }
+  66.7%  { background-image: url("cat1/damage3/frame0006.png"); }
+}
+
+.boil[data-cat="cat2"][data-danio="1"] {
+  background-image: url("cat2/damage1/frame0000.png");
+  animation: cat2-danio1 360ms var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat2-danio1 {
+  0.0%   { background-image: url("cat2/damage1/frame0000.png"); }
+  33.3%  { background-image: url("cat2/damage1/frame0003.png"); }
+  66.7%  { background-image: url("cat2/damage1/frame0006.png"); }
+}
+
+.boil[data-cat="cat2"][data-danio="2"] {
+  background-image: url("cat2/damage2/frame0000.png");
+  animation: cat2-danio2 360ms var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat2-danio2 {
+  0.0%   { background-image: url("cat2/damage2/frame0000.png"); }
+  33.3%  { background-image: url("cat2/damage2/frame0003.png"); }
+  66.7%  { background-image: url("cat2/damage2/frame0006.png"); }
+}
+
+.boil[data-cat="cat2"][data-danio="3"] {
+  background-image: url("cat2/damage3/frame0000.png");
+  animation: cat2-danio3 360ms var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat2-danio3 {
+  0.0%   { background-image: url("cat2/damage3/frame0000.png"); }
+  33.3%  { background-image: url("cat2/damage3/frame0003.png"); }
+  66.7%  { background-image: url("cat2/damage3/frame0006.png"); }
+}
+
+.boil[data-cat="cat3"][data-danio="1"] {
+  background-image: url("cat3/damage1/frame0000.png");
+  animation: cat3-danio1 480ms var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat3-danio1 {
+  0.0%   { background-image: url("cat3/damage1/frame0000.png"); }
+  25.0%  { background-image: url("cat3/damage1/frame0003.png"); }
+  50.0%  { background-image: url("cat3/damage1/frame0006.png"); }
+  75.0%  { background-image: url("cat3/damage1/frame0009.png"); }
+}
+
+.boil[data-cat="cat3"][data-danio="2"] {
+  background-image: url("cat3/damage2/frame0000.png");
+  animation: cat3-danio2 480ms var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat3-danio2 {
+  0.0%   { background-image: url("cat3/damage2/frame0000.png"); }
+  25.0%  { background-image: url("cat3/damage2/frame0003.png"); }
+  50.0%  { background-image: url("cat3/damage2/frame0006.png"); }
+  75.0%  { background-image: url("cat3/damage2/frame0009.png"); }
+}
+
+.boil[data-cat="cat3"][data-danio="3"] {
+  background-image: url("cat3/damage3/frame0000.png");
+  animation: cat3-danio3 480ms var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat3-danio3 {
+  0.0%   { background-image: url("cat3/damage3/frame0000.png"); }
+  25.0%  { background-image: url("cat3/damage3/frame0003.png"); }
+  50.0%  { background-image: url("cat3/damage3/frame0006.png"); }
+  75.0%  { background-image: url("cat3/damage3/frame0009.png"); }
+}
+
+.boil[data-cat="cat4"][data-danio="1"] {
+  background-image: url("cat4/damage1/frame0000.png");
+  animation: cat4-danio1 480ms var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat4-danio1 {
+  0.0%   { background-image: url("cat4/damage1/frame0000.png"); }
+  25.0%  { background-image: url("cat4/damage1/frame0003.png"); }
+  50.0%  { background-image: url("cat4/damage1/frame0006.png"); }
+  75.0%  { background-image: url("cat4/damage1/frame0009.png"); }
+}
+
+.boil[data-cat="cat4"][data-danio="2"] {
+  background-image: url("cat4/damage2/frame0000.png");
+  animation: cat4-danio2 480ms var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat4-danio2 {
+  0.0%   { background-image: url("cat4/damage2/frame0000.png"); }
+  25.0%  { background-image: url("cat4/damage2/frame0003.png"); }
+  50.0%  { background-image: url("cat4/damage2/frame0006.png"); }
+  75.0%  { background-image: url("cat4/damage2/frame0010.png"); }
+}
+
+.boil[data-cat="cat4"][data-danio="3"] {
+  background-image: url("cat4/damage3/frame0000.png");
+  animation: cat4-danio3 480ms var(--ease-peleador-boil-danio) infinite;
+}
+@keyframes cat4-danio3 {
+  0.0%   { background-image: url("cat4/damage3/frame0000.png"); }
+  25.0%  { background-image: url("cat4/damage3/frame0003.png"); }
+  50.0%  { background-image: url("cat4/damage3/frame0006.png"); }
+  75.0%  { background-image: url("cat4/damage3/frame0010.png"); }
 }
 
 .boil[data-cat="cat5"][data-danio="1"] {
   background-image: url("cat5/damage1/frame0000.png");
-  animation: cat5-danio1 var(--dur-peleador-boil-danio) var(--ease-peleador-boil-danio) infinite;
+  animation: cat5-danio1 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat5-danio1 {
-  0.0%  { background-image: url("cat5/damage1/frame0000.png"); }
-  33.3% { background-image: url("cat5/damage1/frame0003.png"); }
-  66.7% { background-image: url("cat5/damage1/frame0006.png"); }
+  0.0%   { background-image: url("cat5/damage1/frame0000.png"); }
+  33.3%  { background-image: url("cat5/damage1/frame0003.png"); }
+  66.7%  { background-image: url("cat5/damage1/frame0006.png"); }
 }
 
 .boil[data-cat="cat5"][data-danio="2"] {
   background-image: url("cat5/damage2/frame0000.png");
-  animation: cat5-danio2 var(--dur-peleador-boil-danio) var(--ease-peleador-boil-danio) infinite;
+  animation: cat5-danio2 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat5-danio2 {
-  0.0%  { background-image: url("cat5/damage2/frame0000.png"); }
-  33.3% { background-image: url("cat5/damage2/frame0003.png"); }
-  66.7% { background-image: url("cat5/damage2/frame0006.png"); }
+  0.0%   { background-image: url("cat5/damage2/frame0000.png"); }
+  33.3%  { background-image: url("cat5/damage2/frame0003.png"); }
+  66.7%  { background-image: url("cat5/damage2/frame0006.png"); }
 }
 
 .boil[data-cat="cat5"][data-danio="3"] {
   background-image: url("cat5/damage3/frame0000.png");
-  animation: cat5-danio3 var(--dur-peleador-boil-danio) var(--ease-peleador-boil-danio) infinite;
+  animation: cat5-danio3 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat5-danio3 {
-  0.0%  { background-image: url("cat5/damage3/frame0000.png"); }
-  33.3% { background-image: url("cat5/damage3/frame0003.png"); }
-  66.7% { background-image: url("cat5/damage3/frame0006.png"); }
+  0.0%   { background-image: url("cat5/damage3/frame0000.png"); }
+  33.3%  { background-image: url("cat5/damage3/frame0003.png"); }
+  66.7%  { background-image: url("cat5/damage3/frame0006.png"); }
 }
 
 /* Sin movimiento se queda en el primer dibujo de su etapa. El CAMBIO de

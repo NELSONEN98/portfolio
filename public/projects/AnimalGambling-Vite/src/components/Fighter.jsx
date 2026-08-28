@@ -90,12 +90,10 @@ export default function Fighter({
    *
    * `warmDanio` se acuerda de lo que ya pidió, así que repetir esto en cada
    * pintado no cuesta nada. */
-  const dirGato = jugador?.char?.dir;
-  const tieneDanios = (jugador?.char?.danios ?? 0) > 0;
+  const gato = jugador?.char;
   useEffect(() => {
-    if (!tieneDanios) return;
-    warmDanio(dirGato, danio + 1);
-  }, [dirGato, tieneDanios, danio]);
+    warmDanio(gato, danio + 1);
+  }, [gato, danio]);
 
   /* ►► Abierto se DERIVA, no se sincroniza. ◄◄
    *

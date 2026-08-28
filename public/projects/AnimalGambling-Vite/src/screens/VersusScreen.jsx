@@ -327,7 +327,7 @@ export default function VersusScreen({
              * es un estado que se va a desincronizar. */
             danio={Math.min(
               Math.floor((golpes[i] ?? 0) / 2),
-              p?.char?.danios ?? 0
+              p?.char?.danios?.length ?? 0
             )}
             onEmote={(id) => onEmote?.(i, id)}
             /* La mira sólo mientras se pueda hacer algo con ella: apuntada
