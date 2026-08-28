@@ -43,6 +43,11 @@ export const rollDice = (roomId) =>
 export const holdScore = (roomId) =>
   convex.mutation("rooms:holdScore", conSesion({ roomId }));
 
+/* El emoji no lleva asiento: lo pone el servidor a partir de la sesión. Si
+   viajara desde acá, cualquiera podría tirarlo desde la cara de otro. */
+export const sendEmoji = (roomId, emoji) =>
+  convex.mutation("rooms:sendEmoji", conSesion({ roomId, emoji }));
+
 export const getRoom = (roomId) => convex.query("rooms:getRoom", { roomId });
 
 /* Salir nunca debe frenar la navegación ni explotar: si falla, el cron del

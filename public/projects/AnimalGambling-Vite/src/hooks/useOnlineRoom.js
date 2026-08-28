@@ -211,5 +211,6 @@ export function useOnlineRoom() {
     takeBackCard: api.takeBackCard,
     rollDice: api.rollDice,
     holdScore: api.holdScore,
+    sendEmoji: api.sendEmoji,
   };
 }

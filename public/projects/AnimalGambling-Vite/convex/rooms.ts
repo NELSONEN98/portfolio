@@ -235,6 +235,59 @@ export const createRoom = mutation({
   },
 });
 
+/* ►► TIRAR UN EMOJI A LA MESA. ◄◄
+ *
+ * La mutación más chica del backend, y a propósito: un emoji no toca el
+ * estado de la partida. No mueve puntos, ni turnos, ni cartas. Sólo deja un
+ * hecho para que las otras pantallas lo cuenten.
+ *
+ * ►► Por eso NO escribe en la sala, sólo en `gameEvents`. ◄◄
+ *
+ * Guardarlo en el documento de la sala obligaría a decidir cuándo se borra
+ * —un emoji dura tres segundos y medio y una sala treinta minutos— y a
+ * escribir el documento entero por algo que no es estado. Como hecho suelto
+ * viaja por el sondeo que ya existe, cada pantalla lo muestra el rato que
+ * tenga que durar, y se limpia con la sala.
+ *
+ * ►► El asiento lo pone el SERVIDOR, no el cliente. ◄◄
+ *
+ * `whoIs` dice de quién es esta sesión, y de ahí sale el asiento. Si
+ * viniera en los argumentos, cualquiera podría tirar emojis desde la cara
+ * de otro — que es exactamente lo que el propio juego impide del lado del
+ * cliente dejando emotear sólo el personaje propio. Una regla que se aplica
+ * en la pantalla y no en el servidor no es una regla.
+ *
+ * Sin freno de repetición: el gesto es sostener y elegir, que ya lleva su
+ * tiempo, y esto es un demo. Si algún día alguien lo automatiza, el freno
+ * va acá y no en la pantalla, por el mismo motivo que el asiento.
+ */
+export const sendEmoji = mutation({
+  args: {
+    roomId: v.string(),
+    sessionId: v.string(),
+    emoji: v.string(),
+  },
+  async handler(ctx, args) {
+    const room = await findRoom(ctx, args.roomId);
+    /* Tirar un emoji a una sala que ya no está no es un error que valga
+       interrumpirle la partida a nadie: se ignora, como `leaveRoom`. */
+    if (!room) return { ok: false };
+
+    const me = whoIs(room, args.sessionId);
+    if (!me) return { ok: false };
+
+    await ctx.db.insert("gameEvents", {
+      roomId: args.roomId,
+      sessionId: args.sessionId,
+      action: "emoji",
+      payload: { seat: me.seat, emoji: args.emoji },
+      timestamp: Date.now(),
+    });
+
+    return { ok: true, seat: me.seat };
+  },
+});
+
 export const updatePlayerCharacter = mutation({
   args: {
     roomId: v.string(),

@@ -261,6 +261,44 @@ export default function App() {
 
   /* La carta que el servidor ya entregó pero que todavía no se mostró:
      espera a que la ficha frene para aparecer. */
+  /* ►► QUÉ EMOJI MUESTRA CADA ASIENTO. ◄◄
+   *
+   * Un objeto por asiento y no uno solo: en una mesa de cuatro puede haber
+   * dos emojis en el aire al mismo tiempo, y con un único lugar el segundo
+   * le pisaría el suyo al primero.
+   *
+   * Vive acá y no en la pantalla de partida porque acá es donde llega el
+   * SONDEO. Un emoji tiene dos orígenes —tu propio dedo y el de un rival por
+   * la red— y los dos tienen que terminar en el mismo lugar. Abajo sólo se
+   * podía mostrar lo que uno mismo tiraba.
+   *
+   * `key` es lo que permite repetir: dos veces el mismo emoji seguido tienen
+   * que volver a animarse, y comparando sólo el `id` la segunda vez no
+   * cambiaría nada. Mismo recurso que el confeti y el golpe. */
+  const [emotes, setEmotes] = useState({});
+  const relojesEmoji = useRef({});
+
+  /* Los temporizadores se limpian al desmontar: si la partida termina con un
+     emoji en el aire, el que iba a borrarlo escribiría estado sobre algo que
+     ya no está. */
+  useEffect(() => {
+    const vivos = relojesEmoji.current;
+    return () => Object.values(vivos).forEach(clearTimeout);
+  }, []);
+
+  /* Mostrarlo. No manda nada: es el punto donde llegan los dos orígenes. */
+  const mostrarEmoji = useCallback((asiento, id) => {
+    setEmotes((prev) => ({ ...prev, [asiento]: { id, key: Math.random() } }));
+    clearTimeout(relojesEmoji.current[asiento]);
+    relojesEmoji.current[asiento] = setTimeout(() => {
+      setEmotes((prev) => {
+        const s = { ...prev };
+        delete s[asiento];
+        return s;
+      });
+    }, ms("emoji.dura"));
+  }, []);
+
   const cartaEnCamino = useRef(null);
   /* La penitencia de la tirada en curso rebotó en un escudo. Sólo lo usa el
      online: en local el motor lo cuenta como hecho y esa corriente ya llega
@@ -387,6 +425,29 @@ export default function App() {
   }, []);
 
   const online = modo === "online";
+
+  /* ►► Tirar uno: se ve YA, y recién después sale a la red. ◄◄
+   *
+   * El propio emoji no espera la respuesta del servidor. Un emoji es una
+   * reacción —se tira porque acaba de pasar algo— y medio segundo de ida y
+   * vuelta lo desengancha del momento que estaba comentando. Los demás lo
+   * ven cuando les llega, que es como funciona cualquier chat.
+   *
+   * Y si el envío falla, no se avisa nada. Ya se vio en tu pantalla; un
+   * cartel de error por un emoji que no llegó es más molesto que el emoji
+   * que faltó, y no hay nada que el jugador pueda hacer al respecto.
+   *
+   * En local no hay a quién mandarlo: la mesa entera está en esta pantalla.
+   */
+  const tirarEmoji = useCallback(
+    (asiento, id) => {
+      mostrarEmoji(asiento, id);
+      if (!online || !sala.roomId) return;
+      sala.sendEmoji(sala.roomId, id).catch(() => {});
+    },
+    [online, sala, mostrarEmoji]
+  );
+
 
   /* Sin jugadores no hay mesa ni final: entrar a #/game escribiendo la URL
      tiene que devolver al principio en vez de romper. */
@@ -606,6 +667,22 @@ export default function App() {
        mesa se cierra sobre el hueco —los objetivos se recalculan solos— y
        eso hay que decirlo, porque a alguien le acaba de cambiar la víctima
        sin que tocara nada. */
+    /* ►► El emoji de un rival. ◄◄
+     *
+     * El sondeo descarta tus propios eventos, así que acá llega sólo lo
+     * ajeno — que es justo lo correcto: el tuyo ya se mostró al tocarlo, sin
+     * esperar la red.
+     *
+     * El asiento viene del SERVIDOR y no se deduce acá. `celdaDe` ya traduce
+     * asiento a lugar en la pantalla, así que el emoji cae sobre el
+     * personaje correcto mire quien mire, sin importar cómo esté rotada la
+     * mesa para cada uno. */
+    if (ev.action === "emoji") {
+      const asiento = ev.payload?.seat;
+      const cual = ev.payload?.emoji;
+      if (typeof asiento === "number" && cual) mostrarEmoji(asiento, cual);
+      return;
+    }
     if (ev.action === "leave") {
       const quien = ev.payload?.name;
       notify(
@@ -643,7 +720,7 @@ export default function App() {
         setTimeout(() => mostrarRevelacion(carta, r.blocked, sala.miLado), i * 1500);
       });
     }
-  }, [sala, mostrarRevelacion, notify, anunciar]);
+  }, [sala, mostrarRevelacion, notify, anunciar, mostrarEmoji]);
 
   /* Elegir gato, para una mesa de cualquier tamaño.
    *
@@ -1419,6 +1496,8 @@ export default function App() {
             onSettleRoll={alFrenar}
             onLlegada={alLlegar}
             onTiempoAgotado={alAgotarseElTiempo}
+            emotes={emotes}
+            onEmote={tirarEmoji}
             retrasoCasilla={ESPERA_CASILLA}
           />
         )}

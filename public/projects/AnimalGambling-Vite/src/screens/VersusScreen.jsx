@@ -60,9 +60,20 @@ export default function VersusScreen({
   onTakeBackCard,
   onSettleRoll,
   onLlegada,
-  /* Se acabaron los diez segundos sin que el jugador hiciera nada. Qué
-     significa eso lo decide App —planta el turno—; acá sólo se avisa. */
+  /* Se acabaron los segundos sin que el jugador hiciera nada. Qué significa
+     eso lo decide App —planta el turno—; acá sólo se avisa. */
   onTiempoAgotado,
+  /* ►► Qué emoji muestra cada asiento, y cómo se tira uno. ◄◄
+   *
+   * Los dos vienen de App y ya no viven acá. La mudanza la pidió la red: el
+   * emoji de un rival llega por el SONDEO, que App escucha, y esta pantalla
+   * no tiene forma de enterarse. Con el estado acá abajo, lo único que se
+   * podía mostrar era lo que uno mismo tiraba.
+   *
+   * Es exactamente el seam que se dejó anotado al construirlo: cambió de
+   * dónde sale el dato y ni el peleador ni el anillo se enteraron. */
+  emotes = {},
+  onEmote,
   retrasoCasilla,
 }) {
   const total = players.length;
@@ -98,6 +109,44 @@ export default function VersusScreen({
    * programaría de nuevo sin llegar nunca a los diez segundos, y el reloj
    * no se cumpliría jamás. Es el mismo motivo por el que el tablero guarda
    * `onVueltaRef`. */
+  /* ►► EL RELOJ NO CORRE ANTES DE LA PRIMERA TIRADA. ◄◄
+   *
+   * Al abrir la partida hay una pausa que no es indecisión: los jugadores
+   * están viendo la mesa por primera vez —qué gato le tocó a cada uno, qué
+   * cartas les repartieron, dónde están las casillas rojas—. Arrancar el
+   * reloj ahí castiga por mirar el juego, y encima le pega al primero de la
+   * ronda, que es el único que no tuvo a nadie a quien mirar antes.
+   *
+   * El disparador es la primera tirada de la partida, no un tiempo de
+   * gracia: lo que separa "todavía estoy entendiendo la mesa" de "estoy
+   * jugando" es que alguien haya tirado, y eso ya lo dice `rolling`.
+   *
+   * Se marca en el MANEJADOR del botón, no en un efecto ni en un ref.
+   * Probé las dos y las dos estaban mal: un efecto que escribe estado
+   * encadena pintados, y un ref no se puede leer mientras se pinta —React
+   * 19 lo marca, y con razón: pintar tiene que dar lo mismo dos veces
+   * seguidas y un ref puede haber cambiado en el medio—.
+   *
+   * El manejador es el lugar correcto y además el más simple: "arrancó" es
+   * literalmente "alguien apretó tirar", así que se anota justo ahí.
+   *
+   * ►► Cada pantalla lleva su propia cuenta, y está bien. ◄◄
+   *
+   * En online esto se marca con TU primera tirada, no con la del rival. O
+   * sea que cada jugador tiene su primer turno sin reloj. Es lo mismo que
+   * se buscaba: el rato de mirar la mesa por primera vez no es indecisión,
+   * y no lo deja de ser porque otro ya haya tirado. */
+  const [arranco, setArranco] = useState(false);
+  const tirarYArrancar = useCallback(() => {
+    setArranco(true);
+    onRoll?.();
+  }, [onRoll]);
+
+  /* Se puede actuar Y la partida ya arrancó. Lo miran los dos: el
+     temporizador y la barra, que tienen que aparecer y desaparecer juntos o
+     la barra estaría prometiendo una cuenta que no existe. */
+  const relojCorre = puedeActuar && arranco;
+
   const avisoTiempo = useRef(onTiempoAgotado);
   /* El ref se escribe en un efecto y no durante el pintado: pintar tiene que
      ser puro, y con el modo estricto de React 19 el cuerpo del componente
@@ -107,47 +156,10 @@ export default function VersusScreen({
   }, [onTiempoAgotado]);
 
   useEffect(() => {
-    if (!puedeActuar) return undefined;
+    if (!relojCorre) return undefined;
     const t = setTimeout(() => avisoTiempo.current?.(), ms("turno.reloj"));
     return () => clearTimeout(t);
-  }, [puedeActuar, active]);
-
-  /* ►► QUÉ EMOJI ESTÁ MOSTRANDO CADA ASIENTO. ◄◄
-   *
-   * Un objeto por asiento y no uno solo: en una mesa de cuatro puede haber
-   * dos emojis en el aire al mismo tiempo, y con un único lugar el segundo
-   * le pisaría el suyo al primero.
-   *
-   * Vive acá y no adentro del peleador aunque hoy sólo lo escriba el propio
-   * jugador. Es el seam para cuando viajen por la red: ahí lo único que
-   * cambia es de dónde sale este objeto —del sondeo en vez del toque— y ni
-   * el peleador ni el anillo se enteran.
-   *
-   * `key` es lo que permite repetir: dos veces el mismo emoji seguido tienen
-   * que volver a animarse, y comparando sólo el `id` la segunda vez no
-   * cambiaría nada. Mismo recurso que el confeti y el golpe. */
-  const [emotes, setEmotes] = useState({});
-  const relojes = useRef({});
-
-  /* Los temporizadores se limpian al desmontar: si la partida termina con un
-     emoji en el aire, el que iba a borrarlo escribiría estado sobre una
-     pantalla que ya no está. */
-  useEffect(() => {
-    const vivos = relojes.current;
-    return () => Object.values(vivos).forEach(clearTimeout);
-  }, []);
-
-  const tirarEmoji = useCallback((asiento, id) => {
-    setEmotes((prev) => ({ ...prev, [asiento]: { id, key: Math.random() } }));
-    clearTimeout(relojes.current[asiento]);
-    relojes.current[asiento] = setTimeout(() => {
-      setEmotes((prev) => {
-        const s = { ...prev };
-        delete s[asiento];
-        return s;
-      });
-    }, ms("emoji.dura"));
-  }, []);
+  }, [relojCorre, active]);
 
   const pendientes = players.flatMap((p) => p?.pendingCards ?? []);
 
@@ -298,7 +310,7 @@ export default function VersusScreen({
                turno, que es quien está con el aparato en la mano. */
             puedeEmotear={ladoMano === i && playing}
             emote={emotes[i] ?? null}
-            onEmote={(id) => tirarEmoji(i, id)}
+            onEmote={(id) => onEmote?.(i, id)}
             /* La mira sólo mientras se pueda hacer algo con ella: apuntada
                durante el turno ajeno contaría una decisión que no es tuya, y
                en una mesa de cuatro habría tres miras encendidas a la vez.
@@ -347,7 +359,7 @@ export default function VersusScreen({
               esperando={esperandoTirada}
               dobles={dobles}
               onSettle={onSettleRoll}
-              onRoll={onRoll}
+              onRoll={tirarYArrancar}
               puedeTirar={puedeActuar}
             />
           )}
@@ -389,7 +401,7 @@ export default function VersusScreen({
         <button
           className="btn-accion tirar"
           disabled={!puedeActuar}
-          onClick={onRoll}
+          onClick={tirarYArrancar}
           title="Tirar dado"
           aria-label="Tirar dado"
         >
@@ -418,7 +430,7 @@ export default function VersusScreen({
          * `aria-hidden`: para quien no ve la pantalla, una barra vaciándose
          * no dice nada. El aviso de que se acabó el turno sí le llega, por
          * el mismo cartel que ve todo el mundo. */}
-        {puedeActuar && (
+        {relojCorre && (
           <div className="turno-reloj" aria-hidden="true">
             {/* ►► Sin estado: la barra se reinicia sola, por dos caminos. ◄◄
              *
