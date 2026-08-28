@@ -4069,10 +4069,9 @@ body {
    todo el alto disponible. Puede ser más grande que los íconos de las
    otras porque el rótulo y el número comparten una sola línea abajo en vez
    de ocupar dos. */
-.card.steal .card-icon {
-  width: calc(var(--card-w) * 0.68);
-  height: calc(var(--card-w) * 0.68);
-}
+/* Acá el dibujo iba a 0.68 porque la cifra le compartía el cuerpo. Ahora la
+   cifra vive en la franja de abajo, junto al rótulo, así que el robo usa el
+   mismo tamaño que las otras siete y la fila se lee pareja. */
 
 /* ►► El gato ladrón, contorneado en blanco. ◄◄
  *
@@ -4140,6 +4139,62 @@ body {
  * mano. Nunca comparten superficie, y son el único par del mazo que no
  * necesita distinguirse entre sí porque su parentesco es real. */
 .card.skip    { background: var(--c-blue); color: #fff; }
+
+/* ►► LA LUNA DEL SALTO. ◄◄
+ *
+ * El gato del salto es una silueta NEGRA sobre una carta azul oscura: es el
+ * mismo problema que el gato ladrón sobre el negro, y acá se resuelve mucho
+ * mejor que con un contorno. Una luna detrás no sólo lo hace visible —lo
+ * convierte en la imagen que el dibujo ya estaba pidiendo: un gato saltando
+ * por encima de la luna.
+ *
+ * Va en un pseudo-elemento y no como otra imagen porque es un círculo: un
+ * archivo más para bajar, y una escala más que mantener de acuerdo con la
+ * carta, a cambio de nada.
+ *
+ * ►► Detrás del gato, y abajo. ◄◄
+ *
+ * `z-index: 0` contra el dibujo, que está en el flujo normal por encima. Y
+ * corrida hacia abajo: una luna centrada quedaría de halo alrededor del gato
+ * en vez de leerse como luna. Abajo, con el gato saltando por delante, la
+ * escena se arma sola.
+ *
+ * El degradado no es adorno: un disco de un solo tono se lee como un círculo
+ * de color, y dos tonos —más claro arriba, más naranja abajo— lo leen como
+ * una esfera iluminada. */
+.card.skip .card-icon::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  /* Casi todo el ancho de la carta, no de la caja del dibujo: la luna es de
+     la CARTA, y medida contra la caja quedaría chica y descentrada. */
+  width: calc(var(--card-w) * 0.86);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  /* Apoyada abajo y un poco salida: una luna entera y flotando se ve como un
+     globo; asomando por el borde se ve como una luna que está saliendo. */
+  bottom: -18%;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    circle at 50% 35%,
+    #ffd45e 0%,
+    #ffb020 55%,
+    #f08a12 100%
+  );
+  box-shadow: 0 0 2.2rem rgba(255, 176, 32, 0.45);
+  z-index: 0;
+}
+
+/* La caja del dibujo pasa a ser el ancla de la luna, y el gato queda por
+   encima de ella. Sin esto la luna se posicionaría contra la carta entera y
+   el `z-index` del dibujo no tendría contra qué competir. */
+.card.skip .card-icon {
+  position: relative;
+}
+.card.skip .card-dibujo {
+  position: relative;
+  z-index: 1;
+}
 /* Un punto más claro que su hermana: son parientes, no la misma carta, y a
    tamaño de abanico dos azules idénticos se cuentan como una sola. */
 .card.reverse { background: #123ec0; color: #fff; }

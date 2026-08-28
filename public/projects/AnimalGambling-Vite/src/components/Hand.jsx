@@ -15,9 +15,6 @@ export function CardFace({ carta }) {
     return (
       <>
         <span className="card-icon"><CardArt tipo={CARD.STEAL} /></span>
-        {/* La cifra grande en el cuerpo: con dos denominaciones —3 y 6— lo
-            que hay que leer de un vistazo es CUÁNTO, no cómo se llama. */}
-        <span className="card-value">−{carta.value}</span>
         {/* ►► Y vuelve la palabra "ROBAR". ◄◄
          *
          * La había perdido, y por un buen motivo: compartía el cuerpo de la
@@ -29,7 +26,20 @@ export function CardFace({ carta }) {
          * la única carta del mazo sin franja blanca y se veía como un error
          * de la pantalla. Y para quien recién aprende, un dibujo con un
          * número no dice qué hace: los otros siete se nombran solos. */}
-        <span className="card-kind">{CARD_LABEL[CARD.STEAL]}</span>
+        {/* ►► La cifra baja a la franja, con el rótulo. ◄◄
+         *
+         * Estaba grande en el cuerpo, compartiendo sitio con el dibujo. Eso
+         * tenía sentido cuando el dibujo era un ícono chico; con el gato
+         * ladrón adentro, la cifra le comía la mitad de la carta al único
+         * elemento que se reconoce de lejos.
+         *
+         * Abajo lee "ROBAR −6" de un saque, que es exactamente la forma que
+         * ya usa el golpe. Y ahí está lo que se gana además del espacio: los
+         * dos ataques del mazo se comparan sin cambiar de sitio la mirada. */}
+        <span className="card-kind">
+          {CARD_LABEL[CARD.STEAL]}
+          <span className="card-kind-num">−{carta.value}</span>
+        </span>
       </>
     );
   }
