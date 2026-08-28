@@ -3,6 +3,19 @@
    ============================================ */
 
 @import url("https://fonts.googleapis.com/css2?family=Bungee:wght@400;700&display=swap");
+/* ►► Roboto es para LEER, Bungee para mirar. ◄◄
+ *
+ * Bungee es una tipografía de cartel: mayúsculas gruesas, muy apretada, sin
+ * minúsculas de verdad. Es perfecta para el marcador, los botones y los
+ * carteles del medio —todo lo que se lee de un vistazo y desde lejos— y es
+ * exactamente lo contrario de lo que hace falta para un párrafo.
+ *
+ * Y el reglamento son párrafos. Ahí Bungee obliga a descifrar cada palabra
+ * en vez de leerla, y a cuerpos chicos se convierte en una mancha.
+ *
+ * Sólo se pide el peso 400: en el reglamento la letra no grita, y traer
+ * pesos que nadie usa es descarga que retrasa lo que sí se ve. */
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
 
 :root {
   /* Paleta del proyecto. Los cuatro del medio son los fondos que lleva
@@ -65,6 +78,9 @@
   --carta-ancho: clamp(7.6rem, 17.9vmin, 11.85rem);
 
   --display: "Bungee", sans-serif;
+  /* La de leer. Vive al lado de `--display` para que quede claro que son dos
+     trabajos distintos y no dos gustos. */
+  --lectura: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
   /* Para los SIGNOS sueltos, no para texto.
    *
    * Es el mismo diagnóstico que ya está escrito abajo para `--codigo`:
@@ -6401,9 +6417,32 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  max-height: 88vh;
-  max-height: 88dvh;
-  width: min(62rem, 90vw);
+  /* ►► ESTA VENTANA TIENE SU PROPIA ESCALA. ◄◄
+   *
+   * Y ahí estaba el problema entero, medido: a 1920px la ventana daba
+   * 620x413 —un tercio del ancho, 42% del alto— y el texto salía a 11,5px.
+   *
+   * La causa es que todo acá estaba en `rem`, y este proyecto pone
+   * `html { font-size: 62.5% }`, o sea 1rem = 10px, bajando hasta 34% en
+   * pantallas chicas. Eso es deliberado y correcto PARA EL JUEGO: el
+   * marcador, las cartas y los botones encogen juntos y la mesa se mantiene
+   * proporcionada.
+   *
+   * Pero un reglamento no es HUD. El HUD se mira de reojo y tiene que
+   * achicarse con la mesa; esto se LEE, y el tamaño de lectura depende de la
+   * distancia a la pantalla, no de cuánto mide el tablero. Atado al rem del
+   * juego, la ventana se encogía justo donde más sitio había.
+   *
+   * Así que declara su propio tamaño de letra en `clamp` con `vw`, y todo lo
+   * de adentro se mide en `em` contra eso. Dos sistemas separados, cada uno
+   * siguiendo lo que le corresponde. */
+  font-size: clamp(15px, 1.05vw, 19px);
+
+  max-height: 92vh;
+  max-height: 92dvh;
+  /* En píxeles y `vw`, no en `rem`: si fuera rem volvería a encogerse con el
+     HUD, que es de lo que se la acaba de despegar. */
+  width: min(1120px, 94vw);
   /* ►► Negro sólido, y se van tres capas. ◄◄
    *
    * Había un degradado oscuro encima de una trama diagonal ámbar encima del
@@ -6425,8 +6464,8 @@ body {
    * luces, no otra fuente de luz compitiendo con ellas. */
   border: 1px solid rgba(0, 0, 0, 0.55);
   box-shadow:
-    0 1.6rem 4rem rgba(0, 0, 0, 0.7),
-    inset 0 0 3rem rgba(0, 0, 0, 0.6);
+    0 1.6em 4em rgba(0, 0, 0, 0.7),
+    inset 0 0 3em rgba(0, 0, 0, 0.6);
 
   /* Lo que la marquesina necesita para dibujarse. Viven en `.pool-table` y
      de ahí no se heredan: la ventana no es hija de la mesa, es hermana de
@@ -6439,7 +6478,7 @@ body {
      chica que el tablero, y a la misma escala las luces se leían como
      lamparitas de patio en vez de marquesina. */
 
-  transform: scale(0.9) translateY(2rem);
+  transform: scale(0.9) translateY(2em);
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   overflow: hidden;
 }
@@ -6455,15 +6494,17 @@ body {
    abajo vienen las pestañas y quedaban dos líneas casi pegadas. */
 .rules-header {
   position: relative;
-  padding: 2.4rem 3rem 1.6rem;
+  padding: 2.4em 3em 1.6em;
   text-align: center;
   flex: none;
 }
 .rules-title {
   font-family: var(--display);
-  font-size: 4rem;
+  /* Era 4em, o sea 76px: un titular de portada para una ventana de
+     consulta. Lo importante acá son las reglas, no el rótulo. */
+  font-size: 2.1em;
   color: var(--neon-amber);
-  letter-spacing: 0.3rem;
+  letter-spacing: 0.3em;
   /* ►► La mitad del resplandor que tenía. ◄◄
    *
    * Eran dos halos de 0,8 y 2rem, y con las bombillas ahora encendidas
@@ -6472,21 +6513,21 @@ body {
    * El halo corto alcanza para que la letra se despegue del fieltro, que es
    * todo lo que tenía que hacer. */
   text-shadow:
-    0 0 0.5rem rgba(245, 185, 66, 0.55),
-    0 0 1.1rem rgba(245, 185, 66, 0.22);
+    0 0 0.5em rgba(245, 185, 66, 0.55),
+    0 0 1.1em rgba(245, 185, 66, 0.22);
   animation: flicker var(--dur-pantalla-flicker-reglas) infinite;
 }
 .rules-close {
   position: absolute;
-  top: 1.8rem;
-  right: 2rem;
+  top: 1.8em;
+  right: 2em;
   background: transparent;
   border: 1px solid rgba(232, 225, 204, 0.2);
   color: var(--bone-dim);
   font-family: var(--display);
-  font-size: 1.4rem;
-  width: 3.2rem;
-  height: 3.2rem;
+  font-size: 1.4em;
+  width: 3.2em;
+  height: 3.2em;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -6497,7 +6538,7 @@ body {
 .rules-close:hover {
   border-color: var(--blood);
   color: var(--blood);
-  box-shadow: 0 0 1.2rem rgba(199, 54, 95, 0.4);
+  box-shadow: 0 0 1.2em rgba(199, 54, 95, 0.4);
 }
 
 /* Las secciones. Sin esto la única forma de llegar a las cartas era
@@ -6506,21 +6547,21 @@ body {
 .rules-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  padding: 1.2rem 3rem 0;
+  gap: 0.4em;
+  padding: 1.2em 3em 0;
   flex: none;
 }
 
 .rules-tab {
   font-family: var(--display);
-  font-size: 1rem;
-  letter-spacing: 0.14rem;
+  font-size: 1em;
+  letter-spacing: 0.14em;
   color: var(--bone-dim);
   background: transparent;
   border: 1px solid rgba(232, 225, 204, 0.16);
   border-bottom: none;
-  border-radius: 0.5rem 0.5rem 0 0;
-  padding: 0.7rem 1.3rem;
+  border-radius: 0.5em 0.5em 0 0;
+  padding: 0.7em 1.3em;
   cursor: pointer;
   transition: color 0.2s, background 0.2s, border-color 0.2s;
 }
@@ -6534,14 +6575,14 @@ body {
   color: var(--neon-amber);
   border-color: rgba(245, 185, 66, 0.45);
   background: rgba(245, 185, 66, 0.09);
-  text-shadow: 0 0 0.7rem var(--neon-amber-glow);
+  text-shadow: 0 0 0.7em var(--neon-amber-glow);
 }
 
 /* El único que estira y el único que scrollea. `min-height: 0` no es
    adorno: sin eso un hijo de flex no baja de su alto de contenido y el
    overflow no llega a activarse nunca — vuelve el bug entero. */
 .rules-body {
-  padding: 2rem 3rem;
+  padding: 2em 3em;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -6553,14 +6594,14 @@ body {
 }
 
 .rules-body::-webkit-scrollbar {
-  width: 0.7rem;
+  width: 0.7em;
 }
 .rules-body::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.35);
 }
 .rules-body::-webkit-scrollbar-thumb {
   background: rgba(245, 185, 66, 0.3);
-  border-radius: 0.4rem;
+  border-radius: 0.4em;
 }
 .rules-body::-webkit-scrollbar-thumb:hover {
   background: rgba(245, 185, 66, 0.5);
@@ -6571,36 +6612,36 @@ body {
    el mismo peso que "el camino da la vuelta". */
 .rule-hero {
   border: 1px solid rgba(199, 54, 95, 0.45);
-  border-radius: 0.8rem;
+  border-radius: 0.8em;
   background:
     linear-gradient(180deg, rgba(199, 54, 95, 0.12), rgba(199, 54, 95, 0.03));
   box-shadow:
-    0 0 2rem rgba(199, 54, 95, 0.18),
-    inset 0 0 2rem rgba(0, 0, 0, 0.4);
-  padding: 1.6rem 1.8rem 1.8rem;
-  margin-bottom: 1.6rem;
+    0 0 2em rgba(199, 54, 95, 0.18),
+    inset 0 0 2em rgba(0, 0, 0, 0.4);
+  padding: 1.6em 1.8em 1.8em;
+  margin-bottom: 1.6em;
 }
 
 .rule-hero-tag {
   font-family: var(--display);
-  font-size: 0.95rem;
-  letter-spacing: 0.3rem;
+  font-size: 0.95em;
+  letter-spacing: 0.3em;
   color: var(--blood);
   text-transform: uppercase;
   text-align: center;
-  margin-bottom: 1.4rem;
+  margin-bottom: 1.4em;
 }
 
 .rule-hero-body {
   display: flex;
   align-items: flex-start;
-  gap: 1.8rem;
+  gap: 1.8em;
 }
 
 .rule-hero-cara {
   flex: none;
-  width: 6.4rem;
-  height: 6.4rem;
+  width: 6.4em;
+  height: 6.4em;
 }
 
 .rule-hero-cara svg {
@@ -6619,13 +6660,32 @@ body {
 }
 
 .rule-hero-texto {
-  font-family: var(--display);
-  font-size: 1.1rem;
+  /* ►► Tope de renglón en `ch`, que es la unidad hecha para esto. ◄◄
+   *
+   * `1ch` es el ancho de un cero de la fuente actual, así que 66ch son unos
+   * 66 caracteres pase lo que pase con el cuerpo o con la ventana.
+   *
+   * Hizo falta al cambiar a Roboto: Bungee es tan ancha que el renglón daba
+   * 57 caracteres solo, y al pasar a una tipografía normal el MISMO ancho
+   * pasó a 108. Un renglón largo cansa por una razón mecánica —al terminar
+   * hay que encontrar dónde empieza el siguiente, y cuanto más largo, más
+   * fácil es saltar dos—. El rango cómodo es 45 a 75. */
+  max-width: 66ch;
+  /* ►► Roboto, no Bungee. ◄◄
+   *
+   * Bungee es de cartel: mayúsculas gruesas y muy apretadas. Sirve para el
+   * marcador y los botones, que se leen de un vistazo. Un párrafo en Bungee
+   * se descifra palabra por palabra en vez de leerse, y a cuerpo chico se
+   * convierte en una mancha. Los títulos y los números SÍ se quedan en
+   * Bungee: ahí es donde esa tipografía hace su trabajo. */
+  font-family: var(--lectura);
+  text-transform: none;
+  font-size: 1.1em;
   line-height: 1.6;
   color: var(--bone-dim);
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 0.8em;
 }
 .rule-hero-texto b {
   color: var(--blood);
@@ -6637,22 +6697,25 @@ body {
 }
 
 .rule-hero-linea {
-  font-size: 1.45rem;
+  font-family: var(--lectura);
+  font-weight: 700;
+  text-transform: none;
+  font-size: 1.45em;
   color: var(--bone);
   line-height: 1.35;
 }
 
 @media (max-width: 640px) {
   .rules-tabs {
-    padding: 1rem 1.4rem 0;
+    padding: 1em 1.4em 0;
   }
   .rules-tab {
-    font-size: 0.85rem;
-    padding: 0.6rem 0.9rem;
-    letter-spacing: 0.08rem;
+    font-size: 0.85em;
+    padding: 0.6em 0.9em;
+    letter-spacing: 0.08em;
   }
   .rules-body {
-    padding: 1.4rem 1.4rem;
+    padding: 1.4em 1.4em;
   }
   /* El fondo del hover sale por los costados con un margen negativo que
      está calzado al padding del cuerpo. Acá el padding es menor, y sin
@@ -6660,25 +6723,25 @@ body {
      vertical, el eje horizontal también deja de ser `visible` y aparece una
      barra de scroll lateral. */
   .rules-rule:hover {
-    margin: 0 -1.4rem;
-    padding-left: 1.4rem;
-    padding-right: 1.4rem;
+    margin: 0 -1.4em;
+    padding-left: 1.4em;
+    padding-right: 1.4em;
   }
   /* En una columna angosta el dado al costado le deja al texto un canal de
      pocas palabras por renglón, que es donde la lectura se rompe. */
   .rule-hero-body {
     flex-direction: column;
     align-items: center;
-    gap: 1.2rem;
+    gap: 1.2em;
     text-align: center;
   }
 }
 
 .rules-rule {
   display: flex;
-  gap: 2.4rem;
+  gap: 1.4em;
   align-items: flex-start;
-  padding: 1.6rem 0;
+  padding: 1.6em 0;
   border-bottom: 1px solid rgba(232, 225, 204, 0.07);
   transition: background 0.2s;
 }
@@ -6686,17 +6749,23 @@ body {
 .rules-rule:hover {
   background: rgba(245, 185, 66, 0.03);
   margin: 0 -3rem;
-  padding-left: 3rem;
-  padding-right: 3rem;
+  padding-left: 3em;
+  padding-right: 3em;
 }
 
 .rule-num {
   font-family: var(--display);
-  font-size: 4.8rem;
+  /* ►► Más chico: era una columna entera de nada. ◄◄
+   *
+   * A 4.8em contra la nueva escala daba 91px, y con su columna reservada se
+   * llevaba unos 320px de ancho para decir "01". El número ordena la
+   * lectura, no es el contenido: tiene que verse como índice, no como
+   * titular. */
+  font-size: 2.3em;
   line-height: 1;
   color: rgba(232, 225, 204, 0.12);
-  min-width: 4rem;
-  margin-top: -0.4rem;
+  min-width: 2.2em;
+  margin-top: -0.4em;
   user-select: none;
 }
 .rules-rule:hover .rule-num {
@@ -6705,36 +6774,36 @@ body {
 
 .rule-content {
   flex: 1;
-  padding-top: 0.4rem;
+  padding-top: 0.4em;
 }
 .rule-title {
   font-family: var(--display);
-  font-size: 1.8rem;
+  font-size: 1.8em;
   color: var(--bone);
-  letter-spacing: 0.15rem;
-  margin-bottom: 0.4rem;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.4em;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1em;
 }
 .rule-key {
   font-family: var(--display);
-  font-size: 1rem;
+  font-size: 1em;
   color: var(--bone-dim);
   border: 1px solid rgba(232, 225, 204, 0.25);
-  padding: 0.2rem 0.5rem;
-  letter-spacing: 0.1rem;
+  padding: 0.2em 0.5em;
+  letter-spacing: 0.1em;
   vertical-align: middle;
 }
 .rule-badge {
   font-family: var(--display);
-  font-size: 1rem;
+  font-size: 1em;
   color: var(--blood);
   border: 1px solid var(--blood);
-  padding: 0.2rem 0.6rem;
-  letter-spacing: 0.15rem;
+  padding: 0.2em 0.6em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  box-shadow: 0 0 0.6rem rgba(199, 54, 95, 0.3);
+  box-shadow: 0 0 0.6em rgba(199, 54, 95, 0.3);
   /* Acá había un `animation: pulse 2s infinite` con un @keyframes que
      nunca se escribió, así que el badge jamás pulsó. Se saca en vez de
      inventarle el keyframe: el aspecto actual es el que se revisó y se
@@ -6742,11 +6811,30 @@ body {
      disfrazado de arreglo. */
 }
 .rule-text {
-  font-family: var(--display);
-  font-size: 1.15rem;
+  /* ►► Tope de renglón en `ch`, que es la unidad hecha para esto. ◄◄
+   *
+   * `1ch` es el ancho de un cero de la fuente actual, así que 66ch son unos
+   * 66 caracteres pase lo que pase con el cuerpo o con la ventana.
+   *
+   * Hizo falta al cambiar a Roboto: Bungee es tan ancha que el renglón daba
+   * 57 caracteres solo, y al pasar a una tipografía normal el MISMO ancho
+   * pasó a 108. Un renglón largo cansa por una razón mecánica —al terminar
+   * hay que encontrar dónde empieza el siguiente, y cuanto más largo, más
+   * fácil es saltar dos—. El rango cómodo es 45 a 75. */
+  max-width: 66ch;
+  /* ►► Roboto, no Bungee. ◄◄
+   *
+   * Bungee es de cartel: mayúsculas gruesas y muy apretadas. Sirve para el
+   * marcador y los botones, que se leen de un vistazo. Un párrafo en Bungee
+   * se descifra palabra por palabra en vez de leerse, y a cuerpo chico se
+   * convierte en una mancha. Los títulos y los números SÍ se quedan en
+   * Bungee: ahí es donde esa tipografía hace su trabajo. */
+  font-family: var(--lectura);
+  text-transform: none;
+  font-size: 1.15em;
   color: var(--bone-dim);
   line-height: 1.6;
-  letter-spacing: 0.03rem;
+  letter-spacing: 0.03em;
 }
 .rule-text b {
   color: var(--c-gold);
@@ -6763,26 +6851,45 @@ body {
 .rule-items {
   display: flex;
   flex-direction: column;
-  gap: 1.4rem;
-  margin-top: 1.4rem;
+  gap: 1.4em;
+  margin-top: 1.4em;
 }
 
 .rule-item {
   display: flex;
   align-items: center;
-  gap: 1.2rem;
+  gap: 1.2em;
 }
 
 .rule-item-name {
   font-family: var(--display);
-  font-size: 1.1rem;
-  letter-spacing: 0.12rem;
+  font-size: 1.1em;
+  letter-spacing: 0.12em;
   color: var(--bone);
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.3em;
 }
 .rule-item-text {
-  font-family: var(--display);
-  font-size: 1rem;
+  /* ►► Tope de renglón en `ch`, que es la unidad hecha para esto. ◄◄
+   *
+   * `1ch` es el ancho de un cero de la fuente actual, así que 66ch son unos
+   * 66 caracteres pase lo que pase con el cuerpo o con la ventana.
+   *
+   * Hizo falta al cambiar a Roboto: Bungee es tan ancha que el renglón daba
+   * 57 caracteres solo, y al pasar a una tipografía normal el MISMO ancho
+   * pasó a 108. Un renglón largo cansa por una razón mecánica —al terminar
+   * hay que encontrar dónde empieza el siguiente, y cuanto más largo, más
+   * fácil es saltar dos—. El rango cómodo es 45 a 75. */
+  max-width: 66ch;
+  /* ►► Roboto, no Bungee. ◄◄
+   *
+   * Bungee es de cartel: mayúsculas gruesas y muy apretadas. Sirve para el
+   * marcador y los botones, que se leen de un vistazo. Un párrafo en Bungee
+   * se descifra palabra por palabra en vez de leerse, y a cuerpo chico se
+   * convierte en una mancha. Los títulos y los números SÍ se quedan en
+   * Bungee: ahí es donde esa tipografía hace su trabajo. */
+  font-family: var(--lectura);
+  text-transform: none;
+  font-size: 1em;
   line-height: 1.55;
   color: var(--bone-dim);
 }
@@ -6795,15 +6902,15 @@ body {
 .rule-chip {
   position: static;
   flex: none;
-  width: 3.4rem;
-  height: 3.4rem;
+  width: 3.4em;
+  height: 3.4em;
   border-radius: 0;
 }
 
 /* La carta de muestra reusa .card por el color y el ícono, pero sin nada
    de lo que la hace un control: no se aprieta, no se levanta. */
 .rule-card {
-  --card-w: 4.4rem;
+  --card-w: 4.4em;
   flex: none;
   cursor: default;
   pointer-events: none;
@@ -6822,18 +6929,18 @@ body {
 
 .rules-footer {
   flex: none;
-  padding: 1.6rem 3rem 2.4rem;
+  padding: 1.6em 3em 2.4em;
   border-top: 1px dashed rgba(245, 185, 66, 0.2);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.4rem;
+  gap: 1.4em;
 }
 .rules-footer-text {
   font-family: var(--display);
-  font-size: 1rem;
+  font-size: 1em;
   color: var(--bone-dim);
-  letter-spacing: 0.4rem;
+  letter-spacing: 0.4em;
   text-transform: uppercase;
 }
 
@@ -6849,24 +6956,24 @@ body {
 @media (max-width: 900px) {
   html { font-size: 48%; }
 
-  .table::after { border-width: 1.4rem; }
+  .table::after { border-width: 1.4em; }
 
-  .select-screen { padding: 4rem 3rem 3rem; }
+  .select-screen { padding: 4em 3em 3em; }
 
-  .gameover-stage { gap: 4rem; }
+  .gameover-stage { gap: 4em; }
 }
 
 /* — Mobile ≤ 640px — */
 @media (max-width: 640px) {
   html { font-size: 40%; }
 
-  .table::after { border-width: 1rem; }
+  .table::after { border-width: 1em; }
 
   /* Select */
-  .select-screen { padding: 3.5rem 1.5rem 2rem; }
-  .char-grid { gap: clamp(2rem, 3vw, 3rem); }
-  .select-footer { flex-wrap: wrap; justify-content: center; gap: 0.8rem 1.5rem; }
-  .select-footer .sys-msg { width: 100%; text-align: center; font-size: 1rem; order: 3; }
+  .select-screen { padding: 3.5em 1.5em 2em; }
+  .char-grid { gap: clamp(2em, 3vw, 3em); }
+  .select-footer { flex-wrap: wrap; justify-content: center; gap: 0.8em 1.5em; }
+  .select-footer .sys-msg { width: 100%; text-align: center; font-size: 1em; order: 3; }
 
   /* Versus — the keyboard hints are noise on a device with no keyboard */
   /* La línea del peleador baja acá y no en el bloque general porque el
@@ -6874,40 +6981,40 @@ body {
      en un teléfono ese número grande más las cartas del rival a su derecha
      no entran en el mismo renglón que el dibujo. Bajando la variable se
      achican los tres a la vez y la línea vuelve a caber. */
-  .versus-screen { --fighter-h: max(6rem, min(16dvh, 30vw)); }
+  .versus-screen { --fighter-h: max(6em, min(16dvh, 30vw)); }
 
-  .chip { width: 2rem; height: 2rem; }
+  .chip { width: 2em; height: 2em; }
   .key-hint { display: none; }
   /* El cartel de turno perdido no baja acá: su medida es `vmin` con topes
-     en píxeles, así que ya se adapta sola. Los `2.4rem` que había se
+     en píxeles, así que ya se adapta sola. Los `2.4em` que había se
      derretían con la raíz al 40% y dejaban el aviso más importante del
      turno en letra chica justo en la pantalla más chica. */
 
   /* Game over */
-  .gameover-screen { padding: 3rem 2rem; }
-  .gameover-banner .big { font-size: 7rem; }
-  .gameover-stage { flex-direction: column; align-items: center; gap: 1.5rem; margin-top: 1.5rem; }
+  .gameover-screen { padding: 3em 2em; }
+  .gameover-banner .big { font-size: 7em; }
+  .gameover-stage { flex-direction: column; align-items: center; gap: 1.5em; margin-top: 1.5em; }
   /* Acá los dos retratos van apilados, así que el techo lo pone el alto
      de la pantalla y no el ancho. Sin `height`: la altura sale del 5:6. */
-  .go-art { width: clamp(9rem, 30dvh, 16rem); }
-  .go-name { font-size: 2.8rem; }
-  .gameover-actions { margin-top: 1.5rem; }
+  .go-art { width: clamp(9em, 30dvh, 16em); }
+  .go-name { font-size: 2.8em; }
+  .gameover-actions { margin-top: 1.5em; }
 
   /* Rules */
-  .rules-header { padding: 2rem 2rem 1.5rem; }
-  .rules-body { padding: 1.5rem 2rem; }
-  .rules-footer { padding: 1.2rem 2rem 2rem; }
-  .rules-rule { gap: 1.5rem; padding: 1.2rem 0; }
-  .rules-rule:hover { margin: 0 -2rem; padding-left: 2rem; padding-right: 2rem; }
-  .rule-num { font-size: 3.5rem; min-width: 3rem; }
+  .rules-header { padding: 2em 2em 1.5em; }
+  .rules-body { padding: 1.5em 2em; }
+  .rules-footer { padding: 1.2em 2em 2em; }
+  .rules-rule { gap: 1.5em; padding: 1.2em 0; }
+  .rules-rule:hover { margin: 0 -2rem; padding-left: 2em; padding-right: 2em; }
+  .rule-num { font-size: 3.5em; min-width: 3em; }
 }
 
 /* — Small mobile ≤ 420px — */
 @media (max-width: 420px) {
   html { font-size: 34%; }
 
-  .select-screen { padding: 7.5rem 1rem 2rem; }
-  .char-grid { gap: 0.8rem; }
+  .select-screen { padding: 7.5em 1em 2em; }
+  .char-grid { gap: 0.8em; }
 
   /* Acá el rótulo de la meta y el dado se pelean por la misma franja de
      fieltro. Antes ganaba el dado y el rótulo se ocultaba, pero eso dejaba
@@ -6916,13 +7023,13 @@ body {
      plantarse. Se achica y sigue estando: a este tamaño entra al lado del
      dado sin empujarlo. */
   .pool-goal {
-    font-size: 1.3rem;
+    font-size: 1.3em;
     letter-spacing: 0.06em;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.4em;
   }
 
-  .gameover-screen { padding: 2rem 1.5rem; }
-  .gameover-banner .big { font-size: 6rem; }
+  .gameover-screen { padding: 2em 1.5em; }
+  .gameover-banner .big { font-size: 6em; }
 }
 
 /* ============================================

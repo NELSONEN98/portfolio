@@ -159,21 +159,17 @@ export default function RulesModal({ abierta, onClose }) {
                 copas.
               </Regla>
 
-              <Regla n="02" titulo="GANAR" tono="win">
-                En cuanto tu puntaje más lo acumulado del turno alcanza{" "}
-                {GOAL}, la partida termina ahí mismo: no hace falta que te
-                plantes. El sobrante de la última tirada no cuenta, el
-                marcador queda clavado en {GOAL}.
-              </Regla>
-            </>
-          )}
-
-          {seccion === "dado" && (
-            <>
-              {/* Lo primero de la sección y con tratamiento propio: es la
-                  tensión sobre la que se apoya todo el juego, y como una
-                  regla más en la lista se leía igual que "el camino da la
-                  vuelta". No es igual. */}
+              {/* ►► Lo primero que se ve al abrir el reglamento. ◄◄
+                  *
+                  * Estaba en la segunda pestaña, "EL DADO", y ahí no lo
+                  * encontraba nadie: el que abre esto quiere entender el
+                  * juego, no consultar el dado. Y es LA regla — la tensión
+                  * sobre la que se apoya todo: seguís tirando o te plantás.
+                  * Sin ella, "gana el que llega a 50" no explica nada.
+                  *
+                  * Va después de EL DUELO y no antes porque necesita el
+                  * objetivo para tener sentido: primero se dice a qué se
+                  * juega, después por qué es difícil. */}
               <div className="rule-hero">
                 <div className="rule-hero-tag">
                   — la regla que define el juego —
@@ -202,6 +198,18 @@ export default function RulesModal({ abierta, onClose }) {
                 </div>
               </div>
 
+
+              <Regla n="02" titulo="GANAR" tono="win">
+                En cuanto tu puntaje más lo acumulado del turno alcanza{" "}
+                {GOAL}, la partida termina ahí mismo: no hace falta que te
+                plantes. El sobrante de la última tirada no cuenta, el
+                marcador queda clavado en {GOAL}.
+              </Regla>
+            </>
+          )}
+
+          {seccion === "dado" && (
+            <>
               <Regla
                 n="01"
                 titulo={<>TIRAR <span className="rule-key">[ESPACIO]</span></>}
