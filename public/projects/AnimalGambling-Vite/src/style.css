@@ -1435,39 +1435,20 @@ body {
 .f4 .fighter-art { animation-delay: -1.05s; }
 
 @keyframes cat1-boil {
-  0%      { background-image: url("cat1/frame0000.webp"); }
-  11.11%  { background-image: url("cat1/frame0001.webp"); }
-  22.22%  { background-image: url("cat1/frame0002.webp"); }
-  33.33%  { background-image: url("cat1/frame0003.webp"); }
-  44.44%  { background-image: url("cat1/frame0004.webp"); }
-  55.56%  { background-image: url("cat1/frame0005.webp"); }
-  66.67%  { background-image: url("cat1/frame0006.webp"); }
-  77.78%  { background-image: url("cat1/frame0007.webp"); }
-  88.89%  { background-image: url("cat1/frame0008.webp"); }
+  0.0%   { background-image: url("cat1/frame0000.webp"); }
+  33.3%  { background-image: url("cat1/frame0003.webp"); }
+  66.7%  { background-image: url("cat1/frame0006.webp"); }
 }
 @keyframes cat2-boil {
-  0%      { background-image: url("cat2/frame0000.webp"); }
-  11.11%  { background-image: url("cat2/frame0001.webp"); }
-  22.22%  { background-image: url("cat2/frame0002.webp"); }
-  33.33%  { background-image: url("cat2/frame0003.webp"); }
-  44.44%  { background-image: url("cat2/frame0004.webp"); }
-  55.56%  { background-image: url("cat2/frame0005.webp"); }
-  66.67%  { background-image: url("cat2/frame0006.webp"); }
-  77.78%  { background-image: url("cat2/frame0007.webp"); }
-  88.89%  { background-image: url("cat2/frame0008.webp"); }
+  0.0%   { background-image: url("cat2/frame0000.webp"); }
+  33.3%  { background-image: url("cat2/frame0003.webp"); }
+  66.7%  { background-image: url("cat2/frame0006.webp"); }
 }
 
 @keyframes cat3-boil {
-  0%   { background-image: url("cat3/frame0000.webp"); }
-  10%  { background-image: url("cat3/frame0001.webp"); }
-  20%  { background-image: url("cat3/frame0002.webp"); }
-  30%  { background-image: url("cat3/frame0003.webp"); }
-  40%  { background-image: url("cat3/frame0004.webp"); }
-  50%  { background-image: url("cat3/frame0005.webp"); }
-  60%  { background-image: url("cat3/frame0006.webp"); }
-  70%  { background-image: url("cat3/frame0007.webp"); }
-  80%  { background-image: url("cat3/frame0008.webp"); }
-  90%  { background-image: url("cat3/frame0009.webp"); }
+  0.0%   { background-image: url("cat3/frame0000.webp"); }
+  30.0%  { background-image: url("cat3/frame0003.webp"); }
+  60.0%  { background-image: url("cat3/frame0006.webp"); }
 }
 
 /* ►► Tres pasos y no siete, aunque haya siete archivos. ◄◄
@@ -1491,16 +1472,9 @@ body {
 }
 
 @keyframes cat4-boil {
-  0%   { background-image: url("cat4/frame0000.webp"); }
-  10%  { background-image: url("cat4/frame0001.webp"); }
-  20%  { background-image: url("cat4/frame0002.webp"); }
-  30%  { background-image: url("cat4/frame0003.webp"); }
-  40%  { background-image: url("cat4/frame0004.webp"); }
-  50%  { background-image: url("cat4/frame0005.webp"); }
-  60%  { background-image: url("cat4/frame0006.webp"); }
-  70%  { background-image: url("cat4/frame0007.webp"); }
-  80%  { background-image: url("cat4/frame0008.webp"); }
-  90%  { background-image: url("cat4/frame0009.webp"); }
+  0.0%   { background-image: url("cat4/frame0000.webp"); }
+  30.0%  { background-image: url("cat4/frame0003.webp"); }
+  60.0%  { background-image: url("cat4/frame0006.webp"); }
 }
 
 /* El dorado es el turno: lo lleva el que tira, y el que espera queda en

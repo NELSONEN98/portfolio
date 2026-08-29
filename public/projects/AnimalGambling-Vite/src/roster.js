@@ -41,7 +41,19 @@ export const ROSTER = [
      * La cantidad de etapas sale del largo de esta lista, así que un gato con
      * dos etapas dibujadas funcionaría sin tocar nada más. */
     danios: [[0, 3, 6], [0, 3, 6], [0, 3, 6]],
-    frames: 9,
+    /* ►► Los cuadros del boil, por índice y no por cantidad. ◄◄
+     *
+     * Era `frames: 9`, y la precarga armaba frame0000, 0001, 0002… hasta
+     * ese número. Servía mientras las carpetas tuvieran todos los archivos,
+     * incluidos los repetidos.
+     *
+     * Al borrar los repetidos —eran la mitad, y nadie los dibujaba— los
+     * índices dejaron de ser seguidos: quedan 0, 3, 6. Una cuenta de "cuántos
+     * hay" ya no puede reconstruirlos, y pediría archivos que no existen.
+     *
+     * Es la misma forma que ya usa `danios`, y por la misma razón: lo que
+     * hace falta saber no es cuántos son sino CUÁLES. */
+    cuadros: [0, 3, 6],
     img: "cat1/frame0000.webp",
     damage: "cat1/cat1-damage.png",
     age: "7",
@@ -73,7 +85,19 @@ export const ROSTER = [
      * La cantidad de etapas sale del largo de esta lista, así que un gato con
      * dos etapas dibujadas funcionaría sin tocar nada más. */
     danios: [[0, 3, 6], [0, 3, 6], [0, 3, 6]],
-    frames: 9,
+    /* ►► Los cuadros del boil, por índice y no por cantidad. ◄◄
+     *
+     * Era `frames: 9`, y la precarga armaba frame0000, 0001, 0002… hasta
+     * ese número. Servía mientras las carpetas tuvieran todos los archivos,
+     * incluidos los repetidos.
+     *
+     * Al borrar los repetidos —eran la mitad, y nadie los dibujaba— los
+     * índices dejaron de ser seguidos: quedan 0, 3, 6. Una cuenta de "cuántos
+     * hay" ya no puede reconstruirlos, y pediría archivos que no existen.
+     *
+     * Es la misma forma que ya usa `danios`, y por la misma razón: lo que
+     * hace falta saber no es cuántos son sino CUÁLES. */
+    cuadros: [0, 3, 6],
     img: "cat2/frame0000.webp",
     damage: "cat2/damaged-cat2.png",
     age: "11",
@@ -105,7 +129,19 @@ export const ROSTER = [
      * La cantidad de etapas sale del largo de esta lista, así que un gato con
      * dos etapas dibujadas funcionaría sin tocar nada más. */
     danios: [[0, 3, 6, 9], [0, 3, 6, 9], [0, 3, 6, 9]],
-    frames: 10,
+    /* ►► Los cuadros del boil, por índice y no por cantidad. ◄◄
+     *
+     * Era `frames: 10`, y la precarga armaba frame0000, 0001, 0002… hasta
+     * ese número. Servía mientras las carpetas tuvieran todos los archivos,
+     * incluidos los repetidos.
+     *
+     * Al borrar los repetidos —eran la mitad, y nadie los dibujaba— los
+     * índices dejaron de ser seguidos: quedan 0, 3, 6. Una cuenta de "cuántos
+     * hay" ya no puede reconstruirlos, y pediría archivos que no existen.
+     *
+     * Es la misma forma que ya usa `danios`, y por la misma razón: lo que
+     * hace falta saber no es cuántos son sino CUÁLES. */
+    cuadros: [0, 3, 6],
     img: "cat3/frame0000.webp",
     damage: "cat3/damaged-cat3.png",
     age: "5",
@@ -137,7 +173,19 @@ export const ROSTER = [
      * La cantidad de etapas sale del largo de esta lista, así que un gato con
      * dos etapas dibujadas funcionaría sin tocar nada más. */
     danios: [[0, 3, 6, 9], [0, 3, 6, 10], [0, 3, 6, 10]],
-    frames: 10,
+    /* ►► Los cuadros del boil, por índice y no por cantidad. ◄◄
+     *
+     * Era `frames: 10`, y la precarga armaba frame0000, 0001, 0002… hasta
+     * ese número. Servía mientras las carpetas tuvieran todos los archivos,
+     * incluidos los repetidos.
+     *
+     * Al borrar los repetidos —eran la mitad, y nadie los dibujaba— los
+     * índices dejaron de ser seguidos: quedan 0, 3, 6. Una cuenta de "cuántos
+     * hay" ya no puede reconstruirlos, y pediría archivos que no existen.
+     *
+     * Es la misma forma que ya usa `danios`, y por la misma razón: lo que
+     * hace falta saber no es cuántos son sino CUÁLES. */
+    cuadros: [0, 3, 6],
     img: "cat4/frame0000.webp",
     damage: "cat4/damaged-cat4.png",
     age: "??",
@@ -180,7 +228,19 @@ export const ROSTER = [
      * La cantidad de etapas sale del largo de esta lista, así que un gato con
      * dos etapas dibujadas funcionaría sin tocar nada más. */
     danios: [[0, 3, 6], [0, 3, 6], [0, 3, 6]],
-    frames: 7,
+    /* ►► Los cuadros del boil, por índice y no por cantidad. ◄◄
+     *
+     * Era `frames: 7`, y la precarga armaba frame0000, 0001, 0002… hasta
+     * ese número. Servía mientras las carpetas tuvieran todos los archivos,
+     * incluidos los repetidos.
+     *
+     * Al borrar los repetidos —eran la mitad, y nadie los dibujaba— los
+     * índices dejaron de ser seguidos: quedan 0, 3, 6. Una cuenta de "cuántos
+     * hay" ya no puede reconstruirlos, y pediría archivos que no existen.
+     *
+     * Es la misma forma que ya usa `danios`, y por la misma razón: lo que
+     * hace falta saber no es cuántos son sino CUÁLES. */
+    cuadros: [0, 3, 6],
     /* ►► La única en `png`, y por eso la extensión se declara. ◄◄
      *
      * Los otros cuatro son `.webp` y la precarga la tenía escrita a mano en
@@ -219,7 +279,7 @@ export function warmRosterFrames() {
   if (calentados) return;
   calentados = true;
   ROSTER.forEach((c) => {
-    for (let i = 0; i < c.frames; i++) {
+    for (const i of c.cuadros) {
       const img = new Image();
       // Baja prioridad: son para dos pantallas más adelante.
       img.fetchPriority = "low";
