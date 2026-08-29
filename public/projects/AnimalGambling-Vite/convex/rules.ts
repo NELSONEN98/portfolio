@@ -10,7 +10,16 @@
  * el cliente predice.
  */
 
-export const GOAL = 100;
+/* ►► A cuánto se gana. ◄◄
+ *
+ * Bajó de 100 a 50, y eso corta la partida por la mitad: un turno gana +7,7
+ * en promedio, así que se pasa de unos trece turnos por jugador a unos seis
+ * y medio.
+ *
+ * El número vive acá solo y lo leen las reglas, el motor local, el servidor
+ * y el reglamento en pantalla. Cambiarlo es una línea justamente porque
+ * nadie más lo escribe. */
+export const GOAL = 50;
 
 /* Un 1 quema el turno. Es la regla original y sigue siendo la que sostiene
    toda la tensión del juego. */
@@ -18,9 +27,11 @@ export const BUST = 1;
 
 /* Un turno gana +7,7 puntos en promedio. A 15 y con seis casillas de
    penitencia el castigo superaba a la ganancia —neto −3,9 por turno— y el
-   marcador nunca llegaba a 100 por progresión: sólo se ganaba por rachas o
-   robando. Con 5 puntos y tres casillas el neto queda cómodamente
-   positivo. */
+   marcador no subía por progresión: sólo se ganaba por rachas o robando.
+   Con 5 puntos y tres casillas el neto queda cómodamente positivo.
+   El razonamiento no depende del objetivo: compara lo que un turno GANA
+   contra lo que el camino COBRA, y esas dos no cambiaron al bajar la meta
+   de 100 a 50. Lo único que cambió es cuántos turnos hacen falta. */
 export const PENALTY_POINTS = 6;
 
 /* Lo que cobra el bonus convertido por la maldición.

@@ -1245,10 +1245,10 @@ export default function App() {
   /* Llegar al objetivo termina la partida sola.
    *
    * Plantarse es una DECISIÓN: se elige entre guardar lo del turno o seguir
-   * arriesgando. Con el acumulado ya en 100 esa decisión no existe —seguir
-   * tirando no puede mejorar nada y sí puede quemar el turno—, así que
-   * pedir el botón era pedir un trámite. Con 95 y un 6 en el dado ya
-   * ganaste; el botón sólo servía para enterarte.
+   * arriesgando. Con el acumulado ya en el objetivo esa decisión no existe
+   * —seguir tirando no puede mejorar nada y sí puede quemar el turno—, así
+   * que pedir el botón era pedir un trámite. A un paso de la meta y con un 6
+   * en el dado ya ganaste; el botón sólo servía para enterarte.
    *
    * Se dispara el MISMO plantarse que el botón en vez de declarar el final
    * por afuera: plantarse revela las cartas puestas, cobra los robos y
@@ -1257,9 +1257,13 @@ export default function App() {
    *
    * El disparo espera a `rolling` en bajo, que es la señal de que el turno
    * terminó de resolverse. Antes de eso el acumulado todavía puede subir por
-   * el dado y bajar por la casilla: en una penitencia, el marcador toca 100
-   * un instante y vuelve a 94, y mirando ese instante se declararía un
-   * ganador que no ganó. */
+   * el dado y bajar por la casilla: en una penitencia, el marcador toca el
+   * objetivo un instante y vuelve a caer, y mirando ese instante se
+   * declararía un ganador que no ganó.
+   *
+   * Los números concretos salieron de estos dos comentarios a propósito:
+   * decían "100" y quedaron mintiendo el día que la meta bajó a 50. Un
+   * comentario con el valor escrito adentro envejece solo. */
   const cerrandoPorMeta = useRef(false);
   /* El espejo se escribe en un efecto y no durante el pintado: `plantarse`
      se arma de nuevo en cada vuelta, así que listarlo en las dependencias
