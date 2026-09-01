@@ -2027,6 +2027,24 @@ body {
  * la línea del peleador, que es donde están las cartas. Con un z-index acá,
  * el anillo quedaría encerrado en esta caja y el problema se repetiría una
  * capa más arriba. */
+/* ►► La pila: el dibujo arriba, las cartas del rival abajo. ◄◄
+ *
+ * Ocupa en la fila el lugar que antes ocupaba `.fighter-marco` solo, así que
+ * `.fighter` sigue viendo dos hijos en el mismo orden y ninguna de sus
+ * reglas —el `row-reverse` de la línea con cartas, el hueco, el centrado—
+ * necesitó tocarse.
+ *
+ * `width: min-content` y no `auto`: sin esto la pila se estira a lo que mida
+ * la fila de cartas, que con cinco reversos solapados puede pasar el ancho
+ * del retrato, y el gato dejaba de estar centrado sobre sus propias cartas. */
+.fighter-pila {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min-content;
+  flex: none;
+}
+
 .fighter-marco {
   position: relative;
   display: flex;
@@ -3435,15 +3453,44 @@ body {
  * Ya no hacen falta las cuatro reglas por lado ni sus versiones con flip:
  * el renglón la lleva sola a donde tenga que ir, se dé vuelta la pantalla o
  * no. Eran ocho declaraciones para resolver algo que el flujo hacía gratis. */
+/* ►► Debajo del dibujo, centrada bajo su dueño. ◄◄
+ *
+ * Estuvo a la derecha del marcador, en el renglón del puntaje, y la idea era
+ * buena: "cuántas cartas le quedan" y "cuánto lleva" son las dos mitades de
+ * cómo viene el otro, y juntas se leen de una. Lo que la sacó de ahí no fue
+ * la lectura sino el ancho — en la mesa de cuatro el renglón mide media
+ * pantalla, y esas cartas eran las que obligaban a dibujar a los rivales más
+ * chicos que al jugador. Bajándolas, los cuatro pueden medir lo mismo, que
+ * es lo que hace que la mesa parezca una mesa.
+ *
+ * El `margin-left` que la despegaba del último dígito ya no tiene sentido:
+ * no hay ningún número al lado. Lo reemplaza un `margin-top` que la despega
+ * del dibujo, que es lo que ahora tiene encima. */
 .rival-hand {
   display: flex;
   align-items: center;
   flex: none;
-  /* Despegada del número: pegada al último dígito se leía como parte de la
-     cifra. */
-  margin-left: clamp(0.8rem, 2.2vmin, 1.6rem);
   pointer-events: none;
   z-index: 6;
+}
+
+/* ►► Dos lugares posibles, y el CSS los distingue por el PADRE. ◄◄
+ *
+ * No hay una clase modificadora en `.rival-hand` porque no hace falta: el
+ * componente ya se monta en uno de los dos sitios, así que preguntar dónde
+ * está es preguntar quién lo contiene. Una clase sería el mismo dato escrito
+ * dos veces, y de los dos el que se olvida de actualizarse es siempre el
+ * segundo. */
+
+/* En el renglón del puntaje —mesas de dos y de tres— despegada del número:
+   pegada al último dígito se leía como parte de la cifra. */
+.score-row .rival-hand { margin-left: clamp(0.8rem, 2.2vmin, 1.6rem); }
+
+/* Debajo del dibujo —mesa de cuatro— centrada bajo su dueño y despegada del
+   gato, que es lo que ahora tiene encima. */
+.fighter-pila .rival-hand {
+  justify-content: center;
+  margin-top: clamp(0.4rem, 1.2vmin, 0.9rem);
 }
 
 .rival-card {
@@ -5530,19 +5577,26 @@ body {
  * es la de la mesa de cuatro, que ya está probada repartiendo dos por
  * renglón. Y como `--fighter-h` se redefine sobre la línea misma, el marco y
  * el marcador de los rivales lo siguen solos: no hay que tocar ni uno. */
+/* ►► La mesa de TRES no cambia. ◄◄
+ *
+ * Acá siguen las dos alturas —`--fighter-h` para vos, `--fighter-rival` más
+ * chica para los otros dos— y así se quedan. La igualación de tamaños se
+ * pidió sólo para la mesa de cuatro; las de dos y tres quedan como están.
+ *
+ * Vale la pena que quede escrito: `--fighter-rival` sobrevive ÚNICAMENTE
+ * por este bloque. La mesa de cuatro ya no lo usa. */
 .versus-screen.mesa-3 {
   /* Idéntico al de `.versus-screen`: es el punto entero de este bloque.
      `--fighter-h` es SIEMPRE la escala del jugador de esta pantalla y
-     `--fighter-rival` la de los demás. Los dos nombres valen igual acá y en
-     la mesa de cuatro; lo único que cambia entre las dos es a qué celdas se
-     les aplica cada uno. */
+     `--fighter-rival` la de los demás. */
   --fighter-h: max(7rem, min(19dvh, 34vw));
   --fighter-rival: max(6rem, min(15dvh, 17vw));
 
   /* El presupuesto de alto, con las dos filas contadas por separado.
-     El de arriba descuenta `2 × --fighter-h` porque las dos filas medían lo
-     mismo; acá ya no, así que si esto no se recalcula la mesa se lleva de
-     más el alto que la fila de abajo ganó — y se sale por el borde. */
+     El de `.versus-screen` descuenta `2 × --fighter-h` porque ahí las dos
+     filas miden lo mismo; acá no, así que si esto no se recalcula la mesa se
+     lleva de más el alto que la fila de abajo ganó — y se sale por el
+     borde. */
   --tabla-alto: calc(
     100dvh
     - 2 * var(--pad-v)
@@ -5560,8 +5614,7 @@ body {
 
 /* Los dos rivales, que comparten renglón. Se redefine la VARIABLE y no el
    `height`: así el marco y el marcador bajan con ella en vez de quedarse
-   dimensionados para una línea que ya no mide eso. Es la misma lección que
-   dejó escrita el bloque apaisado unas líneas más arriba. */
+   dimensionados para una línea que ya no mide eso. */
 .versus-screen.mesa-3 .fighter-linea.arriba {
   --fighter-h: var(--fighter-rival);
 }
@@ -5722,17 +5775,38 @@ body {
      * Se probó una variante más agresiva (26 + 9). Desborda el ancho de tu
      * media columna en 1280×800 y en 1024×768, que son dos portátiles muy
      * comunes. Ésta entra en las siete ventanas apaisadas medidas. */
-    --fighter-rival: max(4.4rem, min(10dvh, 12vw));
-    --fighter-h: max(8rem, min(24dvh, 30vw));
-    /* Las dos filas ya no miden lo mismo: la de abajo la estira tu línea.
-       Sin recalcular esto la mesa se lleva de más el alto que tu fila
-       acaba de ganar, y se sale por el borde. */
+    /* ►► Una sola altura, y para los cuatro. ◄◄
+     *
+     * Acá estaba el reparto desigual: vos a `30vw` y los tres rivales a
+     * `12vw`, o sea 2,4 veces. Lo que lo justificaba era el ancho — con las
+     * cartas del rival colgando a la derecha de su marcador, un rival a tu
+     * tamaño no entraba en su media columna. Esas cartas ahora van debajo
+     * del dibujo, así que el ancho que las obligaba a achicarse dejó de
+     * existir.
+     *
+     * ►► El valor sale del renglón y de la medición, no del gusto. ◄◄
+     *
+     * Son DOS por fila, así que el término en `vw` es la mitad del que puede
+     * permitirse el duelo. El de `dvh` es el que manda en las ventanas
+     * anchas, que es donde se juega de a cuatro, y se eligió midiendo el
+     * barrido completo en 1366×768:
+     *
+     *   22dvh → los cuatro a 121, tablero 291×242
+     *   24dvh → los cuatro a 132, tablero 254×212   ← éste
+     *   26dvh → los cuatro a 143, tablero 217×181
+     *
+     * 24 es el punto exacto en que CADA UNO de los cuatro mide lo que antes
+     * medía sólo el tuyo (132×159). O sea: nadie se achicó, se agrandaron
+     * los otros tres. Más arriba el tablero empieza a pagarlo de más — a 26
+     * ya pierde casi la mitad del que tenía, y ahí lo que se gana en los
+     * gatos se pierde en poder seguir la ficha. */
+    --fighter-h: max(7rem, min(24dvh, 17vw));
+    /* Las dos filas vuelven a medir lo mismo. */
     --tabla-alto: calc(
       100dvh
       - 2 * var(--pad-v)
       - 3 * var(--gap-v)
-      - var(--fighter-rival)
-      - var(--fighter-h)
+      - 2 * var(--fighter-h)
       - 2 * var(--table-gap)
       - var(--f2-gap)
       - var(--ctrl-gap)
@@ -5740,16 +5814,6 @@ body {
       - var(--canto)
       - env(safe-area-inset-bottom)
     );
-  }
-
-  /* Los tres rivales. Se selecciona por CELDA y no por "no ser vos": la
-     celda de abajo a la derecha es siempre la del jugador de esta pantalla
-     —lo garantiza `celdaDe`— y una regla por celda no se entera nunca de
-     quién se sentó ahí. */
-  .versus-screen.mesa-4 .fighter-linea.celda-1,
-  .versus-screen.mesa-4 .fighter-linea.celda-2,
-  .versus-screen.mesa-4 .fighter-linea.celda-3 {
-    --fighter-h: var(--fighter-rival);
   }
 
 

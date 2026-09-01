@@ -29,6 +29,16 @@ export default function Fighter({
   ganador,
   perdedor,
   mostrarMano,
+  /* Dónde van las cartas del rival: debajo de su dibujo, o en el renglón de
+     su puntaje como siempre estuvieron.
+   *
+   * Es una decisión de la MESA, no del peleador, y por eso baja como dato en
+   * vez de calcularse acá con un `total`: lo único que cambia entre las dos
+   * mesas es esto, y el que sabe cuántos hay sentados es el que dibuja la
+   * pantalla. Sólo la mesa de cuatro las baja — ahí el renglón mide media
+   * pantalla y esas cartas eran las que obligaban a achicar a los rivales.
+   * Con dos y con tres el renglón sobra, así que se quedan donde estaban. */
+  manoAbajo = false,
   impacto,
   defensas,
   /* La clave del festejo de vuelta, o 0 si no hay ninguno. Es un número que
@@ -244,6 +254,21 @@ export default function Fighter({
        * peleador, que es donde están las cartas contra las que tiene que
        * ganar. Puesta acá, el anillo quedaría encerrado en esta caja y
        * volveríamos al mismo problema una capa más arriba. */}
+      {/* ►► La pila: el dibujo, y debajo las cartas del rival. ◄◄
+       *
+       * Es una caja NUEVA en vez de meter las cartas dentro de
+       * `.fighter-marco`, y la razón es el anillo de emojis: cuelga del marco
+       * con `inset: 0`, o sea que su centro ES el centro de esa caja. Con las
+       * cartas adentro, el marco crecería hacia abajo y el anillo se abriría
+       * descentrado respecto del gato — que es el único punto de referencia
+       * que tiene el dedo que lo abrió.
+       *
+       * Así el marco conserva exactamente la medida del retrato y la pila
+       * ocupa el lugar que el marco ocupaba antes en la fila. `.fighter`
+       * sigue teniendo dos hijos en el mismo orden, así que todo lo que ya
+       * decidía la fila —el `row-reverse` de la línea con cartas, el hueco,
+       * el centrado— sigue valiendo sin tocar una regla. */}
+      <div className="fighter-pila">
       <div className="fighter-marco">
         <EmojiAnillo abierto={anilloAbierto} onElegir={elegir} />
 
@@ -348,6 +373,17 @@ export default function Fighter({
       </div>
       </div>
 
+        {/* Las cartas del rival, DEBAJO de su dibujo — sólo en la mesa de
+            cuatro. Ahí el renglón del puntaje mide media pantalla, y estas
+            cartas peleándole ese ancho al marcador eran la razón por la que
+            los rivales había que dibujarlos más chicos que al jugador. Bajo
+            el gato no le sacan ancho a nadie —el dibujo ya define el ancho de
+            la pila— y por eso ahora los cuatro pueden medir lo mismo. */}
+        {mostrarMano && manoAbajo && (
+          <RivalHand cantidad={jugador.hand?.length ?? 0} lado={lado} />
+        )}
+      </div>
+
       <div className="fighter-readout">
         <div className="score-row">
           {/* Cuánto cambió, al lado del marcador y fundiéndose con él.
@@ -394,15 +430,12 @@ export default function Fighter({
             {score.shown}
           </div>
 
-          {/* Las cartas del rival, a la derecha de su puntaje y en el mismo
-              renglón — el mismo lugar que ocupan las tuyas respecto del
-              tuyo. Antes colgaban absolutas de una esquina del peleador:
-              quedaban a distinta altura en cada lado y sin relación visible
-              con el marcador, que es justamente el dato que completan.
-              Va DENTRO del renglón del puntaje y fuera de .fighter-frame:
-              ese recorta lo que se sale (overflow hidden) y ahí la mano
-              quedaba cortada por completo. */}
-          {mostrarMano && (
+          {/* Y en las mesas de dos y de tres se quedan donde siempre: a la
+              derecha del puntaje, en el mismo renglón. "Cuántas cartas le
+              quedan" y "cuánto lleva" son las dos mitades de cómo viene el
+              otro, y juntas se leen de una sola pasada. Ahí no hay problema
+              de ancho que resolver, así que no hay nada que mover. */}
+          {mostrarMano && !manoAbajo && (
             <RivalHand cantidad={jugador.hand?.length ?? 0} lado={lado} />
           )}
         </div>

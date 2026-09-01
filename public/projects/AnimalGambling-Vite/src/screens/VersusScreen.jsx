@@ -306,6 +306,10 @@ export default function VersusScreen({
             activo={playing && i === active}
             /* Sólo la del rival: la propia ya está en su abanico. */
             mostrarMano={online && i !== miLado}
+            /* Y sólo en la mesa de cuatro van debajo del dibujo. La decisión
+               se toma acá porque es de la MESA: el peleador no sabe —ni tiene
+               por qué— cuántos hay sentados. */
+            manoAbajo={total > 3}
             impacto={impacto?.lado === i ? impacto.tipo : null}
             defensas={ladoMano === i ? defensas : null}
             festejo={festejos[i] ?? 0}
