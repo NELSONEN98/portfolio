@@ -22,6 +22,8 @@ export default function SelectScreen({
   elegidos,      // un casillero por asiento — null donde falta
   miLado = 0,    // cuál de esos casilleros es el tuyo
   esperando,     // true mientras se espera que los demás elijan
+  yaEligieron = 0, // cuántos de la mesa ya tienen gato, según la sala
+  enLaMesa = 0,    // cuántos asientos ocupados hay
   onPick,
   onPlay,
   onBack,
@@ -109,8 +111,15 @@ export default function SelectScreen({
 
       <div className="select-footer">
         <button className="btn-nav" onClick={onBack}>‹ Volver al menú</button>
+        {/* El contador sólo aparece cuando la sala lo pudo decir: antes del
+            primer sondeo `enLaMesa` es 0, y "Esperando a la mesa… 0/0" es
+            peor que no decir nada. */}
         <button className="btn-nav" disabled={!listo || esperando} onClick={onPlay}>
-          {esperando ? "Esperando a la mesa…" : "Jugar"}
+          {esperando
+            ? enLaMesa > 0
+              ? `Esperando a la mesa… ${yaEligieron}/${enLaMesa}`
+              : "Esperando a la mesa…"
+            : "Jugar"}
         </button>
       </div>
     </section>

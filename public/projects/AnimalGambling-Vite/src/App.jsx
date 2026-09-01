@@ -810,8 +810,22 @@ export default function App() {
     }
 
     /* Tu pick sale de TU casillero. Era `elegidos[0]`, que con cuatro
-       mandaba al servidor el gato del anfitrión desde cualquier asiento. */
-    const mio = elegidos[sala.miLado];
+       mandaba al servidor el gato del anfitrión desde cualquier asiento.
+     *
+     * ►► Y sale de `elegidosVista`, la MISMA lista que mira el botón. ◄◄
+     *
+     * Esto leía `elegidos` —el estado crudo— mientras la pantalla habilita
+     * el botón con `elegidosVista`, que cae al gato que el servidor YA tiene
+     * en tu asiento. Mientras las dos coinciden no se nota; cuando no, el
+     * botón queda habilitado y este `return` lo apaga en silencio: se puede
+     * hacer clic para siempre sin que pase nada.
+     *
+     * Y no es un caso raro: recargar la página en la selección borra
+     * `elegidos` —es estado de React— pero NO el `catId` del asiento, que
+     * vive en la sala. El código de sala está en `sessionStorage`, así que
+     * recargar te devuelve a la misma mesa, con el gato puesto y el botón
+     * muerto. Una decisión, una sola fuente. */
+    const mio = elegidosVista[sala.miLado];
     if (mio == null) return;
 
     /* La mesa no se abre hasta que eligieron TODOS: si no, el primero
@@ -887,6 +901,26 @@ export default function App() {
         i === sala.miLado ? (elegidos[i] ?? idxDeCat(p?.catId)) : idxDeCat(p?.catId)
       )
     : elegidos;
+
+  /* ►► A cuántos estás esperando. ◄◄
+   *
+   * La partida no arranca hasta que eligieron TODOS los sentados, y hasta
+   * ahora eso se contaba solo: la pantalla decía "Esperando a la mesa…" y
+   * nada más, para siempre. Con dos jugadores no molesta —esperás a UNO, y
+   * si no llega ya sabés quién falta—, pero con cuatro estás esperando a
+   * tres desconocidos sin saber si falta uno o los tres. Uno que entra y se
+   * va a hacer un café cuelga la mesa entera y nadie se entera de nada.
+   *
+   * No arregla la causa —eso sería arrancar sin él, y quién queda afuera es
+   * una decisión de reglas, no de pantalla— pero convierte un cuelgue mudo
+   * en una espera que se entiende. Que es la diferencia entre "está roto" y
+   * "falta gente".
+   *
+   * Se cuenta del `catId` de la sala y no de `elegidosVista`, que para tu
+   * propio asiento cae a tu pick local: ese es el número que mira el portón,
+   * y el cartel tiene que decir lo mismo que la condición que lo destraba. */
+  const yaEligieron = mesaOnline?.filter((p) => p?.catId).length ?? 0;
+  const enLaMesa = mesaOnline?.length ?? 0;
 
   /* La sala se cerró debajo tuyo: el anfitrión canceló o venció el TTL.
      Se vuelve al menú en vez de dejar el vestíbulo contando jugadores de
@@ -1491,6 +1525,8 @@ export default function App() {
             elegidos={elegidosVista}
             miLado={sala.miLado}
             esperando={esperandoRival}
+            yaEligieron={yaEligieron}
+            enLaMesa={enLaMesa}
             onPick={elegir}
             onPlay={jugar}
             onBack={volverAlMenu}
