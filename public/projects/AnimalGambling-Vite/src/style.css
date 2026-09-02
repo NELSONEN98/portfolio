@@ -5677,11 +5677,71 @@ body {
  * cuando las cartas del rival bajaron debajo del dibujo: la línea ya no
  * tiene que alojar gato + marcador + cartas en fila, sólo gato + marcador.
  *
- * Medido con la mesa de cuatro armada de verdad: a 390×844 el gato pasa de
- * 48×57 a 84×101, que es CLAVADO lo que mide en la mesa de dos, y el tablero
- * no pierde un píxel —en vertical lo limita el ancho, no el alto—. En 360,
- * 768 y en una ventana baja de 1200×500 tampoco desborda. */
+ * ►► Y el ancho lo reparten TRES cosas, no dos. ◄◄
+ *
+ * Primero puse `30vw`, que igualaba clavado a la mesa de dos, y estaba mal:
+ * en tu propia línea —y sólo en la tuya— además del gato y del marcador está
+ * tu abanico de cartas. La cuenta a 390px daba abanico 55 + marcador 61 +
+ * gato 84 + dos huecos de 12 = 224 contra 180 de línea. No entraba por 44px,
+ * y como el marcador es el único que el flex puede encoger, se lo aplastaba
+ * a 10px y la cifra se derramaba encima del gato.
+ *
+ * ►► Y con el marcador en 50 es peor, que es el caso normal. ◄◄
+ *
+ * Un "0" mide 61px; un "50" casi el doble. Cualquier ajuste probado con una
+ * sola cifra miente: la meta son 50 puntos, así que dos dígitos es lo que se
+ * ve la mayor parte de la partida.
+ *
+ * ►► Achicar las tres cosas no alcanzaba. Había que sacar una de la fila. ◄◄
+ *
+ * Se probó recortando por los tres lados a la vez —gato a 24vw, marcador a
+ * 0.45, hueco más chico— y con el marcador en "50" SEGUÍA pisando el dibujo
+ * en los seis teléfonos medidos. La cuenta no cierra por poco: cierra por
+ * mucho. En media pantalla no entran abanico + marcador de dos cifras + un
+ * gato del tamaño del duelo, y ninguna combinación de números lo arregla.
+ *
+ * Por eso tu abanico BAJA, igual que bajaron las cartas del rival: tu línea
+ * se apila —arriba el gato con su marcador, abajo tus cartas— y entonces el
+ * ancho que hay que repartir es sólo gato + marcador. Con eso el gato puede
+ * volver a 30vw, que es clavado lo que mide en la mesa de dos.
+ *
+ * Y el alto que se lleva la pila no le sale al tablero: en vertical el
+ * tablero está limitado por el ANCHO, así que ahí sobraba alto. Es el mismo
+ * hallazgo que dejó agrandar los gatos sin costo unas líneas más arriba. */
 .versus-screen.mesa-4 { --fighter-h: max(6rem, min(19dvh, 30vw)); }
+
+/* El marcador, proporcionalmente más chico que en las otras mesas. No es
+   capricho: acá el renglón mide media pantalla. La mesa de dos hace
+   exactamente esto mismo y por el mismo motivo. */
+.versus-screen.mesa-4 .fighter {
+  --marcador: calc(var(--fighter-h) * 0.45);
+  gap: clamp(0.5rem, 1.6vw, 1.4rem);
+}
+
+/* Tu línea apilada: el peleador arriba, tu abanico abajo. Sólo la TUYA —los
+   rivales no tienen abanico— y sólo acá, porque en apaisado la fila entera
+   sí entra y ahí se deshace (ver la consulta apaisada más abajo). */
+.versus-screen.mesa-4 .fighter-linea.con-cartas {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ►► Y hay que desarmarle los márgenes al abanico. ◄◄
+ *
+ * `.hand-fan` lleva `margin-right: auto` de nacimiento: en una FILA eso es lo
+ * que lo empuja contra su borde y abre el hueco que separa lo que tocás de lo
+ * que sólo mirás. En una COLUMNA el margen automático actúa sobre el eje
+ * transversal —el horizontal— y le gana al `align-items: center` del padre:
+ * el abanico se iba 51px a la izquierda del gato y quedaba colgando en el
+ * aire, medido.
+ *
+ * Con los dos en `auto` el sobrante se reparte parejo y las cartas caen
+ * justo debajo de su dueño. */
+.versus-screen.mesa-4 .fighter-linea.con-cartas .hand-fan {
+  margin-left: auto;
+  margin-right: auto;
+}
 
 
 
@@ -5873,6 +5933,23 @@ body {
     );
   }
 
+  /* ►► Y acá tu línea vuelve a ser una fila. ◄◄
+   *
+   * Apilarla —el peleador arriba, tu abanico abajo— es la solución para media
+   * pantalla ANGOSTA, donde no entran las tres cosas en el renglón. En
+   * apaisado sí entran: está medido, limpio con el marcador en "50" en las
+   * siete ventanas. Y apilar acá gastaría alto, que es justo lo escaso de
+   * este lado — el alto es lo que le queda al tablero. */
+  .versus-screen.mesa-4 .fighter-linea.con-cartas {
+    flex-direction: row;
+    align-items: center;
+  }
+  /* Vuelta la fila, el margen automático vuelve a ser el que abre el hueco
+     entre tus cartas y el resto de la línea. */
+  .versus-screen.mesa-4 .fighter-linea.con-cartas .hand-fan {
+    margin-right: auto;
+    margin-left: clamp(0.8rem, 3vw, 2.4rem);
+  }
 
 }
 
