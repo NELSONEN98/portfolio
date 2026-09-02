@@ -65,12 +65,16 @@ export const TwoDiceIcon = () => (
    Es además el mismo signo que lleva el mazo de bonus sobre el fieltro: la
    casilla y el montón del que sale la carta dicen lo mismo.
 
-   ►► En `--glifo` y no en `--display`. ◄◄
-   Estaba en Bungee, que es la tipografía del juego, y a tamaño de casilla
-   el signo no se reconocía: Bungee cierra el ojo del "?" hasta volverlo una
+   ►► De vuelta en `--display`, por consistencia. ◄◄
+   Estuvo en `--glifo` —una grotesca en negrita— por una razón medida: a
+   tamaño de casilla Bungee cierra el ojo del "?" hasta volverlo casi una
    mancha, y separado del resto de una palabra no queda nada que ayude a
-   identificarlo. Una grotesca en negrita mantiene el gancho abierto y bien
-   despegado del punto. El porqué largo está en `--glifo`, en el CSS.
+   identificarlo.
+   Se vuelve a Bungee a pedido, para que los tres sitios donde aparece este
+   signo —la casilla, el mazo y el reverso de las cartas puestas— usen la
+   misma tipografía. Queda anotado el costo: éste es el más chico de los
+   tres, así que si alguno se vuelve ilegible es éste, y la salida sería
+   llevar los otros dos a `--glifo` en vez de traer éste a Bungee.
 
    Y va más grande: 18 sobre 24 dejaba casi un tercio del recuadro vacío
    arriba, altura que el signo puede usar sin tocar el borde de la casilla. */
@@ -81,8 +85,7 @@ export const QuestionIcon = () => (
       y="18.5"
       textAnchor="middle"
       fontSize="22"
-      fontFamily="var(--glifo)"
-      fontWeight="800"
+      fontFamily="var(--display)"
     >
       ?
     </text>

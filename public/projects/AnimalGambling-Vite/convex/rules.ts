@@ -730,35 +730,41 @@ export function startingHand(rand: () => number): Card[] {
   return mano;
 }
 
-/* La misma mano, para otro asiento.
+/* Una mano de arranque para un asiento, sorteada aparte de las demás.
  *
- * ►► Por qué el reparto es ESPEJADO. ◄◄
+ * ►► Acá vivía el reparto ESPEJADO, y esto es lo que lo reemplaza. ◄◄
  *
- * La mano de arranque es el único azar del juego que llega antes de la
- * primera decisión. Los dados los enfrentan los dos por igual y hay que
- * elegir cuándo plantarse; la carta del bonus depende de en qué casilla
- * caíste, o sea de hasta dónde empujaste la tirada. Eso es varianza que el
- * jugador se ganó. La mano inicial no: nadie tiró, nadie eligió.
+ * Durante un tiempo se sorteaba UNA sola mano y se copiaba a los cuatro. El
+ * motivo era bueno y estaba medido, así que conviene que quede escrito en vez
+ * de borrarse: la mano de arranque es el único azar del juego que llega antes
+ * de la primera decisión —los dados los enfrentan todos por igual, y la carta
+ * del bonus depende de hasta dónde empujaste la tirada, o sea que es varianza
+ * que el jugador se ganó—. La inicial no: nadie tiró, nadie eligió.
  *
  * Y no era poca. Medida en puntos duros —lo que efectivamente mueve el
- * marcador— una mano de arranque vale entre 0 y 14 sobre un objetivo de
- * 100, y sorteando por separado el 58% de las partidas empezaba con una
- * brecha de 6 puntos o más. Un 14% del objetivo regalado antes del primer
- * dado, y encima invisible, porque las manos están ocultas: el que la
- * recibía ni se enteraba.
+ * marcador— una mano vale entre 0 y 14, y sorteando por separado el 58% de
+ * las partidas empezaba con una brecha de 6 puntos o más. Sobre el objetivo
+ * de hoy, que son 50, esa brecha pesa el doble que cuando se midió.
  *
- * Sorteando UNA mano y copiándola se conservan las dos cosas que importan:
- * cada partida abre distinto —que es lo que se ganó al dejar la mano fija—
- * y adentro de la partida nadie arranca arriba.
+ * ►► Se vuelve al sorteo por separado a pedido, y el costo es ése. ◄◄
  *
- * Los uid se vuelven a estampar por asiento. Las cartas son las mismas, la
- * identidad no: hoy ninguna lista mezcla cartas de dos jugadores, pero
- * `uid` es la clave con la que se juega y se levanta una carta, y dos
- * jugadores con `punch-0` en la mano es una colisión esperando la primera
- * pantalla que los junte.
+ * Lo que se gana a cambio es que cada uno abra con algo distinto: con la mano
+ * copiada, los cuatro jugaban la misma apertura y las cartas dejaban de ser
+ * una carta tuya para ser un turno más. Es una decisión de juego, no un
+ * arreglo, y por eso el número queda anotado: si algún día las partidas se
+ * sienten decididas antes de empezar, éste es el lugar donde mirar.
+ *
+ * ►► Los uid siguen estampándose por asiento. ◄◄
+ *
+ * Eso no cambió y no puede cambiar: `uid` es la clave con la que se juega y
+ * se levanta una carta, y dos jugadores con `punch-0` en la mano son una
+ * colisión esperando a la primera pantalla que los junte. El sorteo es
+ * independiente; la numeración, no.
  */
-export function mirrorHand(mano: Card[], asiento: number): Card[] {
-  return mano.map((c, i) => makeCard(c.type, c.value, asiento * STARTING_CARDS + i));
+export function dealHand(rand: () => number, asiento: number): Card[] {
+  return startingHand(rand).map((c, i) =>
+    makeCard(c.type, c.value, asiento * STARTING_CARDS + i)
+  );
 }
 
 /* Lo que entrega una casilla de bonus.

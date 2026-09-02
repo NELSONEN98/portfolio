@@ -8,8 +8,7 @@ import {
   advance,
   passedStart,
   LAP_BONUS,
-  startingHand,
-  mirrorHand,
+  dealHand,
   randomBonusCard,
   resolveRoll,
   pasosDe,
@@ -65,12 +64,13 @@ export function newPlayer(char, hand = []) {
 
 /* La mesa entera, con UNA sola mano repartida y copiada a todos.
  *
- * El porqué del espejo está en `mirrorHand`, en las reglas. Acá interesa
- * que el sorteo ocurra una vez y afuera del bucle: es el modo local, así
- * que este es el equivalente de lo que `createRoom` hace en el servidor. */
+ * El porqué de sortear por separado está en `dealHand`, en las reglas —
+ * incluido el costo, que quedó anotado ahí. Acá interesa que el sorteo pase
+ * UNA vez por asiento y adentro del bucle: es el modo local, así que este es
+ * el equivalente de lo que hacen `createRoom` y `joinRoom` en el servidor,
+ * donde cada uno saca la suya al sentarse. */
 export function newPlayers(chars) {
-  const mano = startingHand(rand);
-  return chars.map((char, asiento) => newPlayer(char, mirrorHand(mano, asiento)));
+  return chars.map((char, asiento) => newPlayer(char, dealHand(rand, asiento)));
 }
 
 /* Los efectos que la interfaz tiene que mostrar salen como una lista de

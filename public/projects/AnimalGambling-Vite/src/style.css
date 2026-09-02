@@ -3390,6 +3390,25 @@ body {
    agarrada: con los 0.18s de arriba la carta iba siempre un instante atrás
    del dedo, y ese retraso se lee como que no responde. Al soltar vuelve la
    transición y la carta regresa sola a su lugar en el abanico. */
+/* ►► La que se está mirando se despega del abanico. ◄◄
+ *
+ * Subirle la `z-index` la pone encima —eso ya estaba y está medido: 13 contra
+ * 0 y 2 de sus vecinas— pero encima no se LEE. En un abanico las cartas se
+ * solapan casi a la mitad, así que la de arriba se ve apenas más entera que
+ * las otras y no hay forma de saber cuál se está mirando.
+ *
+ * Despegada sí se lee. Sube, crece un poco y se separa de las vecinas, que
+ * es lo que convierte "está encima" en "es ésta".
+ *
+ * El `rotate` se repite en el `transform` a propósito: la carta ya venía
+ * girada por su posición en el abanico, y una propiedad `transform` reemplaza
+ * a la anterior entera — sin repetirlo, la carta se enderezaría de golpe al
+ * mirarla y el abanico se rompería justo en el gesto que lo destaca. */
+.hand-fan .card.mirando {
+  transform: rotate(var(--giro, 0deg)) translateY(-14%) scale(1.06);
+  box-shadow: 0 0 0 2px var(--neon-amber), 0 1rem 2rem rgba(0, 0, 0, 0.6);
+}
+
 .hand-fan .card.arrastrando {
   transform: translate(var(--drag-x, 0), var(--drag-y, 0)) rotate(0deg) scale(1.06);
   transition: none;
@@ -3931,11 +3950,13 @@ body {
   display: grid;
   place-items: center;
 
-  /* El mismo signo que la casilla, así que la misma tipografía: son la
-     casilla y el montón del que sale la carta diciendo lo mismo, y con dos
-     fuentes distintas dejarían de parecer lo mismo. */
-  font-family: var(--glifo);
-  font-weight: 800;
+  /* El mismo signo que la casilla y que el reverso de las cartas puestas,
+     así que la misma tipografía en los tres. Son el mismo dato —hay una
+     carta y no sabés cuál— dicho en tres sitios, y con fuentes distintas
+     dejaban de parecer lo mismo.
+     Sin `font-weight`: Bungee tiene un solo grosor, así que pedirle 800 lo
+     único que consigue es que el navegador lo engorde a la fuerza. */
+  font-family: var(--display);
   /* Relativo al ancho de la carta, no fijo: el mazo se achica en pantallas
      bajas y el signo tiene que achicarse con él. */
   font-size: calc(var(--carta-mesa-w) * 0.36);

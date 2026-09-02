@@ -389,6 +389,7 @@ export default function Hand({ cartas = [], habilitada, onPlay, lado = 1 }) {
                 c.uid === marcaSalida ? "lanzada" : "",
                 tirando ? "arrastrando" : "",
                 tirando && arrastre.listo ? "listo" : "",
+                mirando ? "mirando" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
