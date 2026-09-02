@@ -5761,6 +5761,40 @@ body {
  * `width: min(100%, …)`, así que la mesa se agranda hasta tocar su columna y
  * ahí se queda sola. */
 .versus-screen.mesa-4 {
+  /* ►► Los huecos alrededor de la mesa, a la mitad — arriba y abajo. ◄◄
+   *
+   * Medido a 500x765 antes de tocar nada: 16px entre la fila de arriba y el
+   * tablero, y 34 entre el tablero y la de abajo. La asimetría no era casual,
+   * porque esos huecos los arman TRES cosas y no la misma cantidad de cada
+   * lado:
+   *
+   *   arriba = row-gap (7) + margen del tablero (9)            = 16
+   *   abajo  = row-gap (7) + margen del tablero (9) + f2 (18)  = 34
+   *
+   * `--f2-gap` es el `margin-top` que se pone la fila de abajo, y sólo actúa
+   * de ese lado — de ahí que el hueco de abajo midiera el doble.
+   *
+   * Se parten los tres por la mitad. Los tres son variables, así que basta
+   * redefinirlas acá y todo lo que cuelga de ellas las sigue.
+   *
+   * ►► Y se redefinen ACÁ, en el bloque de `--tabla-alto`, a propósito. ◄◄
+   *
+   * El presupuesto del tablero DESCUENTA los tres. Redefinidas en el mismo
+   * elemento, el cálculo las lee ya reducidas y el tablero se queda con lo
+   * que de verdad sobra. Puestas en otro lado, el presupuesto seguiría
+   * restando huecos que en pantalla ya miden la mitad y la mesa quedaría más
+   * chica de lo que puede ser, por una resta que dejó de ser verdad.
+   *
+   * ►► Ojo con la cuenta: el hueco y el tamaño del tablero están atados. ◄◄
+   *
+   * Cada píxel que se le saca a un hueco se lo queda la mesa, que crece y
+   * empuja de vuelta. Por eso partir las entradas al medio NO deja los huecos
+   * a la mitad de una: hay que medir el resultado. Estos valores salieron de
+   * medir, no de dividir. */
+  --gap-v: clamp(1.5px, 0.45vh, 6px);
+  --table-gap: clamp(2px, 0.6vh, 9px);
+  --f2-gap: clamp(2px, 1.2vh, 13px);
+
   --tabla-alto: calc(
     100dvh
     - 2 * var(--pad-v)
