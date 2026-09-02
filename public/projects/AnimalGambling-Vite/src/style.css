@@ -5907,30 +5907,29 @@ body {
   justify-content: center;
 }
 
-/* ►► Las cartas, corridas hacia los botones. ◄◄
+/* ►► Tus cartas, contra el borde derecho — debajo de tu gato. ◄◄
  *
- * Centradas debajo del gato quedaban tapándolo a medias y empujando la
- * lectura de la línea hacia el borde. Contra el lado interno caen en el
- * hueco que hay entre tu personaje y los botones de tirar y plantarse — o
- * sea, al alcance del mismo pulgar que las va a jugar, y sin pelearle el
- * lugar al dibujo.
+ * Pasaron por tres sitios y vale la pena que quede el recorrido, porque cada
+ * mudanza la pidió una razón distinta:
  *
- * Interno es la IZQUIERDA siempre: `celdaDe` sienta al jugador de esta
- * pantalla en la celda de abajo a la derecha, pase quien pase, así que el
- * centro de la pantalla le queda de ese lado. No hay caso simétrico que
- * atender.
+ *  · contra el lado interno, para caer cerca de los botones;
+ *  · centradas bajo el peleador, cuando la línea se ajustó a su contenido y
+ *    ahí "centrado" pasó a significar "entre el marcador y el dibujo";
+ *  · y ahora contra el borde derecho, o sea justo debajo del gato — que es el
+ *    lado donde el gato está.
  *
  * ►► Y se dice con márgenes, no con `align-self`. ◄◄
  *
- * `.hand-fan` lleva `margin-right: auto` de nacimiento. En una FILA eso es
- * lo que lo empuja contra su borde; en una COLUMNA el margen automático
- * actúa sobre el eje horizontal y le gana a cualquier `align-self` del hijo
- * o `align-items` del padre — probado: con `align-self: center` el abanico
+ * `.hand-fan` lleva `margin-right: auto` de nacimiento. En una FILA eso es lo
+ * que lo empuja contra su borde; en una COLUMNA el margen automático actúa
+ * sobre el eje horizontal y le gana a cualquier `align-self` del hijo o
+ * `align-items` del padre — probado: con `align-self: center` el abanico
  * igual se iba 51px a un costado. Lo único que manda acá son los márgenes,
- * así que acá se escriben los dos. */
+ * así que acá se escriben los dos: el `auto` a la izquierda es el que empuja
+ * y el cero a la derecha es el que apoya. */
 .versus-screen.mesa-4 .fighter-linea.con-cartas .hand-fan {
   margin-left: auto;
-  margin-right: auto;
+  margin-right: 0;
 }
 
 /* ►► La línea se ajusta a su contenido, y eso arregla tres cosas de una. ◄◄

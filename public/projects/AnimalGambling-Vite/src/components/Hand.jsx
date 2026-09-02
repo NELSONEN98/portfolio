@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CARD, CARD_LABEL, PUNCH_POINTS, cardHint } from "../../convex/rules";
 import { CardArt } from "./icons";
 import { GESTO, ms } from "../theme";
@@ -435,16 +436,41 @@ export default function Hand({ cartas = [], habilitada, onPlay, lado = 1 }) {
         })}
       </div>
 
-      {preview && (
-        <div className="card-preview" aria-hidden="true">
-          <div className={`card ${preview.type}`}>
-            <CardFace carta={preview} />
-          </div>
-          {/* Qué hace, mientras la tenés apretada. Es el único momento en
-              que se puede leer sin abrir las reglas y sin soltar el turno. */}
-          <p className="card-preview-hint">{cardHint(preview)}</p>
-        </div>
-      )}
+      {/* ►► La ampliación se dibuja en el BODY, no acá dentro. ◄◄
+       *
+       * `.card-preview` es `position: fixed; inset: 0`, o sea "toda la
+       * pantalla". Y no lo era: salía del tamaño de la línea del peleador,
+       * 145px de alto. Medido — la carta se dibujaba a 103 de alto en vez de
+       * 161, y como lleva `overflow: hidden` el dibujo quedaba cortado. Eso
+       * es lo que se veía como "la carta sale cortada".
+       *
+       * La causa no está en ninguna regla de la vista previa: `.fighter-linea`
+       * lleva `transform: translateY(var(--ui-shift))`, y un ancestro con
+       * `transform` pasa a ser el bloque contenedor de sus descendientes
+       * `fixed`. O sea que `fixed` dejaba de significar "la pantalla" y pasaba
+       * a significar "esta línea". Es una regla de CSS que no se ve leyendo el
+       * componente que la sufre, y por eso conviene que quede escrita acá.
+       *
+       * El portal la saca del árbol y la cuelga del `body`, donde no hay
+       * ningún `transform` encima: recién ahí `fixed` vuelve a ser la
+       * pantalla. Bajarle el `transform` a la línea habría sido la otra
+       * salida, pero ese desplazamiento es lo que sube la interfaz entera —
+       * no se puede sacar para arreglar una ampliación.
+       *
+       * React sigue tratándolo como hijo para el estado y los eventos: lo
+       * único que cambia es dónde termina el nodo. */}
+      {preview &&
+        createPortal(
+          <div className="card-preview" aria-hidden="true">
+            <div className={`card ${preview.type}`}>
+              <CardFace carta={preview} />
+            </div>
+            {/* Qué hace, mientras la tenés apretada. Es el único momento en
+                que se puede leer sin abrir las reglas y sin soltar el turno. */}
+            <p className="card-preview-hint">{cardHint(preview)}</p>
+          </div>,
+          document.body
+        )}
     </>
   );
 }
