@@ -413,6 +413,21 @@ export default function Hand({ cartas = [], habilitada, onPlay, lado = 1 }) {
               /* El click nativo se ignora: la jugada la decide el gesto,
                  que distingue el toque del mantener y del arrastre. */
               onClick={(e) => e.preventDefault()}
+              /* ►► Y el menú del navegador tampoco. ◄◄
+               *
+               * Sostener una carta es NUESTRO gesto: es lo que abre la vista
+               * previa. Pero el dibujo de la carta es un `<img>`, y sostener
+               * una imagen es también el gesto con el que el navegador ofrece
+               * guardarla o descargarla. Ganaba el navegador: aparecía su
+               * menú, el `pointerup` nunca llegaba y la vista previa no se
+               * veía nunca en el teléfono.
+               *
+               * Se cancela acá, en el botón, y no sólo con CSS en la imagen:
+               * `-webkit-touch-callout` lo entiende Safari, pero en Chrome de
+               * Android el menú sale igual y lo único que lo detiene es
+               * cancelar el evento. Las dos cosas están puestas — cada una
+               * cubre el navegador que la otra no. */
+              onContextMenu={(e) => e.preventDefault()}
             >
               <CardFace carta={c} />
             </button>

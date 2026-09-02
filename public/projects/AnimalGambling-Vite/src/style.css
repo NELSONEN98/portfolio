@@ -4273,6 +4273,23 @@ body {
   object-fit: contain;
   user-select: none;
   -webkit-user-select: none;
+  /* ►► Sostener una carta es NUESTRO gesto, no el del navegador. ◄◄
+   *
+   * Mantener apretada una carta abre la vista previa. Pero esto es un `<img>`,
+   * y mantener apretada una imagen es también el gesto con el que el
+   * navegador ofrece guardarla: ganaba él, salía su menú, el `pointerup`
+   * nunca llegaba y la vista previa no aparecía nunca en el teléfono.
+   *
+   * `-webkit-touch-callout` apaga ese menú en Safari. Chrome de Android lo
+   * ignora, y ahí lo detiene el `onContextMenu` del botón — las dos cosas
+   * están puestas porque cada una cubre lo que la otra no.
+   *
+   * Y `pointer-events: none` es la tercera capa, la que de verdad cierra el
+   * caso: el dibujo deja de recibir eventos y todo toque le llega al botón
+   * que lo contiene, que es el que sabe distinguir el toque del mantener y
+   * del arrastre. Una imagen que no recibe eventos no tiene menú que ofrecer. */
+  -webkit-touch-callout: none;
+  pointer-events: none;
 }
 
 /* ►► La caja se hace 5:6 cuando lleva dibujo. ◄◄
@@ -5794,6 +5811,26 @@ body {
   --gap-v: clamp(1.5px, 0.45vh, 6px);
   --table-gap: clamp(2px, 0.6vh, 9px);
   --f2-gap: clamp(2px, 1.2vh, 13px);
+
+  /* ►► Toda la interfaz sube; los botones se quedan. ◄◄
+   *
+   * Tus cartas cuelgan por debajo de tu línea y quedaban rozando los botones
+   * de tirar y plantarse. Lo que hacía falta era aire entre esas dos cosas, y
+   * `--ctrl-gap` es la única perilla que lo da sin mover nada más — porque
+   * hace las dos mitades del trabajo a la vez:
+   *
+   *  · `.versus-controls` la usa de `margin-top`, así que los botones bajan;
+   *  · `--tabla-alto` la DESCUENTA, así que el tablero cede ese alto y todo
+   *    lo que está encima sube.
+   *
+   * Las dos se cancelan en la posición final de los botones —siguen apoyados
+   * abajo— y lo que queda es el hueco nuevo entre ellos y las cartas. Escrito
+   * como un solo aumento en vez de un margen acá y una resta allá, que es la
+   * clase de par que se desincroniza el día que alguien toca uno solo.
+   *
+   * En `rem` y no en `vh` a propósito: es aire para el pulgar, y el pulgar no
+   * cambia de tamaño con la pantalla. */
+  --ctrl-gap: calc(clamp(6px, 1.5vh, 22px) + 2rem);
 
   --tabla-alto: calc(
     100dvh
