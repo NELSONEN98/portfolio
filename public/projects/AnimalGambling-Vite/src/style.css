@@ -3486,11 +3486,37 @@ body {
    pegada al último dígito se leía como parte de la cifra. */
 .score-row .rival-hand { margin-left: clamp(0.8rem, 2.2vmin, 1.6rem); }
 
-/* Debajo del dibujo —mesa de cuatro— centrada bajo su dueño y despegada del
-   gato, que es lo que ahora tiene encima. */
+/* Debajo del dibujo —mesa de cuatro, fila de abajo— centrada bajo su dueño y
+   despegada del gato, que es lo que ahora tiene encima. */
 .fighter-pila .rival-hand {
   justify-content: center;
   margin-top: clamp(0.4rem, 1.2vmin, 0.9rem);
+}
+
+/* ►► Debajo del PUNTAJE — la fila de arriba de la mesa de cuatro. ◄◄
+ *
+ * Es hija directa del `.fighter-readout`, no del renglón del puntaje: cuelga
+ * de la columna de números, debajo del acumulado. Ahí no le pelea el ancho a
+ * nadie y, sobre todo, no estira la fila — el marcador es más bajo que el
+ * dibujo que tiene al lado, así que estas cartas caen en un hueco que ya
+ * existía. Ese es todo el truco: el alto que dejan de gastar se lo lleva el
+ * tablero.
+ *
+ * ►► Y se alinean con su columna, no al centro. ◄◄
+ *
+ * El `.fighter-readout` ya se alinea hacia el dibujo —a la izquierda en la
+ * columna izquierda, a la derecha en la derecha— porque el número tiene que
+ * caer contra su dueño. Pero `text-align` no mueve un contenedor flex, así
+ * que las cartas se quedaban en el borde contrario al del número que vienen
+ * a completar. Los márgenes automáticos lo dicen en el idioma que el flex sí
+ * escucha. */
+.fighter-readout > .rival-hand {
+  margin-top: clamp(0.2rem, 0.8vmin, 0.6rem);
+  margin-right: auto;
+}
+.versus-screen.mesa-4 .fighter-linea.celda-2 .fighter-readout > .rival-hand {
+  margin-right: 0;
+  margin-left: auto;
 }
 
 .rival-card {
@@ -5710,6 +5736,46 @@ body {
  * hallazgo que dejó agrandar los gatos sin costo unas líneas más arriba. */
 .versus-screen.mesa-4 { --fighter-h: max(6rem, min(19dvh, 30vw)); }
 
+/* ►► El tablero se lleva el sobrante, y son 3dvh — no más. ◄◄
+ *
+ * El presupuesto general descuenta los huecos de la vista apilada, y para la
+ * mesa de cuatro descuenta de más: medido, quedaban entre 76 y 122px de alto
+ * sin usar según la ventana, repartidos en cinco huecos. El más gordo, entre
+ * el tablero y la fila de abajo.
+ *
+ * ►► Y no vino de bajar las cartas. ◄◄
+ *
+ * La idea era que mover las cartas de los rivales de arriba liberaría alto.
+ * No lo libera: `.fighter-linea` lleva `height: var(--fighter-h)`, así que la
+ * fila mide lo mismo tenga las cartas donde las tenga — medido, 145px antes y
+ * 145px después. Las cartas bajo el dibujo se salían de esa caja sin
+ * estirarla. Queda escrito porque es exactamente la clase de suposición que
+ * uno da por buena: el alto de esa fila no lo decide su contenido.
+ *
+ * El sobrante estaba en el presupuesto, no en las cartas, y se lo lleva el
+ * tablero. `3dvh` sale del barrido: a 5 ya se pisan la mesa y la fila de
+ * abajo en tres de las cuatro ventanas probadas. Con 3 el tablero crece un 8%
+ * y todo sigue entrando.
+ *
+ * Crecer de alto es seguro porque el ancho tiene tope: `.pool-table` usa
+ * `width: min(100%, …)`, así que la mesa se agranda hasta tocar su columna y
+ * ahí se queda sola. */
+.versus-screen.mesa-4 {
+  --tabla-alto: calc(
+    100dvh
+    - 2 * var(--pad-v)
+    - 3 * var(--gap-v)
+    - 2 * var(--fighter-h)
+    - 2 * var(--table-gap)
+    - var(--f2-gap)
+    - var(--ctrl-gap)
+    - var(--lado)
+    - var(--canto)
+    - env(safe-area-inset-bottom)
+    + 3dvh
+  );
+}
+
 /* El marcador, proporcionalmente más chico que en las otras mesas. No es
    capricho: acá el renglón mide media pantalla. La mesa de dos hace
    exactamente esto mismo y por el mismo motivo. */
@@ -5718,28 +5784,81 @@ body {
   gap: clamp(0.5rem, 1.6vw, 1.4rem);
 }
 
-/* Tu línea apilada: el peleador arriba, tu abanico abajo. Sólo la TUYA —los
-   rivales no tienen abanico— y sólo acá, porque en apaisado la fila entera
-   sí entra y ahí se deshace (ver la consulta apaisada más abajo). */
+/* ►► Los números de los RIVALES, un 30% más chicos que los tuyos. ◄◄
+ *
+ * Los cuatro gatos miden lo mismo —eso se pidió y así queda— pero los cuatro
+ * marcadores no tienen por qué. El tuyo es el que mirás en cada tirada para
+ * decidir si seguís o te plantás; los otros tres son referencia, se consultan
+ * de reojo. Al mismo tamaño los cuatro números compiten entre sí y el propio
+ * deja de destacarse, que era justo lo que la diferencia de tamaño de los
+ * gatos hacía antes y que ya no está.
+ *
+ * ►► Se redefine la VARIABLE, no el `font-size`. ◄◄
+ *
+ * De `--marcador` cuelgan el número grande y la cifra del cambio (`.f-hit`,
+ * su 56%). Tocando sólo el `font-size` del marcador, el `+6` de un golpe se
+ * quedaba dimensionado para un número que ya no existe. Es la misma lección
+ * que dejó escrita la altura del peleador más arriba: cuando algo cuelga de
+ * una variable, se mueve la variable.
+ *
+ * El acumulado va aparte porque cuelga de `--fighter-h` y no de `--marcador`
+ * — está atado al ALTO de la línea, no al marcador— así que su 30% hay que
+ * dárselo a mano. El 0.168 es el suyo de siempre.
+ *
+ * `:not(.con-cartas)` es "los que no son vos": tu línea es la única que lleva
+ * abanico. Se dice por lo que la distingue de verdad y no por número de
+ * celda, que cambia con quién esté mirando. */
+.versus-screen.mesa-4 .fighter-linea:not(.con-cartas) .fighter {
+  --marcador: calc(var(--fighter-h) * 0.45 * 0.7);
+}
+.versus-screen.mesa-4 .fighter-linea:not(.con-cartas) .f-current {
+  font-size: calc(var(--fighter-h) * 0.168 * 0.7);
+}
+
+/* ►► Tu línea apilada: el peleador ARRIBA y tus cartas DEBAJO. ◄◄
+ *
+ * `column-reverse` y no `column`, y la diferencia no es cosmética: el
+ * abanico se monta antes que el peleador en el DOM —así lo arma
+ * `VersusScreen`, y ese orden es el que hace que el reparto pueda medir a
+ * dónde tirar las cartas— así que en una columna normal caía ARRIBA del
+ * gato. Invirtiendo la dirección se dibuja debajo sin tocar el orden del
+ * marcado ni el reparto.
+ *
+ * Y no le cuesta alto a nadie: el abanico ya estaba en esta columna, sólo
+ * que del otro lado. Lo que cambia es cuál de los dos queda arriba.
+ *
+ * Sólo la línea TUYA —los rivales no tienen abanico— y sólo acá, porque en
+ * apaisado la fila entera sí entra y ahí se deshace (ver la consulta
+ * apaisada más abajo). */
 .versus-screen.mesa-4 .fighter-linea.con-cartas {
-  flex-direction: column;
+  flex-direction: column-reverse;
   align-items: center;
   justify-content: center;
 }
 
-/* ►► Y hay que desarmarle los márgenes al abanico. ◄◄
+/* ►► Las cartas, corridas hacia los botones. ◄◄
  *
- * `.hand-fan` lleva `margin-right: auto` de nacimiento: en una FILA eso es lo
- * que lo empuja contra su borde y abre el hueco que separa lo que tocás de lo
- * que sólo mirás. En una COLUMNA el margen automático actúa sobre el eje
- * transversal —el horizontal— y le gana al `align-items: center` del padre:
- * el abanico se iba 51px a la izquierda del gato y quedaba colgando en el
- * aire, medido.
+ * Centradas debajo del gato quedaban tapándolo a medias y empujando la
+ * lectura de la línea hacia el borde. Contra el lado interno caen en el
+ * hueco que hay entre tu personaje y los botones de tirar y plantarse — o
+ * sea, al alcance del mismo pulgar que las va a jugar, y sin pelearle el
+ * lugar al dibujo.
  *
- * Con los dos en `auto` el sobrante se reparte parejo y las cartas caen
- * justo debajo de su dueño. */
+ * Interno es la IZQUIERDA siempre: `celdaDe` sienta al jugador de esta
+ * pantalla en la celda de abajo a la derecha, pase quien pase, así que el
+ * centro de la pantalla le queda de ese lado. No hay caso simétrico que
+ * atender.
+ *
+ * ►► Y se dice con márgenes, no con `align-self`. ◄◄
+ *
+ * `.hand-fan` lleva `margin-right: auto` de nacimiento. En una FILA eso es
+ * lo que lo empuja contra su borde; en una COLUMNA el margen automático
+ * actúa sobre el eje horizontal y le gana a cualquier `align-self` del hijo
+ * o `align-items` del padre — probado: con `align-self: center` el abanico
+ * igual se iba 51px a un costado. Lo único que manda acá son los márgenes,
+ * así que acá se escriben los dos. */
 .versus-screen.mesa-4 .fighter-linea.con-cartas .hand-fan {
-  margin-left: auto;
+  margin-left: 0;
   margin-right: auto;
 }
 

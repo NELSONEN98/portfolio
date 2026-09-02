@@ -306,10 +306,26 @@ export default function VersusScreen({
             activo={playing && i === active}
             /* Sólo la del rival: la propia ya está en su abanico. */
             mostrarMano={online && i !== miLado}
-            /* Y sólo en la mesa de cuatro van debajo del dibujo. La decisión
-               se toma acá porque es de la MESA: el peleador no sabe —ni tiene
-               por qué— cuántos hay sentados. */
-            manoAbajo={total > 3}
+            /* ►► Dónde caen sus cartas, decidido acá. ◄◄
+             *
+             * El peleador no sabe —ni tiene por qué— cuántos hay sentados ni
+             * en qué fila cayó; esta pantalla sabe las dos cosas.
+             *
+             * Con dos y con tres, donde siempre: al lado del puntaje. Ahí el
+             * renglón mide la pantalla entera y sobra lugar.
+             *
+             * Con cuatro depende de la FILA, y no por gusto sino por dónde
+             * aprieta el zapato en cada una:
+             *
+             *  · Arriba aprieta el ALTO. Las cartas bajo el dibujo estiran la
+             *    fila y empujan la mesa hacia abajo; puestas bajo el puntaje
+             *    entran en el hueco que la columna de números ya dejaba, la
+             *    fila no crece, y ese alto se lo queda el tablero.
+             *  · Abajo aprieta el ANCHO. Esa fila la comparte con tu línea,
+             *    que ya lleva tu abanico, así que las cartas van bajo el
+             *    dibujo — al lado del puntaje le robarían el ancho que hizo
+             *    falta para que los cuatro gatos midan lo mismo. */
+            manoEn={total > 3 ? (arriba ? "marcador" : "pila") : "renglon"}
             impacto={impacto?.lado === i ? impacto.tipo : null}
             defensas={ladoMano === i ? defensas : null}
             festejo={festejos[i] ?? 0}

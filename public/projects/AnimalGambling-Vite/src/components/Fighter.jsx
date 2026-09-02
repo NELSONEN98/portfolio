@@ -29,16 +29,25 @@ export default function Fighter({
   ganador,
   perdedor,
   mostrarMano,
-  /* Dónde van las cartas del rival: debajo de su dibujo, o en el renglón de
-     su puntaje como siempre estuvieron.
+  /* ►► Dónde van las cartas del rival. Tres sitios posibles. ◄◄
    *
-   * Es una decisión de la MESA, no del peleador, y por eso baja como dato en
-   * vez de calcularse acá con un `total`: lo único que cambia entre las dos
-   * mesas es esto, y el que sabe cuántos hay sentados es el que dibuja la
-   * pantalla. Sólo la mesa de cuatro las baja — ahí el renglón mide media
-   * pantalla y esas cartas eran las que obligaban a achicar a los rivales.
-   * Con dos y con tres el renglón sobra, así que se quedan donde estaban. */
-  manoAbajo = false,
+   *  · `renglon`  — a la derecha del puntaje, en su mismo renglón. Es donde
+   *    estuvieron siempre y donde siguen en las mesas de dos y de tres: ahí
+   *    el renglón mide la pantalla entera y sobra lugar.
+   *  · `pila`     — debajo del dibujo. En la mesa de cuatro el renglón mide
+   *    media pantalla, y estas cartas peleándole ese ancho al marcador eran
+   *    lo que obligaba a dibujar a los rivales más chicos que al jugador.
+   *  · `marcador` — debajo del puntaje, en la columna de los números. Es
+   *    para la FILA DE ARRIBA de la mesa de cuatro, y la razón es el alto:
+   *    bajo el dibujo, las cartas estiran la fila y empujan la mesa hacia
+   *    abajo; en la columna de los números caben en el hueco que el
+   *    marcador ya deja libre, así que la fila no crece y ese alto se lo
+   *    queda el tablero.
+   *
+   * Es una decisión de la MESA y no del peleador —depende de cuántos hay
+   * sentados y de en qué fila cayó éste—, así que baja como dato: el que
+   * sabe las dos cosas es el que dibuja la pantalla. */
+  manoEn = "renglon",
   impacto,
   defensas,
   /* La clave del festejo de vuelta, o 0 si no hay ninguno. Es un número que
@@ -379,7 +388,7 @@ export default function Fighter({
             los rivales había que dibujarlos más chicos que al jugador. Bajo
             el gato no le sacan ancho a nadie —el dibujo ya define el ancho de
             la pila— y por eso ahora los cuatro pueden medir lo mismo. */}
-        {mostrarMano && manoAbajo && (
+        {mostrarMano && manoEn === "pila" && (
           <RivalHand cantidad={jugador.hand?.length ?? 0} lado={lado} />
         )}
       </div>
@@ -435,13 +444,28 @@ export default function Fighter({
               quedan" y "cuánto lleva" son las dos mitades de cómo viene el
               otro, y juntas se leen de una sola pasada. Ahí no hay problema
               de ancho que resolver, así que no hay nada que mover. */}
-          {mostrarMano && !manoAbajo && (
+          {mostrarMano && manoEn === "renglon" && (
             <RivalHand cantidad={jugador.hand?.length ?? 0} lado={lado} />
           )}
         </div>
         <div className="f-current">
           +<span className={current.bajando ? "down" : ""}>{current.shown}</span>
         </div>
+
+        {/* ►► Debajo de los DOS números, no entre ellos. ◄◄
+         *
+         * La fila de arriba de la mesa de cuatro usa este sitio y no la pila:
+         * bajo el dibujo las cartas estiran la fila; acá entran en el hueco
+         * que la columna de números ya dejaba libre.
+         *
+         * Y va después del acumulado y no antes: puesto en el medio, las
+         * cartas partían el marcador del `+4` — dos cifras que se leen juntas
+         * porque son la misma frase ("va 50 y lleva 4 en esta tirada"). Lo
+         * que se mete entre dos datos que se leen de una pasada los convierte
+         * en dos lecturas. */}
+        {mostrarMano && manoEn === "marcador" && (
+          <RivalHand cantidad={jugador.hand?.length ?? 0} lado={lado} />
+        )}
 
         {/* Las defensas que tenés guardadas. Van acá y no en el abanico
             porque no se juegan: se gastan solas cuando te atacan, así que
