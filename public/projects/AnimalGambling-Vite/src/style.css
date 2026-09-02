@@ -5858,8 +5858,64 @@ body {
  * igual se iba 51px a un costado. Lo único que manda acá son los márgenes,
  * así que acá se escriben los dos. */
 .versus-screen.mesa-4 .fighter-linea.con-cartas .hand-fan {
-  margin-left: 0;
+  margin-left: auto;
   margin-right: auto;
+}
+
+/* ►► La línea se ajusta a su contenido, y eso arregla tres cosas de una. ◄◄
+ *
+ * `.fighter-linea` lleva `width: 100%` para ocupar su celda entera. En el
+ * duelo eso es lo correcto —la línea cruza la pantalla y el hueco del medio
+ * es lo que separa tus cartas del personaje— pero en la mesa de cuatro la
+ * celda mide media pantalla y el peleador no la llena: se quedaba apoyado en
+ * un extremo con el sobrante del otro lado.
+ *
+ * Medido a 500px de ancho: la celda de arriba a la derecha iba de 253 a 485 y
+ * su peleador terminaba en 429. Cincuenta y seis píxeles de aire entre el
+ * gato y el borde, mientras el de abajo a la derecha llegaba a 470. Los dos
+ * de la derecha, a distinta distancia del canto.
+ *
+ * Con la línea ajustada al contenido, `justify-self` la apoya contra el borde
+ * que le toca —`start` a la izquierda, `end` a la derecha— y el peleador la
+ * llena. Los cuatro gatos quedan a la misma distancia de su canto.
+ *
+ * Y de yapa arregla el abanico: centrado dentro de una línea que ahora mide
+ * lo mismo que el peleador, su centro ES el centro del peleador, o sea que
+ * cae justo entre el marcador y el dibujo. Antes se centraba en una caja más
+ * ancha que el peleador y por eso quedaba corrido a la izquierda.
+ *
+ * `max-width: 100%` es la red: si algún día el contenido pasara el ancho de
+ * la celda, la línea se topa ahí en vez de salirse. */
+.versus-screen.mesa-4 .fighter-linea {
+  width: max-content;
+  max-width: 100%;
+}
+
+/* ►► Y la fila de abajo se apoya contra el TOPE de su línea. ◄◄
+ *
+ * Los dos peleadores de abajo estaban a distinta altura —28px— y la causa no
+ * era ninguno de los dos: era que cada uno se centraba con un contenido de
+ * alto distinto dentro de la misma línea de 145px.
+ *
+ * Medido: la línea del rival centra un peleador de 151 (gato 125 + sus cartas
+ * debajo) y lo deja en 514. La tuya centra peleador + abanico, 197 en total,
+ * y como no entra se desborda 26px hacia arriba: tu gato terminaba en 486. Es
+ * el defecto clásico de centrar: dos cosas centradas coinciden sólo si miden
+ * lo mismo, y acá no medían lo mismo ni tenían por qué.
+ *
+ * Apoyados contra el tope, la altura del contenido deja de importar: los dos
+ * gatos empiezan donde empieza su línea, y lo que sobra —tus cartas, las de
+ * él— cuelga hacia abajo sin mover el dibujo.
+ *
+ * En la tuya es `justify-content: flex-end` y no `flex-start` porque la
+ * columna está invertida: con `column-reverse` el eje corre de abajo hacia
+ * arriba, así que el extremo "final" es el de arriba. Es la clase de línea
+ * que se lee al revés de lo que hace. */
+.versus-screen.mesa-4 .fighter-linea.abajo:not(.con-cartas) {
+  align-items: flex-start;
+}
+.versus-screen.mesa-4 .fighter-linea.con-cartas {
+  justify-content: flex-end;
 }
 
 
