@@ -1680,7 +1680,11 @@ body {
      Un 20% más grande (0.14 → 0.168). Es lo que se mira entre tirada y
      tirada para decidir si conviene plantarse, así que se estaba leyendo
      mucho más de lo que su tamaño daba a entender. */
-  font-size: calc(var(--fighter-h) * 0.168);
+  /* Un 30% mas grande (0.168 -> 0.2184). Es el numero que se mira entre
+     tirada y tirada para decidir si conviene plantarse, asi que se estaba
+     leyendo mucho mas de lo que su tamano daba a entender — es el mismo
+     motivo que ya lo habia subido de 0.14 a 0.168 una vez. */
+  font-size: calc(var(--fighter-h) * 0.2184);
   color: var(--bone-dim);
   letter-spacing: 0.1em;
 }
@@ -5592,7 +5596,8 @@ body {
      marcador en vez de 80%. Tocando la variable, los dos se mueven juntos. */
   .mesa-2 .fighter { --marcador: calc(var(--fighter-h) * 0.4); }
   /* El mismo 20% que arriba: 0.09 → 0.108. */
-  .mesa-2 .f-current { font-size: calc(var(--fighter-h) * 0.108); }
+  /* El mismo 30% que el general: 0.108 -> 0.1404. */
+  .mesa-2 .f-current { font-size: calc(var(--fighter-h) * 0.1404); }
 }
 
 /* ============================================
@@ -6006,7 +6011,9 @@ body {
   --marcador: calc(var(--fighter-h) * 0.45 * 0.7);
 }
 .versus-screen.mesa-4 .fighter-linea:not(.con-cartas) .f-current {
-  font-size: calc(var(--fighter-h) * 0.168 * 0.7);
+  /* Sobre la base NUEVA, para que el 30% valga tambien aca y el 0.7 siga
+     significando lo mismo: siete decimos del acumulado propio. */
+  font-size: calc(var(--fighter-h) * 0.2184 * 0.7);
 }
 
 /* ►► Tu línea apilada: el peleador ARRIBA y tus cartas DEBAJO. ◄◄
