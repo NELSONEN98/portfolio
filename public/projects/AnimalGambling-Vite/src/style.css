@@ -3843,8 +3843,48 @@ body {
   bottom: calc(100% / var(--board-rows) + clamp(0.9rem, 2.6vmin, 1.8rem));
   width: var(--carta-mesa-w);
   aspect-ratio: 5 / 7;
-  pointer-events: none;
   z-index: 5;
+
+  /* ►► Ahora es un botón, y hay que devolverle la cara que tenía. ◄◄
+   *
+   * Dejó de ser un `div` decorativo cuando se le pudo mantener apretado para
+   * ver qué es. Un botón trae fondo, borde, relleno y tipografía propios del
+   * navegador: sin esto, el mazo aparecía dentro de un recuadro gris.
+   *
+   * Y `pointer-events` pasa de `none` a `auto` por lo mismo. Estaba en `none`
+   * cuando no hacía nada — un adorno que no debe robarle los toques a la mesa
+   * que tiene debajo. Ahora sí hace algo. */
+  pointer-events: auto;
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.bonus-deck:focus-visible {
+  outline: 2px solid var(--neon-amber);
+  outline-offset: 4px;
+  border-radius: 0.5rem;
+}
+
+/* ►► Y por encima del lienzo del dado mientras éste esté agarrable. ◄◄
+ *
+ * El lienzo cubre el fieltro entero en `z-index: 12` y recupera los eventos
+ * cuando el dado se puede agarrar (`.tirable`). En esa ventana se comía el
+ * toque sobre el mazo, igual que se lo comía sobre las cartas puestas.
+ *
+ * La condición se dice con `:has()` sobre el fieltro, y por eso es exacta y
+ * no aproximada: el mazo sube SÓLO mientras el lienzo esté agarrando toques,
+ * que es justo cuando el dado está quieto esperando que lo tiren. Cuando
+ * rueda —que es cuando hay un resultado que leer— el lienzo suelta los
+ * eventos, esta regla deja de valer y el dado vuelve a estar arriba de todo.
+ *
+ * Es el mismo criterio que ya usa la fila de cartas jugadas: gana el que en
+ * ese momento hay que poder leer o tocar. */
+.pool-felt:has(.dice-arena-3d.tirable) .bonus-deck {
+  z-index: 14;
 }
 
 .bonus-deck-card {
@@ -4088,6 +4128,30 @@ body {
   border-radius: 0.5rem;
   background: rgba(5, 17, 10, 0.92);
   box-shadow: 0 0 0 1px rgba(232, 225, 204, 0.22), 0 1rem 2rem rgba(0, 0, 0, 0.6);
+}
+
+/* ►► El reverso del mazo, ampliado. ◄◄
+ *
+ * Reusa `.card` para heredar la forma, el tamaño de la ampliación y la
+ * sombra: lo único que cambia es que no lleva cara, porque el mazo está boca
+ * abajo. Los colores son los del propio mazo —el azul y su trama cruzada— así
+ * que lo que se agranda se reconoce como la misma cosa que se tocó.
+ *
+ * El signo sale del ancho de la carta, igual que en el reverso de las cartas
+ * puestas, y por el mismo motivo: un tamaño suelto no sabe qué tan grande es
+ * la carta que lo contiene. */
+.card-preview .card.bonus-mazo {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-family: var(--display);
+  font-size: calc(var(--card-w) * 0.95);
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.92);
+  background-color: var(--c-blue);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 6px);
 }
 
 .card-preview .card {
