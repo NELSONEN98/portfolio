@@ -5546,6 +5546,34 @@ body {
 .versus-screen.mesa-4 .fighter-linea.celda-3 { justify-self: start; }
 .versus-screen.mesa-4 .fighter-linea.celda-4 { grid-area: c4; justify-self: end; }
 
+/* ►► La columna DERECHA se dibuja en espejo. ◄◄
+ *
+ * La mesa de cuatro son dos columnas, y hasta acá las cuatro celdas se leían
+ * igual —dibujo y después números— salvo la tuya, que ya venía espejada por
+ * ser la línea con cartas. El resultado era que arriba a la derecha el gato
+ * quedaba apretado contra el centro de la pantalla y su marcador colgando
+ * hacia el borde, o sea al revés que el de abajo justo debajo suyo.
+ *
+ * Espejada, cada columna apoya sus gatos contra SU borde y manda los números
+ * al centro:
+ *
+ *     PERSONAJE│PUNTAJE  ·······  PUNTAJE│PERSONAJE
+ *     PERSONAJE│PUNTAJE  ·······  PUNTAJE│PERSONAJE
+ *
+ * Las dos filas quedan iguales entre sí, que es lo que importa: la posición
+ * de cada dato es la misma se mire la de arriba o la de abajo. Sólo hace
+ * falta nombrar la celda 2 — la 4 ya lo hace sola por ser la tuya.
+ *
+ * Y el texto del marcador se alinea a la derecha, contra el dibujo que ahora
+ * tiene de ese lado. Sin esto la cifra se iba al extremo opuesto del renglón
+ * y quedaba flotando lejos de su dueño. */
+.versus-screen.mesa-4 .fighter-linea.celda-2 .fighter {
+  flex-direction: row-reverse;
+}
+.versus-screen.mesa-4 .fighter-linea.celda-2 .fighter-readout {
+  text-align: right;
+}
+
 /* ►► En la mesa de tres, TU línea es la de 1v1. Sin asteriscos. ◄◄
  *
  * Acá había un `width: auto` que encogía la línea de abajo a lo que midiera
@@ -5629,7 +5657,31 @@ body {
  * tablet vertical. No entra ni con la mano vacía.
  *
  * En apaisado sí entra, y ahí abajo está la regla que lo aprovecha. */
-.versus-screen.mesa-4 { --fighter-h: max(6rem, min(15dvh, 17vw)); }
+/* ►► En vertical y en ventanas bajas: el MISMO gato que en la mesa de dos. ◄◄
+ *
+ * Acá decía `min(15dvh, 17vw)` y era donde la mesa de cuatro se veía
+ * chiquita de verdad: en un teléfono el gato medía 48 de alto contra los 101
+ * del duelo — menos de la mitad. En apaisado nunca fue el problema (ahí la
+ * de cuatro es la más grande de las tres), pero cualquier ventana angosta o
+ * baja caía en esta regla.
+ *
+ * ►► Los dos términos se movieron por razones distintas. ◄◄
+ *
+ * El `dvh` sube de 15 a 19, que es exactamente el del duelo, y se puede
+ * porque la mesa de DOS también se dibuja en dos filas: el presupuesto de
+ * alto es el mismo, así que no había nada que ahorrar. Era un número
+ * conservador de más.
+ *
+ * El `vw` sube de 17 a 30 — casi el doble. Ese sí estaba puesto pensando
+ * "son dos por fila, les toca la mitad del ancho", y dejó de ser cierto
+ * cuando las cartas del rival bajaron debajo del dibujo: la línea ya no
+ * tiene que alojar gato + marcador + cartas en fila, sólo gato + marcador.
+ *
+ * Medido con la mesa de cuatro armada de verdad: a 390×844 el gato pasa de
+ * 48×57 a 84×101, que es CLAVADO lo que mide en la mesa de dos, y el tablero
+ * no pierde un píxel —en vertical lo limita el ancho, no el alto—. En 360,
+ * 768 y en una ventana baja de 1200×500 tampoco desborda. */
+.versus-screen.mesa-4 { --fighter-h: max(6rem, min(19dvh, 30vw)); }
 
 
 
@@ -5792,15 +5844,20 @@ body {
      * barrido completo en 1366×768:
      *
      *   22dvh → los cuatro a 121, tablero 291×242
-     *   24dvh → los cuatro a 132, tablero 254×212   ← éste
-     *   26dvh → los cuatro a 143, tablero 217×181
+     *   24dvh → los cuatro a 132, tablero 254×212
+     *   26dvh → los cuatro a 143, tablero 217×181   ← éste
+     *   28dvh → los cuatro a 154, tablero 180×150
      *
-     * 24 es el punto exacto en que CADA UNO de los cuatro mide lo que antes
-     * medía sólo el tuyo (132×159). O sea: nadie se achicó, se agrandaron
-     * los otros tres. Más arriba el tablero empieza a pagarlo de más — a 26
-     * ya pierde casi la mitad del que tenía, y ahí lo que se gana en los
-     * gatos se pierde en poder seguir la ficha. */
-    --fighter-h: max(7rem, min(24dvh, 17vw));
+     * 24 era el punto en que cada uno alcanzaba lo que antes medía sólo el
+     * tuyo. 26 va un escalón más allá a pedido: en 1366×768 deja a los
+     * cuatro en 143 contra los 100 del duelo y los 105 de la mesa de tres,
+     * o sea un 43% más grandes que en la de dos.
+     *
+     * ►► Y acá se para. ◄◄
+     * A 28 el tablero baja a 180×150 y la ficha deja de poder seguirse: ahí
+     * lo que se gana mirando gatos se pierde jugando. El tablero ES el
+     * juego, y este es el último escalón en que sigue siendo legible. */
+    --fighter-h: max(7rem, min(26dvh, 17vw));
     /* Las dos filas vuelven a medir lo mismo. */
     --tabla-alto: calc(
       100dvh
