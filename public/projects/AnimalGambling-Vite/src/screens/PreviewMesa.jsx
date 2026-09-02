@@ -55,13 +55,27 @@ export default function PreviewMesa({ inicial = 4 }) {
      mirando el mismo tablero. */
   const board = useMemo(() => makeBoard(Math.random), []);
 
-  const players = useMemo(() => {
-    const base = newPlayers(ROSTER.slice(0, cuantos));
-    return base.map((p) => ({ ...p, score: puntaje, current: puntaje ? 4 : 0 }));
-  }, [cuantos, puntaje]);
-
   /* Mi asiento no puede quedar fuera de la mesa al bajar de cuatro a dos. */
   const lado = Math.min(miLado, cuantos - 1);
+
+  /* Cuántas cartas hay puestas sobre el fieltro. Es una perilla más: acá no
+     hay motor, así que "retirar" sólo las saca de la mesa — alcanza para
+     comprobar que el toque llega, que es lo que se viene a mirar. */
+  const [enMesa, setEnMesa] = useState(2);
+
+  const players = useMemo(() => {
+    const base = newPlayers(ROSTER.slice(0, cuantos));
+    return base.map((p, i) => ({
+      ...p,
+      score: puntaje,
+      current: puntaje ? 4 : 0,
+      /* Sólo las tuyas: las de la mesa salen de TU mano, así que son cartas
+         de verdad con su `uid` y no objetos inventados que se les parezcan. */
+      pendingCards: i === lado ? p.hand.slice(0, enMesa) : [],
+    }));
+  }, [cuantos, puntaje, lado, enMesa]);
+
+
 
   /* Los golpes que pide `VersusScreen` para calcular la etapa de daño: la
      cuenta es golpes/2, así que se multiplica por dos para pedir la etapa
@@ -131,6 +145,7 @@ export default function PreviewMesa({ inicial = 4 }) {
           sentido={A_LA_DERECHA}
           golpes={golpes}
           emotes={{}}
+          onTakeBackCard={() => setEnMesa((n) => Math.max(0, n - 1))}
         />
       </div>
 

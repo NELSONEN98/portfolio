@@ -4518,6 +4518,27 @@ body {
 /* Con varias en fila, el ancho de una sola no entra: el fieltro tiene que
    seguir mostrando el dado y el tablero. Se achican por tramos en vez de
    solaparse, porque solapadas volvíamos al problema de no poder contarlas. */
+/* ►► Y por encima del dado, pero SÓLO mientras se puedan levantar. ◄◄
+ *
+ * El lienzo del dado cubre el fieltro entero en `z-index: 12` —los cubos
+ * ruedan por toda la mesa— y en tu turno recupera los eventos para que se lo
+ * pueda agarrar y arrojar con la mano. El efecto colateral no se ve leyendo
+ * ninguno de los dos archivos: el toque sobre una carta puesta se lo comía el
+ * lienzo. Medido — `elementFromPoint` en el centro de la carta devolvía
+ * `canvas.dice-canvas`, no la carta. Por eso no se podían retirar tocándolas.
+ *
+ * Se sube la fila por encima del lienzo, y `:has()` es lo que hace que la
+ * regla sea exacta en vez de aproximada: sólo cuando hay una carta retirable.
+ * Y retirable es `puedeActuar && !revelada`, o sea que nunca es verdad
+ * mientras el dado rueda — así que la carta le gana al dado justo en el
+ * instante en que el dado está quieto y no hay ningún resultado que tapar.
+ *
+ * Es el mismo criterio que puso el lienzo arriba: gana el que en ese momento
+ * hay que poder leer o tocar. */
+.played-cards:has(.played-card.retirable) {
+  z-index: 14;
+}
+
 .played-cards[data-n="3"] { --pc-ancho: clamp(3.4rem, 8.4vmin, 5.2rem); }
 .played-cards[data-n="4"] { --pc-ancho: clamp(2.9rem, 7.2vmin, 4.5rem); }
 .played-cards[data-n="5"] { --pc-ancho: clamp(2.5rem, 6.2vmin, 3.9rem); }
@@ -4595,7 +4616,24 @@ body {
    veían; con la fila se cuentan solas. */
 
 .pc-back {
-  font-size: clamp(0.9rem, 2.4vmin, 1.4rem);
+  /* ►► El signo ocupa la carta, no una esquina de ella. ◄◄
+   *
+   * Estaba en `clamp(0.9rem, 2.4vmin, 1.4rem)`: un tamaño suelto, sin
+   * relación con la carta que lo contiene, y en la mesa quedaba como una
+   * marquita perdida en el medio de un rectángulo rojo. Lo que esa carta
+   * tiene que decir desde el otro lado del fieltro es una sola cosa —hay algo
+   * puesto y todavía no se sabe qué— y para eso el signo ES la carta.
+   *
+   * Ahora sale del ancho de la carta, así que sigue a los cuatro tamaños que
+   * `--pc-ancho` toma según cuántas haya puestas: con cinco en fila las
+   * cartas se achican y el signo se achica con ellas, sin ningún tramo nuevo
+   * que mantener.
+   *
+   * `line-height: 1` es lo que hace que el número sea el que se ve: sin él la
+   * caja de texto suma su propio aire arriba y abajo y el signo termina más
+   * chico que lo pedido para que la caja entre. */
+  font-size: calc(var(--pc-ancho) * 0.95);
+  line-height: 1;
   color: var(--c-gold);
   background: repeating-linear-gradient(
     45deg,
@@ -8129,10 +8167,20 @@ body {
   outline: 2px solid var(--neon-amber);
   outline-offset: 3px;
 }
-/* La flecha aparece recién al pasar por encima: fija sobre cada carta
-   ensuciaría la fila, que es lo que hay que poder contar de un vistazo. */
+/* ►► La flecha aparece al pasar por encima... en un mouse. ◄◄
+ *
+ * Fija sobre cada carta ensucia la fila, que es lo que hay que poder contar
+ * de un vistazo, y por eso con puntero fino sale sólo al acercarse.
+ *
+ * Pero en un teléfono NO HAY hover, y ahí esa misma regla dejaba la pista
+ * invisible para siempre: la carta se podía retirar tocándola desde el primer
+ * día y no había forma de enterarse. Una posibilidad que no se ve no existe.
+ *
+ * `@media (hover: none)` —abajo— la deja puesta en los aparatos que no pueden
+ * mostrarla de otro modo. No es "mostrarla en pantallas chicas": es mostrarla
+ * donde el gesto que la revelaba no existe. */
 .played-card.retirable::after {
-  content: "B6";
+  content: "↺";
   position: absolute;
   top: -0.7rem;
   right: -0.7rem;
@@ -8154,6 +8202,16 @@ body {
 .played-card.retirable:focus-visible::after {
   opacity: 1;
   transform: scale(1);
+}
+
+/* Sin hover, la pista va puesta. Un poco más chica y menos opaca que la que
+   sale al acercar el mouse: tiene que decir "esto se puede levantar" sin
+   competir con las cartas que hay que contar. */
+@media (hover: none) {
+  .played-card.retirable::after {
+    opacity: 0.85;
+    transform: scale(0.85);
+  }
 }
 
 /* ============================================

@@ -373,6 +373,11 @@ export default function Hand({ cartas = [], habilitada, onPlay, lado = 1 }) {
              cuando te atacan, y jugarla sería tirarla. */
           const jugable = habilitada;
           const tirando = arrastre?.uid === c.uid;
+          /* La que está ampliada también sube. Sostener una carta la levanta y
+             la agranda, y en un abanico las de la derecha se dibujan encima:
+             sin esto, la que el jugador está mirando quedaba tapada a medias
+             por sus vecinas justo mientras la miraba. */
+          const mirando = preview?.uid === c.uid;
           return (
             <button
               key={c.uid}
@@ -394,9 +399,10 @@ export default function Hand({ cartas = [], habilitada, onPlay, lado = 1 }) {
                    declararan en este objeto, React las volvería a aplicar en
                    cada pintado y borraría lo que acabara de escribir la
                    mano. */
-                /* La que se arrastra va por encima de las demás, o se
-                   metería por debajo de las que tiene al lado. */
-                zIndex: tirando ? cartas.length + 10 : i,
+                /* La que se arrastra —o la que se está mirando ampliada— va
+                   por encima de las demás, o se metería por debajo de las que
+                   tiene al lado. El resto conserva el orden del abanico. */
+                zIndex: tirando || mirando ? cartas.length + 10 : i,
               }}
               /* Lleva la misma explicación que la vista previa: ésa es
                  aria-hidden —es una ampliación de este botón, no contenido
