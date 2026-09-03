@@ -2698,8 +2698,8 @@ body {
   /* ►► El paño VIVE. Cuatro fotos, no una. ◄◄
    *
    * Estaba quemado en un solo archivo (`board3.png`, 2,6MB) y ahora son
-   * cuatro cuadros de una animación real, encogidos y pasados a WebP: 144KB
-   * los cuatro juntos, MENOS que la imagen única que reemplazan. El origen
+   * cuatro cuadros de una animación real, pasados a WebP: 504KB los cuatro
+   * juntos, menos de un cuarto de la imagen única que reemplazan. El origen
    * era una exportación de diez fotogramas a 1920×1080 sin comprimir —15MB—
    * pero comparados byte a byte sólo hay CUATRO dibujos distintos: los
    * fotogramas 1/2, 4/5 y 7/8 son copias exactas de sus vecinos. Los
@@ -2707,13 +2707,23 @@ body {
    * `public/`, así que no viajan al juego publicado— para poder volver a
    * exportarlos el día de mañana con otro recorte o calidad.
    *
+   * ►► Y tres de los cuatro no son las fotos tal cual llegaron. ◄◄
+   *
+   * La diferencia real entre un cuadro y el siguiente, medida en la MESA
+   * jugando —no en el archivo suelto—, daba una media de 0,4 sobre 255: por
+   * debajo de lo que un ojo puede notar. `felt-1/2/3.webp` reescriben esa
+   * misma diferencia real, canal por canal, multiplicada por 20 y recortada
+   * a 0-255 — no se dibujó nada que no estuviera en las fotos originales,
+   * se le subió el volumen a lo que ya había. `felt-0.webp` es la base y no
+   * se toca: no hay diferencia que amplificar contra sí misma.
+   *
    * El cambio de cuadro es un salto, no un fundido: `background-image` es
    * de las propiedades que CSS no sabe interpolar, así que animarla entre
    * paradas siempre es una foto reemplazando a la otra, nunca una mezclada
    * con la otra. Es la misma técnica que ya usa el boil de los personajes
-   * (`@keyframes boil`, más abajo en este archivo) — cuatro fotos de una
-   * textura casi igual a sí misma, uno tras otro, se leen como una tela que
-   * respira y no como un parpadeo, aunque el cambio sea instantáneo. */
+   * (`@keyframes boil`, más abajo en este archivo), y va a SU misma
+   * velocidad: 125ms por cuadro, la cadencia de `tituloBoil` y vecina de
+   * `boilCat1`/`boilCat2` — el detalle en `motion.js`, `tablero.fieltroVivo`. */
   background-image: var(--fieltro-luz), url("board/felt-0.webp");
   background-size: cover, cover;
   background-position: center, center;

@@ -301,25 +301,30 @@ export const MOTION = {
       el: ".impacto-onda",
       nota: "El destello que sale de la casilla. Conecta dónde cayó la ficha con el número que se mueve.",
     },
-    /* ►► El paño respira. ◄◄
+    /* ►► El paño respira, a la misma velocidad que un personaje. ◄◄
      *
      * Cuatro fotos de la misma textura, casi iguales entre sí, una detrás de
      * otra en bucle — el mismo truco que el boil de los personajes, pero
      * sobre un material y no sobre un dibujo con pose.
      *
-     * `EASE.cuadro` (step-end) por el mismo motivo que el boil: `
-     * background-image` no se puede mezclar entre paradas, así que la única
-     * forma de que el salto caiga EXACTO en 0/25/50/75% es un timing que no
-     * intente suavizarlo — con cualquier otra curva el navegador corta a
-     * mitad de tramo, no en la parada.
+     * ►► Y va a SU cadencia, no a una inventada. ◄◄
      *
-     * 12s el ciclo completo, 3s por foto: no hay una tirada ni un turno que
-     * dependa de este número, así que se eligió por sensación y no por
-     * medición — lo bastante lento para que el ojo no lo cace cambiando,
-     * lo bastante vivo para que la mesa no se sienta una foto fija. Es un
-     * número de gusto, no de regla: si se siente lento o nervioso, se
-     * cambia acá y nada más se entera. */
-    fieltroVivo: { ms: 12000, ease: EASE.cuadro, keyframes: "fieltro-vivo", el: ".board-track::after", loop: true },
+     * La primera versión eligió 12s por sensación —"lo bastante lento para
+     * que el ojo no lo cace cambiando"— y esa premisa estaba mal: acá no
+     * hay que esconder el cambio de foto, hay que VERLO, igual que se ve
+     * respirar a un gato. El boil de los personajes ya resuelve exactamente
+     * este problema y con el mismo mecanismo (`EASE.cuadro`, cuadros que se
+     * reemplazan uno a uno), así que la velocidad sale de ahí y no de una
+     * intuición nueva: `boilCat1`/`boilCat2` hacen 3 cuadros en 500ms
+     * —167ms cada uno— y `tituloBoil` hace 6 en 750ms —125ms cada uno—. Acá
+     * son 4 cuadros en 500ms, 125ms cada uno: la misma familia, ni más
+     * rápido ni más lento que el resto de lo que respira en esta pantalla.
+     *
+     * `EASE.cuadro` (step-end) sigue haciendo falta por el motivo de
+     * siempre: `background-image` no se puede mezclar entre paradas, así
+     * que la única forma de que el salto caiga EXACTO en 0/25/50/75% es un
+     * timing que no intente suavizarlo. */
+    fieltroVivo: { ms: 500, ease: EASE.cuadro, keyframes: "fieltro-vivo", el: ".board-track::after", loop: true },
     /* El respiro entre que los puntos del dado terminan de contar y la
        casilla dice lo suyo. No es una animación: es el silencio que separa
        dos hechos para que se lean como dos y no como uno. Sale por encima
