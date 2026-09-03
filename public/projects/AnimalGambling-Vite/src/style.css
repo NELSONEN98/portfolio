@@ -2698,8 +2698,8 @@ body {
   /* ►► El paño VIVE. Cuatro fotos, no una. ◄◄
    *
    * Estaba quemado en un solo archivo (`board3.png`, 2,6MB) y ahora son
-   * cuatro cuadros de una animación real, pasados a WebP: 504KB los cuatro
-   * juntos, menos de un cuarto de la imagen única que reemplazan. El origen
+   * cuatro cuadros de una animación real, pasados a WebP: 228KB los cuatro
+   * juntos, menos de un décimo de la imagen única que reemplazan. El origen
    * era una exportación de diez fotogramas a 1920×1080 sin comprimir —15MB—
    * pero comparados byte a byte sólo hay CUATRO dibujos distintos: los
    * fotogramas 1/2, 4/5 y 7/8 son copias exactas de sus vecinos. Los
@@ -2712,10 +2712,23 @@ body {
    * La diferencia real entre un cuadro y el siguiente, medida en la MESA
    * jugando —no en el archivo suelto—, daba una media de 0,4 sobre 255: por
    * debajo de lo que un ojo puede notar. `felt-1/2/3.webp` reescriben esa
-   * misma diferencia real, canal por canal, multiplicada por 20 y recortada
+   * misma diferencia real, canal por canal, multiplicada por 3 y recortada
    * a 0-255 — no se dibujó nada que no estuviera en las fotos originales,
    * se le subió el volumen a lo que ya había. `felt-0.webp` es la base y no
    * se toca: no hay diferencia que amplificar contra sí misma.
+   *
+   * ►► Por qué 3 y no más. ◄◄
+   *
+   * El primer intento uso 20, y con la textura tan oscura como es ésta —el
+   * paño es un verde casi negro— cualquier píxel donde la diferencia real ya
+   * apuntaba para abajo terminaba OFF de escala: recortado a negro puro. A
+   * ×20 eso era entre el 7% y el 13% de los píxeles de cada cuadro, y a esa
+   * densidad deja de leerse como grano y pasa a leerse como manchas —el bug
+   * que se reportó—. Se barrió la amplificación entera antes de elegir un
+   * número: a partir de ×4 ya aparece recorte medible, así que ×3 es el
+   * techo real, no un número redondo. Verificado en el archivo WebP
+   * final —después de la compresión, no antes—: 0,000% de píxeles en negro
+   * o blanco puro en los tres cuadros.
    *
    * El cambio de cuadro es un salto, no un fundido: `background-image` es
    * de las propiedades que CSS no sabe interpolar, así que animarla entre
