@@ -12,10 +12,14 @@
  * perdedor" salía de `players[ganador === 0 ? 1 : 0]` — o sea, el otro de
  * los dos primeros asientos, elegido por descarte y no por puntaje.
  *
- * Ahora entra la mesa entera y el orden lo hace esta pantalla. Con dos se ve
- * exactamente igual que antes —el ganador grande y el perdedor al lado con
- * su frase— y con tres o cuatro los que siguen se apilan en una tabla, que
- * es la única forma de contar un tercer puesto.
+ * Ahora entra la mesa entera y el orden lo hace esta pantalla: el ganador
+ * arriba y grande, el resto abajo y chico, sin importar si son uno, dos o
+ * tres.
+ *
+ * Cada retrato lleva la clase `pN` del asiento —la misma que usan las
+ * fichas del tablero (`.token.p1..p4`)— para pintar el fondo detrás de la
+ * tarjeta blanca con el color de ESE jugador. La tarjeta en sí sigue blanca
+ * a propósito: es el papel del dibujo, y teñirla habría tapado el trazo.
  */
 export default function GameOverScreen({
   jugadores = [],
@@ -36,20 +40,22 @@ export default function GameOverScreen({
     .filter(({ p, i }) => p?.char && i !== ganadorIdx)
     .sort((a, b) => (b.p.score ?? 0) - (a.p.score ?? 0));
 
-  /* Con dos, el segundo se dibuja grande y con su frase: es el duelo de
-     siempre y no hay motivo para degradarlo a un renglón de tabla. Con más,
-     ninguno se lleva ese lugar — señalar a uno solo entre tres sería
-     inventar un subcampeón que el juego no premia. */
-  const duelo = resto.length === 1;
-
   return (
     <section className="screen gameover-screen active">
       <div className="gameover-banner">
         <div className="big">SE ACABÓ</div>
       </div>
 
-      <div className={`gameover-stage${duelo ? "" : " mesa-grande"}`}>
-        <div className="go-winner">
+      {/* Un solo diseño para dos, tres o cuatro: el ganador arriba y grande,
+          el resto abajo y chico. Antes el duelo (un solo perdedor) tenía su
+          propio retrato gigante al lado del ganador y con tres o cuatro se
+          caía a una tabla de texto sin dibujo — dos formas de contar lo
+          mismo. El puesto sigue escrito y no deducido del orden visual: con
+          la lista ordenada por puntaje, dos empatados quedan uno arriba del
+          otro sin que nada diga que están igual. */}
+      <div className="gameover-stage">
+        <div className={`go-winner p${ganadorIdx + 1}`}>
+          <div className="go-label">★ GANADOR ★</div>
           <div className="go-portrait">
             <div className="go-art boil" data-cat={ganador.char.id} role="img" aria-label={ganador.char.name} />
           </div>
@@ -58,39 +64,21 @@ export default function GameOverScreen({
           <div className="go-quote">"{ganador.char.quote}"</div>
         </div>
 
-        {duelo ? (
-          <div className="go-loser">
-            <div className="go-label">† PERDEDOR †</div>
-            <div className="go-portrait">
-              <div
-                className="go-art boil"
-                data-cat={resto[0].p.char.id}
-                role="img"
-                aria-label={resto[0].p.char.name}
-              />
-            </div>
-            <div className="go-name">{resto[0].p.char.name}</div>
-            <div className="go-score">{resto[0].p.score}</div>
-            <div className="go-quote">
-              {porAbandono ? '"me retiré."' : `"${resto[0].p.char.loseQuote}"`}
-            </div>
-          </div>
-        ) : (
-          /* La tabla de los que no ganaron. El puesto va escrito y no
-             deducido del orden visual: con la lista ordenada por puntaje,
-             dos empatados quedan uno arriba del otro sin que nada diga que
-             están igual. */
-          <ol className="go-tabla" aria-label="Resto de la mesa">
-            {resto.map(({ p, i }, n) => (
-              <li className="go-fila" key={i}>
-                <span className="go-puesto">{n + 2}º</span>
-                <span className="go-mini boil" data-cat={p.char.id} role="img" aria-label={p.char.name} />
-                <span className="go-fila-nombre">{p.char.name}</span>
-                <span className="go-fila-score">{p.score}</span>
-              </li>
-            ))}
-          </ol>
-        )}
+        <ol className="go-perdedores" aria-label="Resto de la mesa">
+          {resto.map(({ p, i }, n) => (
+            <li className={`go-perdedor p${i + 1}`} key={i}>
+              <span className="go-puesto">{n + 2}º</span>
+              <div className="go-portrait go-portrait-mini">
+                <div className="go-art boil" data-cat={p.char.id} role="img" aria-label={p.char.name} />
+              </div>
+              <div className="go-name">{p.char.name}</div>
+              <div className="go-score">{p.score}</div>
+              <div className="go-quote">
+                {porAbandono && resto.length === 1 ? '"me retiré."' : `"${p.char.loseQuote}"`}
+              </div>
+            </li>
+          ))}
+        </ol>
       </div>
 
       <div className="gameover-actions">

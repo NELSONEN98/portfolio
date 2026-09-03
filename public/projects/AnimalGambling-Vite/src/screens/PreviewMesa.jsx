@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import VersusScreen from "./VersusScreen";
+import GameOverScreen from "./GameOverScreen";
+import RulesModal from "../components/RulesModal";
 import { newPlayers } from "../hooks/useGame";
 import { ROSTER } from "../roster";
 import { makeBoard, GOAL, A_LA_DERECHA } from "../../convex/rules";
@@ -49,6 +51,15 @@ export default function PreviewMesa({ inicial = 4 }) {
   const [etapa, setEtapa] = useState(0);
   const [turno, setTurno] = useState(true);
 
+  /* La otra pantalla que cuesta armar a mano: para verla hace falta terminar
+     una partida de verdad. Acá alcanza con un asiento ganador y puntajes
+     inventados —el ranking es lo único que le importa a esta pantalla, no
+     de dónde salió. */
+  const [pantalla, setPantalla] = useState("mesa");
+  const [ganadorIdx, setGanadorIdx] = useState(0);
+  const [porAbandono, setPorAbandono] = useState(false);
+  const [reglasAbiertas, setReglasAbiertas] = useState(false);
+
   /* El tablero se sortea UNA vez y no en cada pintado: con `useMemo` sin
      dependencias las casillas rojas se quedan quietas mientras se toquetean
      las perillas, y se puede comparar antes y después de un cambio de CSS
@@ -74,6 +85,14 @@ export default function PreviewMesa({ inicial = 4 }) {
       pendingCards: i === lado ? p.hand.slice(0, enMesa) : [],
     }));
   }, [cuantos, puntaje, lado, enMesa]);
+
+  /* Puntajes distintos, sólo para el ranking del final: en la mesa de
+     verdad todos entran empatados a 50 (`puntaje`), y con eso el final
+     mostraría cuatro empates sin decir nada del layout. */
+  const jugadoresFinal = useMemo(
+    () => players.map((p, i) => ({ ...p, score: [50, 33, 18, 4][i] ?? 0 })),
+    [players]
+  );
 
 
 
@@ -133,21 +152,34 @@ export default function PreviewMesa({ inicial = 4 }) {
           <div className="smoke-wisp" />
         </div>
 
-        <VersusScreen
-          board={board}
-          players={players}
-          active={turno ? lado : (lado + 1) % cuantos}
-          playing
-          rolling={false}
-          goal={GOAL}
-          online
-          miLado={lado}
-          sentido={A_LA_DERECHA}
-          golpes={golpes}
-          emotes={{}}
-          onTakeBackCard={() => setEnMesa((n) => Math.max(0, n - 1))}
-        />
+        {pantalla === "mesa" ? (
+          <VersusScreen
+            board={board}
+            players={players}
+            active={turno ? lado : (lado + 1) % cuantos}
+            playing
+            rolling={false}
+            goal={GOAL}
+            online
+            miLado={lado}
+            sentido={A_LA_DERECHA}
+            golpes={golpes}
+            emotes={{}}
+            onTakeBackCard={() => setEnMesa((n) => Math.max(0, n - 1))}
+          />
+        ) : (
+          <GameOverScreen
+            jugadores={jugadoresFinal}
+            ganadorIdx={Math.min(ganadorIdx, cuantos - 1)}
+            porAbandono={porAbandono}
+            online
+            onRematch={() => {}}
+            onExit={() => {}}
+          />
+        )}
       </div>
+
+      <RulesModal abierta={reglasAbiertas} onClose={() => setReglasAbiertas(false)} />
 
       {/* La barra de perillas. Va con estilos en línea y no en `style.css`
           a propósito: es andamiaje de desarrollo, y mezclarlo con las reglas
@@ -180,6 +212,17 @@ export default function PreviewMesa({ inicial = 4 }) {
           font: "600 12px/1.2 system-ui, sans-serif",
         }}
       >
+        <button style={boton(reglasAbiertas)} onClick={() => setReglasAbiertas((v) => !v)}>
+          reglas
+        </button>
+
+        <span style={{ opacity: 0.6 }}>pantalla</span>
+        {[["mesa", "mesa"], ["final", "final"]].map(([v, etiqueta]) => (
+          <button key={v} style={boton(pantalla === v)} onClick={() => setPantalla(v)}>
+            {etiqueta}
+          </button>
+        ))}
+
         <span style={{ opacity: 0.6 }}>mesa</span>
         {[2, 3, 4].map((n) => (
           <button key={n} style={boton(cuantos === n)} onClick={() => { setCuantos(n); setMiLado(n - 1); }}>
@@ -187,30 +230,47 @@ export default function PreviewMesa({ inicial = 4 }) {
           </button>
         ))}
 
-        <span style={{ opacity: 0.6 }}>yo</span>
-        {Array.from({ length: cuantos }, (_, i) => (
-          <button key={i} style={boton(lado === i)} onClick={() => setMiLado(i)}>
-            {i + 1}
-          </button>
-        ))}
+        {pantalla === "mesa" ? (
+          <>
+            <span style={{ opacity: 0.6 }}>yo</span>
+            {Array.from({ length: cuantos }, (_, i) => (
+              <button key={i} style={boton(lado === i)} onClick={() => setMiLado(i)}>
+                {i + 1}
+              </button>
+            ))}
 
-        <span style={{ opacity: 0.6 }}>puntaje</span>
-        {PUNTAJES.map((p) => (
-          <button key={p} style={boton(puntaje === p)} onClick={() => setPuntaje(p)}>
-            {p}
-          </button>
-        ))}
+            <span style={{ opacity: 0.6 }}>puntaje</span>
+            {PUNTAJES.map((p) => (
+              <button key={p} style={boton(puntaje === p)} onClick={() => setPuntaje(p)}>
+                {p}
+              </button>
+            ))}
 
-        <span style={{ opacity: 0.6 }}>daño</span>
-        {[0, 1, 2, 3].map((e) => (
-          <button key={e} style={boton(etapa === e)} onClick={() => setEtapa(e)}>
-            {e}
-          </button>
-        ))}
+            <span style={{ opacity: 0.6 }}>daño</span>
+            {[0, 1, 2, 3].map((e) => (
+              <button key={e} style={boton(etapa === e)} onClick={() => setEtapa(e)}>
+                {e}
+              </button>
+            ))}
 
-        <button style={boton(turno)} onClick={() => setTurno((t) => !t)}>
-          {turno ? "mi turno" : "turno ajeno"}
-        </button>
+            <button style={boton(turno)} onClick={() => setTurno((t) => !t)}>
+              {turno ? "mi turno" : "turno ajeno"}
+            </button>
+          </>
+        ) : (
+          <>
+            <span style={{ opacity: 0.6 }}>ganador</span>
+            {Array.from({ length: cuantos }, (_, i) => (
+              <button key={i} style={boton(ganadorIdx === i)} onClick={() => setGanadorIdx(i)}>
+                {i + 1}
+              </button>
+            ))}
+
+            <button style={boton(porAbandono)} onClick={() => setPorAbandono((v) => !v)}>
+              {porAbandono ? "por abandono" : "final normal"}
+            </button>
+          </>
+        )}
 
         <span style={{ opacity: 0.45 }}>{medida}</span>
       </div>

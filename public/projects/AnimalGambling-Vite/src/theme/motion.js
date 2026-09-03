@@ -482,7 +482,6 @@ export const MOTION = {
        hace un cartel de casino. Más rápido que esto empieza a molestar
        encima de una mesa donde hay que leer números. */
     luces: { ms: 820, ease: EASE.cuadro, keyframes: "bulbs-on", el: ".pool-table::after", loop: true },
-    fichaEntra: { ms: 400, ease: EASE.salida, keyframes: "chip-in", el: ".chip" },
   },
 
   // ─── LOS EMOJIS ──────────────────────────────────────────────────────

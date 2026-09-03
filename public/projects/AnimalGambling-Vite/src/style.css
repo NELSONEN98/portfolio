@@ -64,11 +64,6 @@
   --toxic: #7ee06b;
   --cyan: #6fd3d9;
 
-  --chip-red: #c7365f;
-  --chip-blue: #3a5fbd;
-  --chip-gold: #f5b942;
-  --chip-black: #1a1a1a;
-
   /* El ancho de una carta de la mano.
      Vive acá y no en `.card` —donde estaba— porque las custom properties
      sólo bajan: declarado en la carta, su propio contenedor no podía
@@ -3309,8 +3304,15 @@ body {
   .token.aterriza { animation: none; }
 }
 
-/* Fichas: dorada la del jugador 1, blanca la del 2. Se mueven con
-   transition, así el salto de casillas se ve recorrer el camino. */
+/* ►► Fichas con el mismo cuerpo que las viejas fichas de póker. ◄◄
+ *
+ * Había un `.chip` —borde punteado, bisel, brillo radial— que sólo
+ * sobrevivía como decoración suelta en el pie de las reglas: ningún JSX lo
+ * montaba. Este bloque le da su cuerpo a la ficha de verdad, la que
+ * recorre el camino, y le suma el número que el chip nunca tuvo.
+ *
+ * Dorada la del jugador 1, blanca la del 2. Se mueven con `transition`, así
+ * el salto de casillas se ve recorrer el camino. */
 .token {
   position: absolute;
   /* ►► La ficha, casi del tamaño de su casilla. ◄◄
@@ -3325,12 +3327,30 @@ body {
      casilla y no se sabría si el color de abajo es penitencia o bonus. */
   width: calc(100% / var(--board-cols) * 0.86);
   aspect-ratio: 1;
+  /* El borde punteado, de acá abajo, tiene que COMERSE del 0.86 de arriba
+     y no sumarse a él — si no, la ficha vuelve a tapar la casilla entera,
+     que es justo lo que ese 0.86 vino a evitar. */
+  box-sizing: border-box;
 
   display: grid;
   place-items: center;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   z-index: 4;
+
+  /* El grosor del punteado, medido contra el TABLERO —la misma técnica que
+     ya usan `--marco-grosor` y `.screw` en las casillas— y no contra la
+     ficha: así crece y se achica con la mesa exactamente igual que todo lo
+     demás del camino, sin un `clamp` propio que mantener sincronizado. */
+  --ficha-marco: calc(
+    min(100cqw / var(--board-cols), 100cqh / var(--board-rows)) * 0.1
+  );
+  border: var(--ficha-marco) dashed var(--bone);
+  /* El fondo no pinta debajo del borde: si lo hiciera, el punteado dejaría
+     ver el color de la ficha en los huecos en vez del hueso hueco de un
+     chip de verdad. */
+  background-clip: padding-box;
+
   /* Este tiempo NO es decorativo: es el paso de una casilla a la vecina, y
      Board.jsx encadena tantos como haya que caminar antes de disparar el
      rebote. Lo escribe él en `--paso`, porque en recorridos largos los
@@ -3339,7 +3359,33 @@ body {
      haya un recorrido en curso. */
   transition: left var(--paso, var(--dur-tablero-paso-ficha)) var(--ease-tablero-paso-ficha),
               top var(--paso, var(--dur-tablero-paso-ficha)) var(--ease-tablero-paso-ficha);
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.7), 0 0 0.8rem rgba(0, 0, 0, 0.6);
+
+  /* Dos familias de sombra, cada una con su trabajo. Las dos primeras son
+     las de siempre: el aro oscuro y el halo son lo que separa la ficha de
+     CUALQUIER casilla de abajo, hasta de una blanca. Las tres últimas son
+     el bisel del chip —sombra de apoyo, sombra interior abajo, brillo
+     interior arriba— y son las que la vuelven un objeto con volumen en vez
+     de un círculo plano. */
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.7),
+    0 0 0.8rem rgba(0, 0, 0, 0.6),
+    0 calc(var(--ficha-marco) * 0.5) 0 rgba(0, 0, 0, 0.5),
+    inset 0 calc(var(--ficha-marco) * -0.35) 0 rgba(0, 0, 0, 0.3),
+    inset 0 calc(var(--ficha-marco) * 0.35) 0 rgba(255, 255, 255, 0.15);
+}
+/* El brillo radial del chip, sobre la cara: la marca que hace que se lea
+   como metal o esmalte curvo y no como un color liso. Va después de la
+   ficha en el orden de pintado —es un `::after`— así que cae ENCIMA del
+   número, pero es tan tenue (20% de blanco, apagándose a los 60%) que no
+   le saca legibilidad al dígito; es la misma opacidad que ya traía el
+   `.chip` original. */
+.token::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2), transparent 60%);
+  pointer-events: none;
 }
 /* Un color por asiento. Los dos nuevos esquivan a propósito el rojo, el azul
    y el morado: esos tres son las casillas —penitencia, bonus y la maldita—
@@ -3352,8 +3398,14 @@ body {
 
 /* El número, ocupando la ficha entera. El <svg> se estira a la ficha y el
    viewBox hace el resto: el dígito mide siempre lo mismo respecto del
-   círculo, sin un solo `clamp`. */
+   círculo, sin un solo `clamp`.
+   `z-index: 1` para quedar por encima del brillo de `::after`: sin esto el
+   dígito seguía siendo legible —el brillo es muy tenue— pero se leía
+   "detrás" de una capa, y el número es lo único de la ficha que hay que
+   leer rápido a media carrera por el tablero. */
 .token svg {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   display: block;
@@ -6824,94 +6876,23 @@ body {
 .char-card.ajeno:hover .char-art-caja { transform: none; }
 
 /* ============================================
-   FINAL — LA TABLA DE LOS QUE NO GANARON
+   FINAL — EL PUESTO DE CADA UNO
    ============================================ */
-/* Con dos jugadores el segundo se dibuja grande y con su frase: es el duelo
-   de siempre. Con tres o cuatro ninguno se lleva ese lugar —señalar a uno
-   entre tres sería inventar un subcampeón que el juego no premia— así que
-   se apilan en una tabla ordenada por puntaje. */
-.gameover-stage.mesa-grande {
-  align-items: center;
-}
-.go-tabla {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-width: min(20rem, 70vw);
-}
-.go-fila {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  padding: 0.45rem 0.7rem;
-  border: 0.12rem solid rgba(232, 225, 204, 0.22);
-  border-radius: 0.45rem;
-  background: rgba(0, 0, 0, 0.28);
-}
+/* El número de puesto (2º, 3º, 4º) de cada perdedor. Va escrito y no
+   deducido del orden visual: con la lista ordenada por puntaje, dos
+   empatados quedan uno arriba del otro sin que nada diga que están igual. */
 .go-puesto {
-  min-width: 1.9rem;
-  font-size: 0.95rem;
+  font-family: var(--display);
+  font-size: 1rem;
   color: var(--bone-dim);
-}
-/* El dibujo chiquito reusa el mismo boil que el resto: el gato tiene que
-   ser reconocible de un vistazo, y el nombre solo obliga a recordar cuál
-   era cuál. */
-.go-mini {
-  width: 2.6rem;
-  height: 2.6rem;
-  border-radius: 0.3rem;
-  background-size: cover;
-  background-position: center top;
-  background-color: var(--marfil, #f7f4ea);
-  flex: none;
-}
-.go-fila-nombre {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--bone);
-}
-.go-fila-score {
-  font-size: 1.3rem;
-  color: var(--bone-dim);
+  letter-spacing: 0.15rem;
 }
 
-/* Chips only survive as decoration in the rules modal footer — the
-   in-hand chip rows went out with the player panels. */
-.chip {
-  width: 2.6rem;
-  height: 2.6rem;
-  border-radius: 50%;
-  position: relative;
-  box-shadow:
-    0 0.3rem 0 rgba(0, 0, 0, 0.5),
-    inset 0 -0.2rem 0 rgba(0, 0, 0, 0.3),
-    inset 0 0.2rem 0 rgba(255, 255, 255, 0.15);
-  background: var(--chip-red);
-  border: 0.3rem dashed var(--bone);
-  background-clip: padding-box;
-  animation: chip-in var(--dur-ambiente-ficha-entra) var(--ease-ambiente-ficha-entra) backwards;
-}
-.chip::after {
-  content: "";
-  position: absolute;
-  inset: 0.5rem;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.2), transparent 60%);
-}
-@keyframes chip-in {
-  0% { transform: translateY(-2rem) rotate(180deg); opacity: 0; }
-  100% { transform: translateY(0) rotate(0); opacity: 1; }
-}
-.chip.red { background: var(--chip-red); }
-.chip.blue { background: var(--chip-blue); }
-.chip.gold { background: var(--chip-gold); }
-.chip.black { background: var(--chip-black); border-color: var(--neon-amber); }
+/* Acá vivía `.chip`: el mismo borde punteado, el mismo bisel, el mismo
+   brillo radial que ahora tiene `.token` —la ficha de verdad, la que
+   recorre el camino—. Esto era decoración suelta que ningún JSX llegaba a
+   montar; con el cuerpo ya trasplantado, dejarla acá habría sido guardar
+   una copia del mismo diseño sin ningún elemento que la mostrara. */
 
 /* ============================================
    3D DICE — sits dead centre of the felt
@@ -7181,6 +7162,14 @@ body {
   justify-content: center;
   padding: 4rem;
   height: 100%;
+  /* Con cuatro jugadores el conjunto —título, ganador grande, fila de
+     perdedores— puede pedir más alto del que da una ventana baja (medido:
+     1058px de contenido contra 1000px de alto, y peor en un notebook de
+     720px). Antes no pasaba nada raro porque `justify-content:center`
+     tapaba el problema centrando lo que entraba y perdiendo el resto sin
+     ningún indicio. `overflow-y:auto` cambia "desaparece" por "se scrollea":
+     nunca deja algo inalcanzable. */
+  overflow-y: auto;
   /* Negro plano: el fieltro y el marco de madera son de la mesa, y acá la
      partida ya terminó. */
   background: var(--c-black);
@@ -7208,31 +7197,69 @@ body {
   animation: flicker var(--dur-pantalla-flicker-gameover) infinite;
 }
 
+/* Ganador arriba, el resto abajo: la columna es la que ordena quién es
+   quién, y el tamaño (más abajo, en `.go-art`/`.go-perdedor`) hace el resto. */
 .gameover-stage {
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: clamp(2rem, 6vw, 6rem);
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(2rem, 5vh, 4rem);
   margin-top: clamp(1.5rem, 4vh, 3.5rem);
   position: relative;
 }
 
-.go-winner, .go-loser {
+.go-winner {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
 }
+/* La fila de perdedores: tantos como queden, uno, dos o tres, todos al
+   mismo tamaño y centrados. `flex-wrap` es la salvedad para una mesa
+   angosta con los cuatro asientos ocupados. */
+.go-perdedores {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: clamp(1.5rem, 4vw, 3rem);
+}
+.go-perdedor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
 /* Se adapta al retrato en vez de fijarle una caja: el tamaño ahora lo pone
-   la imagen, igual que en la selección. */
+   la imagen, igual que en la selección.
+
+   ►► El color asignado va acá, no en `.go-art`. ◄◄
+   `.go-art` es la tarjeta blanca del dibujo —el papel del gato— y teñirla
+   habría tapado el trazo (por eso el sistema por-personaje de
+   `.fighter-art[data-cat]` la deja afuera a propósito). El color por
+   ASIENTO es otra cosa: identifica al jugador, no al gato, así que pinta el
+   marco que la rodea. `--asiento` trae un gris neutro por si algún jugador
+   quedara sin clase `pN`. */
 .go-portrait {
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  padding: clamp(0.6rem, 2vmin, 1.3rem);
+  border-radius: clamp(1.8rem, 3.6vmin, 3.6rem);
+  --asiento: #3a3a3a;
   background:
-    radial-gradient(ellipse at 50% 80%, rgba(0, 0, 0, 0.7), transparent 60%);
+    radial-gradient(ellipse at 50% 80%, rgba(0, 0, 0, 0.55), transparent 65%),
+    var(--asiento);
 }
+.go-winner.p1 .go-portrait, .go-perdedor.p1 .go-portrait { --asiento: var(--c-gold); }
+.go-winner.p2 .go-portrait, .go-perdedor.p2 .go-portrait { --asiento: #fff; }
+.go-winner.p3 .go-portrait, .go-perdedor.p3 .go-portrait { --asiento: var(--toxic); }
+.go-winner.p4 .go-portrait, .go-perdedor.p4 .go-portrait { --asiento: var(--cyan); }
 /* El halo se queda quieto: marca al ganador sin sumar movimiento. */
 .go-winner .go-portrait::before {
   content: "";
@@ -7247,13 +7274,12 @@ body {
    square, and `auto` because the global `pixelated` shreds pencil line
    art when it scales down. */
 /* Del tamaño de los cards de la selección: mismo clamp y mismo 5:6, para
-   que el gato se vea igual de grande que cuando lo elegiste. El ancho de
-   viewport va más bajo que allá porque acá entran dos, lado a lado.
+   que el gato se vea igual de grande que cuando lo elegiste.
 
    La tarjeta blanca es parte del dibujo: son trazos negros sobre papel, y
    sin ella el fondo del gato se recorta contra el negro de la pantalla. */
 .go-art {
-  width: clamp(14rem, min(34vw, 42dvh), 34rem);
+  width: clamp(14rem, min(30vw, 42dvh), 34rem);
   aspect-ratio: 5 / 6;
   background-color: #fff;
   border-radius: clamp(1.4rem, 3vmin, 3rem);
@@ -7263,8 +7289,17 @@ body {
   position: relative;
   z-index: 1;
 }
-.go-loser .go-art {
+/* El perdedor se ve apagado sin dejar de reconocerse: el trazo sigue ahí,
+   sólo que sin vida. Vale para uno, dos o tres perdedores por igual. */
+.go-perdedor .go-art {
   filter: grayscale(0.8) brightness(0.55);
+}
+/* La ficha del perdedor es un tercio de la del ganador: suficiente para
+   reconocer al gato, chica a propósito porque acá el protagonista es el
+   que ganó. */
+.go-portrait-mini .go-art {
+  width: clamp(5rem, min(11vw, 16dvh), 11rem);
+  border-radius: clamp(0.7rem, 1.6vmin, 1.4rem);
 }
 
 .go-label {
@@ -7273,7 +7308,7 @@ body {
   letter-spacing: 0.5rem;
   text-transform: uppercase;
 }
-.go-loser .go-label { color: var(--blood); }
+.go-winner .go-label { color: var(--neon-amber); }
 
 .go-name {
   font-family: var(--display);
@@ -7285,7 +7320,8 @@ body {
   color: var(--neon-amber);
   text-shadow: 0 0 1.4rem var(--neon-amber-glow);
 }
-.go-loser .go-name {
+.go-perdedor .go-name {
+  font-size: 1.4rem;
   color: var(--bone-dim);
   text-decoration: line-through;
   text-decoration-color: var(--blood);
@@ -7298,6 +7334,7 @@ body {
   color: var(--bone);
 }
 .go-winner .go-score { color: var(--neon-amber); }
+.go-perdedor .go-score { font-size: 1.8rem; }
 
 .go-quote {
   font-family: var(--display);
@@ -7307,6 +7344,10 @@ body {
   max-width: 26rem;
   text-align: center;
   letter-spacing: 0.05rem;
+}
+.go-perdedor .go-quote {
+  font-size: 0.85rem;
+  max-width: 14rem;
 }
 
 .gameover-actions {
@@ -7520,6 +7561,17 @@ body {
   padding: 2.4em 3em 1.6em;
   text-align: center;
   flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6em;
+}
+/* Se esconde sola por `onError` mientras `reglas.png` no exista en
+   `public/`: el `<img>` ya está cableado, listo para el día que el
+   archivo aparezca. */
+.rules-logo {
+  height: 3.6em;
+  width: auto;
 }
 .rules-title {
   font-family: var(--display);
@@ -7564,9 +7616,9 @@ body {
   box-shadow: 0 0 1.2em rgba(199, 54, 95, 0.4);
 }
 
-/* Las secciones. Sin esto la única forma de llegar a las cartas era
-   scrollear siete reglas, y quien abre las reglas en medio de una partida
-   viene por UNA cosa. */
+/* El progreso, no un menú. Antes eran pestañas de acceso libre; ahora cada
+   una marca un paso —leído, actual o todavía cerrado— y sólo se puede
+   saltar hacia atrás, a uno que ya se leyó. Adelante abre `.rules-nav`. */
 .rules-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -7586,10 +7638,18 @@ body {
   border-radius: 0.5em 0.5em 0 0;
   padding: 0.7em 1.3em;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
   transition: color 0.2s, background 0.2s, border-color 0.2s;
 }
 
-.rules-tab:hover {
+.rules-tab-n {
+  font-size: 0.85em;
+  color: rgba(232, 225, 204, 0.35);
+}
+
+.rules-tab:hover:not(:disabled) {
   color: var(--bone);
   background: rgba(245, 185, 66, 0.05);
 }
@@ -7599,6 +7659,21 @@ body {
   border-color: rgba(245, 185, 66, 0.45);
   background: rgba(245, 185, 66, 0.09);
   text-shadow: 0 0 0.7em var(--neon-amber-glow);
+}
+.rules-tab.activa .rules-tab-n { color: var(--neon-amber); }
+
+/* Ya leída: se puede volver, así que sigue con puntero de mano y sin la
+   opacidad de una que todavía no se desbloqueó. */
+.rules-tab.vista {
+  color: rgba(232, 225, 204, 0.55);
+}
+
+/* Bloqueada: se ve la lista completa —cuánto falta— pero no se puede tocar
+   todavía. `disabled` ya saca el cursor de mano; el resto es la marca
+   visual de que no es un botón vivo. */
+.rules-tab.bloqueada {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* El único que estira y el único que scrollea. `min-height: 0` no es
@@ -7612,6 +7687,13 @@ body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* Sin esto, `overflow-y: auto` arrastra al eje X con él —así lo pide la
+     spec: si un eje scrollea, `visible` en el otro pasa a comportarse como
+     `auto`— y el sobrante de unos pocos píxeles que a veces deja un
+     redondeo entre `em` y píxeles alcanza para dibujar una barra
+     horizontal entera. Nada de este cuerpo necesita desplazarse a los
+     costados. */
+  overflow-x: hidden;
   border-top: 1px solid rgba(245, 185, 66, 0.25);
   overscroll-behavior: contain;
 }
@@ -7762,7 +7844,7 @@ body {
 
 .rules-rule {
   display: flex;
-  gap: 1.4em;
+  gap: 0.7em;
   align-items: flex-start;
   padding: 1.6em 0;
   border-bottom: 1px solid rgba(232, 225, 204, 0.07);
@@ -7780,14 +7862,16 @@ body {
   font-family: var(--display);
   /* ►► Más chico: era una columna entera de nada. ◄◄
    *
-   * A 4.8em contra la nueva escala daba 91px, y con su columna reservada se
-   * llevaba unos 320px de ancho para decir "01". El número ordena la
-   * lectura, no es el contenido: tiene que verse como índice, no como
-   * titular. */
+   * A 4.8em contra la escala vieja daba 91px, y con su columna reservada se
+   * llevaba unos 320px de ancho para decir "01" — se bajó a 2.3em, pero el
+   * `min-width` de 2.2em seguía reservando ese mismo ancho de columna
+   * aunque la letra ya midiera menos: ahí seguía el espacio muerto, sólo
+   * que invisible en vez de ancho. 1.3em es lo que "01" ocupa de verdad a
+   * este tamaño; el número ya no necesita más que eso. */
   font-size: 2.3em;
   line-height: 1;
   color: rgba(232, 225, 204, 0.12);
-  min-width: 2.2em;
+  min-width: 1.3em;
   margin-top: -0.4em;
   user-select: none;
 }
@@ -7795,8 +7879,16 @@ body {
   color: rgba(245, 185, 66, 0.25);
 }
 
+/* `min-width: 0` y no el `auto` que trae `flex:1` por default: un hijo
+   flex no se encoge por debajo del min-content de lo que tiene adentro
+   —acá, una `.rule-card` de ancho fijo o el `.rule-badge` de "A QUIÉN LE
+   PEGAS"— así que sin esto la fila entera se pasaba de largo en un
+   celular y aparecía scroll horizontal (medido: 480px de contenido contra
+   355px de ancho). Con el mínimo en 0, el que cede es el texto: envuelve
+   en vez de empujar la ventana. */
 .rule-content {
   flex: 1;
+  min-width: 0;
   padding-top: 0.4em;
 }
 .rule-title {
@@ -7808,15 +7900,6 @@ body {
   display: flex;
   align-items: center;
   gap: 1em;
-}
-.rule-key {
-  font-family: var(--display);
-  font-size: 1em;
-  color: var(--bone-dim);
-  border: 1px solid rgba(232, 225, 204, 0.25);
-  padding: 0.2em 0.5em;
-  letter-spacing: 0.1em;
-  vertical-align: middle;
 }
 .rule-badge {
   font-family: var(--display);
@@ -7883,6 +7966,13 @@ body {
   align-items: center;
   gap: 1.2em;
 }
+/* Mismo mínimo en 0 que `.rule-content`: la carta de al lado es de ancho
+   fijo (`.rule-card`, `flex:none`), y sin esto el texto no cedía nada
+   antes de sacar a la fila entera de la ventana. */
+.rule-item-info {
+  min-width: 0;
+  flex: 1;
+}
 
 .rule-item-name {
   font-family: var(--display);
@@ -7931,9 +8021,12 @@ body {
 }
 
 /* La carta de muestra reusa .card por el color y el ícono, pero sin nada
-   de lo que la hace un control: no se aprieta, no se levanta. */
+   de lo que la hace un control: no se aprieta, no se levanta.
+   4.4em medía la mitad de una línea de texto: se leía el ícono, no la
+   carta. A 8.5em es casi el doble, del tamaño en que el dibujo se reconoce
+   solo, sin necesitar la explicación al lado para saber qué es. */
 .rule-card {
-  --card-w: 4.4em;
+  --card-w: 8.5em;
   flex: none;
   cursor: default;
   pointer-events: none;
@@ -7949,6 +8042,56 @@ body {
 .rules-rule.win .rule-title { color: var(--neon-amber); }
 .rules-rule.win .rule-num { color: rgba(245, 185, 66, 0.2); }
 .rules-rule.win:hover .rule-num { color: rgba(245, 185, 66, 0.4); }
+
+/* El paso obligado. Fuera del cuerpo que scrollea a propósito: tiene que
+   verse siempre, sin bajar hasta el final de una sección larga a buscarlo. */
+.rules-nav {
+  flex: none;
+  padding: 1.2em 3em 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+}
+.rules-nav-btn {
+  font-family: var(--display);
+  font-size: 1.05em;
+  letter-spacing: 0.12em;
+  color: var(--bone-dim);
+  background: transparent;
+  border: 1px solid rgba(232, 225, 204, 0.25);
+  border-radius: 0.4em;
+  padding: 0.7em 1.4em;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s, border-color 0.2s, opacity 0.2s;
+}
+.rules-nav-btn:hover:not(:disabled) {
+  color: var(--bone);
+  background: rgba(232, 225, 204, 0.06);
+}
+.rules-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+/* El que hace avanzar: mismo trato de "acción principal" que el botón de
+   ganar en el resto del juego, para que se distinga de "← Atrás" de un
+   vistazo. */
+.rules-nav-btn.destacado {
+  color: var(--c-black);
+  background: var(--neon-amber);
+  border-color: var(--neon-amber);
+  font-weight: 700;
+}
+.rules-nav-btn.destacado:hover:not(:disabled) {
+  background: #ffc94d;
+  box-shadow: 0 0 1.2em rgba(245, 185, 66, 0.5);
+}
+.rules-nav-paso {
+  font-family: var(--display);
+  font-size: 0.95em;
+  letter-spacing: 0.1em;
+  color: rgba(232, 225, 204, 0.4);
+}
 
 .rules-footer {
   flex: none;
@@ -8006,7 +8149,6 @@ body {
      achican los tres a la vez y la línea vuelve a caber. */
   .versus-screen { --fighter-h: max(6em, min(16dvh, 30vw)); }
 
-  .chip { width: 2em; height: 2em; }
   .key-hint { display: none; }
   /* El cartel de turno perdido no baja acá: su medida es `vmin` con topes
      en píxeles, así que ya se adapta sola. Los `2.4em` que había se
@@ -8016,9 +8158,9 @@ body {
   /* Game over */
   .gameover-screen { padding: 3em 2em; }
   .gameover-banner .big { font-size: 7em; }
-  .gameover-stage { flex-direction: column; align-items: center; gap: 1.5em; margin-top: 1.5em; }
-  /* Acá los dos retratos van apilados, así que el techo lo pone el alto
-     de la pantalla y no el ancho. Sin `height`: la altura sale del 5:6. */
+  .gameover-stage { gap: 1.5em; margin-top: 1.5em; }
+  /* El techo del ganador lo pone el alto de la pantalla y no el ancho acá
+     abajo. Sin `height`: la altura sale del 5:6. */
   .go-art { width: clamp(9em, 30dvh, 16em); }
   .go-name { font-size: 2.8em; }
   .gameover-actions { margin-top: 1.5em; }
@@ -8026,10 +8168,29 @@ body {
   /* Rules */
   .rules-header { padding: 2em 2em 1.5em; }
   .rules-body { padding: 1.5em 2em; }
+  .rules-nav { padding: 1.2em 2em 0; }
   .rules-footer { padding: 1.2em 2em 2em; }
-  .rules-rule { gap: 1.5em; padding: 1.2em 0; }
+  /* Este `3em` de mínimo era el mismo espacio muerto del arreglo de
+     arriba, pero peor: acá el número llegaba a comerse la mitad del ancho
+     de la fila y sacaba a `.rule-content` de la ventana (medido: 480px de
+     contenido contra 355px de ancho en un celular real). El tamaño de
+     letra se queda un poco más grande que en escritorio —"01" tiene que
+     seguir leyéndose de lejos— pero el `min-width` ya no reserva más que
+     lo que ese número realmente ocupa. */
+  .rules-rule { gap: 0.6em; padding: 1.2em 0; }
   .rules-rule:hover { margin: 0 -2rem; padding-left: 2em; padding-right: 2em; }
-  .rule-num { font-size: 3.5em; min-width: 3em; }
+  .rule-num { font-size: 2.6em; min-width: 1.3em; }
+  /* La carta de muestra creció para leerse sola (3.4: 4.4em → 8.5em) y en
+     una columna angosta ya no entra al lado del texto sin repetir el
+     desborde que se acaba de sacar arriba —medido: la carta sola, 128px,
+     no cabía en los 115px que le quedaban a `.rule-items`—. Apilada, la
+     carta usa el ancho entero y el texto lee debajo, en vez de competir
+     por un espacio que no alcanza para los dos. */
+  .rule-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6em;
+  }
 }
 
 /* — Small mobile ≤ 420px — */

@@ -26,10 +26,15 @@ import { CardFace } from "./Hand";
    Y las muestras son los mismos componentes que dibujan el tablero y la
    mano, así que lo que se lee acá es exactamente lo que se ve jugando.
 
-   Van en secciones y no en una lista larga porque todo junto no entraba en
-   pantalla: siete reglas con sus muestras miden más que cualquier viewport,
-   y el que abre esto suele venir por UNA cosa —qué hace una carta, qué
-   pasa con el 1— no a leerlo entero. */
+   ►► Secciones en fila, no en pestañas sueltas. ◄◄
+   *
+   * Antes eran pestañas de acceso libre: quien abría esto solía venir por
+   * UNA cosa —qué hace una carta, qué pasa con el 1— y saltaba directo ahí,
+   * sin pasar por el resto. Ahora el orden lo obliga: cada sección se abre
+   * con "Siguiente" y las que faltan no se pueden tocar todavía, así que la
+   * primera vez que alguien abre las reglas las lee todas, en el orden que
+   * las explica mejor, y no sólo la que fue a buscar. Volver para atrás sí
+   * se puede — releer no es lo que se quiso evitar. */
 
 const SECCIONES = [
   { id: "juego", nombre: "EL JUEGO" },
@@ -55,7 +60,7 @@ function Item({ muestra, nombre, children }) {
   return (
     <div className="rule-item">
       {muestra}
-      <div>
+      <div className="rule-item-info">
         <div className="rule-item-name">{nombre}</div>
         <div className="rule-item-text">{children}</div>
       </div>
@@ -88,7 +93,14 @@ const CaraUno = () => (
 );
 
 export default function RulesModal({ abierta, onClose }) {
-  const [seccion, setSeccion] = useState(SECCIONES[0].id);
+  /* `paso` es el índice de la sección que se está leyendo; `pasoMax`, el
+     más lejos que se llegó a avanzar. Separarlos es lo que permite volver
+     para atrás sin perder el permiso de estar más adelante: `paso` puede
+     bajar de 2 a 0, pero `pasoMax` se queda en 2 y la sección 2 sigue
+     desbloqueada en el indicador. */
+  const [paso, setPaso] = useState(0);
+  const [pasoMax, setPasoMax] = useState(0);
+  const seccion = SECCIONES[paso].id;
   const cuerpo = useRef(null);
 
   /* Cerrar vuelve al principio: reabrir en la sección donde quedó esconde
@@ -98,9 +110,21 @@ export default function RulesModal({ abierta, onClose }) {
      efecto encadena un render extra en cada cierre, y no hace falta —
      cerrar es un evento, no un estado derivado de otro. */
   const cerrarModal = () => {
-    setSeccion(SECCIONES[0].id);
+    setPaso(0);
+    setPasoMax(0);
     onClose();
   };
+
+  const irA = (i) => {
+    if (i < 0 || i > pasoMax) return;
+    setPaso(i);
+  };
+  const siguiente = () => {
+    const i = Math.min(paso + 1, SECCIONES.length - 1);
+    setPaso(i);
+    setPasoMax((m) => Math.max(m, i));
+  };
+  const esUltimo = paso === SECCIONES.length - 1;
 
   /* Igual que en la entrega de cartas: el cierre se rearma en cada pintado
      del padre, y como dependencia volvería a registrar el listener en
@@ -116,7 +140,7 @@ export default function RulesModal({ abierta, onClose }) {
   }, [abierta]);
 
   /* Cambiar de sección sin volver arriba deja al lector en el medio de un
-     texto que no eligió, y encima parece que la pestaña no hizo nada. */
+     texto que no eligió, y encima parece que el botón no hizo nada. */
   useEffect(() => {
     if (cuerpo.current) cuerpo.current.scrollTop = 0;
   }, [seccion]);
@@ -132,19 +156,36 @@ export default function RulesModal({ abierta, onClose }) {
     >
       <div className="rules-modal">
         <div className="rules-header">
-          <div className="rules-title">CÓMO SE JUEGA</div>
+          {/* El archivo todavía no está en `public/`: hasta que llegue,
+              `onError` lo esconde en vez de dejar el ícono roto de una
+              imagen que no cargó. */}
+          <img
+            className="rules-logo"
+            src="/reglas.png"
+            alt=""
+            aria-hidden="true"
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
+          />
+          <div className="rules-title">REGLAS</div>
           <button className="rules-close" onClick={cerrarModal}>✕</button>
         </div>
 
-        <div className="rules-tabs" role="tablist">
-          {SECCIONES.map((s) => (
+        {/* El paso al que se puede saltar tiene techo en `pasoMax`: las
+            secciones que todavía no se leyeron ni se habilitan ni se
+            marcan como si fueran la actual, sólo cuentan hasta dónde
+            falta. */}
+        <div className="rules-tabs" role="tablist" aria-label="Progreso de las reglas">
+          {SECCIONES.map((s, i) => (
             <button
               key={s.id}
               role="tab"
-              aria-selected={seccion === s.id}
-              className={`rules-tab${seccion === s.id ? " activa" : ""}`}
-              onClick={() => setSeccion(s.id)}
+              aria-selected={paso === i}
+              aria-disabled={i > pasoMax}
+              disabled={i > pasoMax}
+              className={`rules-tab${paso === i ? " activa" : ""}${i > pasoMax ? " bloqueada" : ""}${i < paso ? " vista" : ""}`}
+              onClick={() => irA(i)}
             >
+              <span className="rules-tab-n">{i + 1}</span>
               {s.nombre}
             </button>
           ))}
@@ -210,10 +251,7 @@ export default function RulesModal({ abierta, onClose }) {
 
           {seccion === "dado" && (
             <>
-              <Regla
-                n="01"
-                titulo={<>TIRAR <span className="rule-key">[ESPACIO]</span></>}
-              >
+              <Regla n="01" titulo="TIRAR">
                 El resultado se suma a lo que llevas acumulado{" "}
                 <i>en este turno</i>. Una tirada más siempre parece barata:
                 ésa es la trampa.
@@ -229,10 +267,7 @@ export default function RulesModal({ abierta, onClose }) {
                 puesto vuelven a tu mano <b>sin revelarse</b>.
               </Regla>
 
-              <Regla
-                n="03"
-                titulo={<>PLANTARSE <span className="rule-key">[ENTER]</span></>}
-              >
+              <Regla n="03" titulo="PLANTARSE">
                 Guardas lo del turno en tu puntaje y pasas. Es también el
                 momento en que se dan vuelta tus cartas, así que plantarse
                 no es sólo asegurar puntos: es cuando atacas.
@@ -399,6 +434,30 @@ export default function RulesModal({ abierta, onClose }) {
               tres.
             </Regla>
             </>
+          )}
+        </div>
+
+        {/* El paso obligado vive acá, separado del cuerpo que scrollea:
+            si viviera adentro, en una sección larga como LAS CARTAS habría
+            que bajar hasta el final para encontrar el botón que hace
+            avanzar a todos, sección tras sección. */}
+        <div className="rules-nav">
+          <button
+            className="rules-nav-btn"
+            onClick={() => irA(paso - 1)}
+            disabled={paso === 0}
+          >
+            ← Atrás
+          </button>
+          <div className="rules-nav-paso">{paso + 1} / {SECCIONES.length}</div>
+          {esUltimo ? (
+            <button className="rules-nav-btn destacado" onClick={cerrarModal}>
+              A jugar ✕
+            </button>
+          ) : (
+            <button className="rules-nav-btn destacado" onClick={siguiente}>
+              Siguiente →
+            </button>
           )}
         </div>
 
