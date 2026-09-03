@@ -7,8 +7,8 @@
  *
  * ►► `damage` es una RUTA COMPLETA y no un patrón, a propósito. ◄◄
  *
- * Los cuatro archivos no se llaman igual: `cat1-damage.png` para el
- * primero y `damaged-catN.png` para los otros tres. Derivar la ruta de una
+ * Los cuatro archivos no se llaman igual: `cat1-damage.webp` para el
+ * primero y `damaged-catN.webp` para los otros tres. Derivar la ruta de una
  * plantilla obligaría a renombrarlos —o peor, a escribir un caso especial
  * para el primero—, y este catálogo ya existe justamente para eso: es el
  * único lugar donde cada gato declara lo suyo, igual que `frames`, que
@@ -55,7 +55,7 @@ export const ROSTER = [
      * hace falta saber no es cuántos son sino CUÁLES. */
     cuadros: [0, 3, 6],
     img: "cat1/frame0000.webp",
-    damage: "cat1/cat1-damage.png",
+    damage: "cat1/cat1-damage.webp",
     age: "7",
     cond: "Le debe plata a todos los gatos del barrio.",
     quote: "Te dije que tenía un sistema.",
@@ -99,7 +99,7 @@ export const ROSTER = [
      * hace falta saber no es cuántos son sino CUÁLES. */
     cuadros: [0, 3, 6],
     img: "cat2/frame0000.webp",
-    damage: "cat2/damaged-cat2.png",
+    damage: "cat2/damaged-cat2.webp",
     age: "11",
     cond: "Dice que se retiró. Vuelve todas las noches.",
     quote: "Nunca dudé. Ni un segundo.",
@@ -143,7 +143,7 @@ export const ROSTER = [
      * hace falta saber no es cuántos son sino CUÁLES. */
     cuadros: [0, 3, 6],
     img: "cat3/frame0000.webp",
-    damage: "cat3/damaged-cat3.png",
+    damage: "cat3/damaged-cat3.webp",
     age: "5",
     cond: "Cree que esto es un juego. No entiende el dinero.",
     quote: "¡Esto es lo mejor que pasó en mi vida!",
@@ -187,7 +187,7 @@ export const ROSTER = [
      * hace falta saber no es cuántos son sino CUÁLES. */
     cuadros: [0, 3, 6],
     img: "cat4/frame0000.webp",
-    damage: "cat4/damaged-cat4.png",
+    damage: "cat4/damaged-cat4.webp",
     age: "??",
     cond: "Nadie sabe de dónde vino. Gana sin hablar.",
     quote: "...",
@@ -241,24 +241,18 @@ export const ROSTER = [
      * Es la misma forma que ya usa `danios`, y por la misma razón: lo que
      * hace falta saber no es cuántos son sino CUÁLES. */
     cuadros: [0, 3, 6],
-    /* ►► La única en `png`, y por eso la extensión se declara. ◄◄
-     *
-     * Los otros cuatro son `.webp` y la precarga la tenía escrita a mano en
-     * la plantilla. Con esta gata pedía `cat5/frame0000.webp`, que no
-     * existe: los siete dibujos se bajaban recién al entrar a elegir gato,
-     * que es justo lo que la precarga viene a evitar.
-     *
-     * Se declara acá por el mismo motivo que `damage` es una ruta completa y
-     * que `frames` vale 9 para dos gatos y 10 para otros dos: este catálogo
-     * ES el lugar donde cada gato dice en qué se diferencia. */
-    ext: "png",
-    img: "cat5/frame0000.png",
+    /* Acá vivía `ext: "png"`. Esta gata era la única que no estaba en WebP,
+       así que el catálogo tenía que declarar su extensión para que la
+       precarga no pidiera un archivo inexistente. Ahora los cinco están en
+       WebP —y sus dibujos de daño también— así que no queda nada que
+       diferenciar: la plantilla vuelve a alcanzar sola. */
+    img: "cat5/frame0000.webp",
     /* Y acá está el TERCER patrón de nombre de los cinco: `cat1-damage`,
        `damaged-catN` y ahora `damage-cat5`. Es exactamente lo que este
        campo venía diciendo desde el principio — por eso es una ruta
        completa y no una plantilla. Sumarla fue una línea, sin renombrar
        nada ni escribir un caso especial. */
-    damage: "cat5/damage-cat5.png",
+    damage: "cat5/damage-cat5.webp",
     age: "3",
     cond: "Tres nombres, ni un amigo. Juega como si le debieran algo.",
     quote: "Obviamente. ¿Esperaban otra cosa?",
@@ -283,10 +277,7 @@ export function warmRosterFrames() {
       const img = new Image();
       // Baja prioridad: son para dos pantallas más adelante.
       img.fetchPriority = "low";
-      /* La extensión sale del catálogo y ya no está escrita acá: cuatro
-         gatos son `.webp` y uno es `.png`, y con la plantilla fija la
-         precarga de ése pedía archivos que no existen. */
-      img.src = `${c.dir}/frame${String(i).padStart(4, "0")}.${c.ext ?? "webp"}`;
+      img.src = `${c.dir}/frame${String(i).padStart(4, "0")}.webp`;
     }
     /* ►► La cara de daño se calienta acá o no se ve nunca. ◄◄
      *
@@ -338,6 +329,6 @@ export function warmDanio(char, etapa) {
   for (const n of cuadros) {
     const img = new Image();
     img.fetchPriority = "low";
-    img.src = `${char.dir}/damage${etapa}/frame${String(n).padStart(4, "0")}.png`;
+    img.src = `${char.dir}/damage${etapa}/frame${String(n).padStart(4, "0")}.webp`;
   }
 }

@@ -27,23 +27,44 @@ for (const f of stale) rmSync(join(target, f));
  * dos versiones. Al pasar los frames de png a webp sobrevivieron los 44
  * png viejos, duplicando el peso publicado sin que nadie los pidiera.
  *
+ * ►► Y la primera vez esto se arregló a medias: sólo miraba un nivel. ◄◄
+ *
+ * Había un `if (isDirectory()) continue` que salteaba las subcarpetas en
+ * vez de entrar en ellas, así que limpiaba `cat1/cat1-damage.png` pero no
+ * `cat1/damage1/frame0000.png`. Al convertir los 80 png a webp quedaron 55
+ * sobrevivientes —todos en `catN/damageM/`— y el publicado PESÓ MÁS que
+ * antes de optimizarlo: 9,8MB contra 8,9MB, con cada dibujo por duplicado.
+ *
+ * El barrido ahora baja por el árbol comparando carpeta contra carpeta. Y
+ * borra la carpeta entera si dist ya no la trae: una carpeta renombrada
+ * dejaba todo su contenido publicado para siempre.
+ *
  * Sólo se sincronizan las carpetas que vienen de dist: al lado viven
  * piskels/ y md-guides/, que no se tocan. */
 let orphans = 0;
+function limpiarHuerfanos(enDist, enTarget) {
+  const deDist = new Set(readdirSync(enDist));
+  for (const f of readdirSync(enTarget)) {
+    const p = join(enTarget, f);
+    const esDir = statSync(p).isDirectory();
+
+    if (!deDist.has(f)) {
+      /* Lo que dist ya no trae se va, sea archivo o carpeta entera. */
+      rmSync(p, { recursive: true, force: true });
+      orphans++;
+      continue;
+    }
+    /* Está en los dos lados: si es carpeta hay que seguir bajando, que es
+       justo lo que antes no se hacía. */
+    if (esDir) limpiarHuerfanos(join(enDist, f), p);
+  }
+}
+
 for (const entry of readdirSync(dist, { withFileTypes: true })) {
   if (!entry.isDirectory()) continue;
-
-  const fromDist = new Set(readdirSync(join(dist, entry.name)));
   const inTarget = join(target, entry.name);
   if (!existsSync(inTarget)) continue;
-
-  for (const f of readdirSync(inTarget)) {
-    if (fromDist.has(f)) continue;
-    const p = join(inTarget, f);
-    if (statSync(p).isDirectory()) continue;
-    rmSync(p);
-    orphans++;
-  }
+  limpiarHuerfanos(join(dist, entry.name), inTarget);
 }
 
 /* ►► Lo que NO se publica, aunque esté en public/. ◄◄

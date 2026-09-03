@@ -62,7 +62,7 @@ const CopyGlyph = () => (
 const GatoLleno = () => (
   <img
     className="room-seat-gato"
-    src="waitroom/cat-waiting.png"
+    src="waitroom/cat-waiting.webp"
     alt=""
     draggable="false"
   />

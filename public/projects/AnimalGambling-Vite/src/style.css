@@ -1414,7 +1414,7 @@ body {
 }
 
 .boil[data-cat="cat5"] {
-  background-image: url("cat5/frame0000.png");
+  background-image: url("cat5/frame0000.webp");
   animation: cat5-boil var(--dur-peleador-boil-cat5) var(--ease-peleador-boil-cat5) infinite;
 }
 
@@ -1461,9 +1461,9 @@ body {
  * El día que lleguen siete dibujos de verdad, esto pasa a listar los siete y
  * `boilCat5` sube a 500ms. */
 @keyframes cat5-boil {
-  0%    { background-image: url("cat5/frame0000.png"); }
-  33.3% { background-image: url("cat5/frame0003.png"); }
-  66.6% { background-image: url("cat5/frame0006.png"); }
+  0%    { background-image: url("cat5/frame0000.webp"); }
+  33.3% { background-image: url("cat5/frame0003.webp"); }
+  66.6% { background-image: url("cat5/frame0006.webp"); }
 }
 
 @keyframes cat4-boil {
@@ -2408,159 +2408,159 @@ body {
  */
 
 .boil[data-cat="cat1"][data-danio="1"] {
-  background-image: url("cat1/damage1/frame0000.png");
+  background-image: url("cat1/damage1/frame0000.webp");
   animation: cat1-danio1 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat1-danio1 {
-  0.0%   { background-image: url("cat1/damage1/frame0000.png"); }
-  33.3%  { background-image: url("cat1/damage1/frame0003.png"); }
-  66.7%  { background-image: url("cat1/damage1/frame0006.png"); }
+  0.0%   { background-image: url("cat1/damage1/frame0000.webp"); }
+  33.3%  { background-image: url("cat1/damage1/frame0003.webp"); }
+  66.7%  { background-image: url("cat1/damage1/frame0006.webp"); }
 }
 
 .boil[data-cat="cat1"][data-danio="2"] {
-  background-image: url("cat1/damage2/frame0000.png");
+  background-image: url("cat1/damage2/frame0000.webp");
   animation: cat1-danio2 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat1-danio2 {
-  0.0%   { background-image: url("cat1/damage2/frame0000.png"); }
-  33.3%  { background-image: url("cat1/damage2/frame0003.png"); }
-  66.7%  { background-image: url("cat1/damage2/frame0006.png"); }
+  0.0%   { background-image: url("cat1/damage2/frame0000.webp"); }
+  33.3%  { background-image: url("cat1/damage2/frame0003.webp"); }
+  66.7%  { background-image: url("cat1/damage2/frame0006.webp"); }
 }
 
 .boil[data-cat="cat1"][data-danio="3"] {
-  background-image: url("cat1/damage3/frame0000.png");
+  background-image: url("cat1/damage3/frame0000.webp");
   animation: cat1-danio3 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat1-danio3 {
-  0.0%   { background-image: url("cat1/damage3/frame0000.png"); }
-  33.3%  { background-image: url("cat1/damage3/frame0003.png"); }
-  66.7%  { background-image: url("cat1/damage3/frame0006.png"); }
+  0.0%   { background-image: url("cat1/damage3/frame0000.webp"); }
+  33.3%  { background-image: url("cat1/damage3/frame0003.webp"); }
+  66.7%  { background-image: url("cat1/damage3/frame0006.webp"); }
 }
 
 .boil[data-cat="cat2"][data-danio="1"] {
-  background-image: url("cat2/damage1/frame0000.png");
+  background-image: url("cat2/damage1/frame0000.webp");
   animation: cat2-danio1 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat2-danio1 {
-  0.0%   { background-image: url("cat2/damage1/frame0000.png"); }
-  33.3%  { background-image: url("cat2/damage1/frame0003.png"); }
-  66.7%  { background-image: url("cat2/damage1/frame0006.png"); }
+  0.0%   { background-image: url("cat2/damage1/frame0000.webp"); }
+  33.3%  { background-image: url("cat2/damage1/frame0003.webp"); }
+  66.7%  { background-image: url("cat2/damage1/frame0006.webp"); }
 }
 
 .boil[data-cat="cat2"][data-danio="2"] {
-  background-image: url("cat2/damage2/frame0000.png");
+  background-image: url("cat2/damage2/frame0000.webp");
   animation: cat2-danio2 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat2-danio2 {
-  0.0%   { background-image: url("cat2/damage2/frame0000.png"); }
-  33.3%  { background-image: url("cat2/damage2/frame0003.png"); }
-  66.7%  { background-image: url("cat2/damage2/frame0006.png"); }
+  0.0%   { background-image: url("cat2/damage2/frame0000.webp"); }
+  33.3%  { background-image: url("cat2/damage2/frame0003.webp"); }
+  66.7%  { background-image: url("cat2/damage2/frame0006.webp"); }
 }
 
 .boil[data-cat="cat2"][data-danio="3"] {
-  background-image: url("cat2/damage3/frame0000.png");
+  background-image: url("cat2/damage3/frame0000.webp");
   animation: cat2-danio3 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat2-danio3 {
-  0.0%   { background-image: url("cat2/damage3/frame0000.png"); }
-  33.3%  { background-image: url("cat2/damage3/frame0003.png"); }
-  66.7%  { background-image: url("cat2/damage3/frame0006.png"); }
+  0.0%   { background-image: url("cat2/damage3/frame0000.webp"); }
+  33.3%  { background-image: url("cat2/damage3/frame0003.webp"); }
+  66.7%  { background-image: url("cat2/damage3/frame0006.webp"); }
 }
 
 .boil[data-cat="cat3"][data-danio="1"] {
-  background-image: url("cat3/damage1/frame0000.png");
+  background-image: url("cat3/damage1/frame0000.webp");
   animation: cat3-danio1 480ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat3-danio1 {
-  0.0%   { background-image: url("cat3/damage1/frame0000.png"); }
-  25.0%  { background-image: url("cat3/damage1/frame0003.png"); }
-  50.0%  { background-image: url("cat3/damage1/frame0006.png"); }
-  75.0%  { background-image: url("cat3/damage1/frame0009.png"); }
+  0.0%   { background-image: url("cat3/damage1/frame0000.webp"); }
+  25.0%  { background-image: url("cat3/damage1/frame0003.webp"); }
+  50.0%  { background-image: url("cat3/damage1/frame0006.webp"); }
+  75.0%  { background-image: url("cat3/damage1/frame0009.webp"); }
 }
 
 .boil[data-cat="cat3"][data-danio="2"] {
-  background-image: url("cat3/damage2/frame0000.png");
+  background-image: url("cat3/damage2/frame0000.webp");
   animation: cat3-danio2 480ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat3-danio2 {
-  0.0%   { background-image: url("cat3/damage2/frame0000.png"); }
-  25.0%  { background-image: url("cat3/damage2/frame0003.png"); }
-  50.0%  { background-image: url("cat3/damage2/frame0006.png"); }
-  75.0%  { background-image: url("cat3/damage2/frame0009.png"); }
+  0.0%   { background-image: url("cat3/damage2/frame0000.webp"); }
+  25.0%  { background-image: url("cat3/damage2/frame0003.webp"); }
+  50.0%  { background-image: url("cat3/damage2/frame0006.webp"); }
+  75.0%  { background-image: url("cat3/damage2/frame0009.webp"); }
 }
 
 .boil[data-cat="cat3"][data-danio="3"] {
-  background-image: url("cat3/damage3/frame0000.png");
+  background-image: url("cat3/damage3/frame0000.webp");
   animation: cat3-danio3 480ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat3-danio3 {
-  0.0%   { background-image: url("cat3/damage3/frame0000.png"); }
-  25.0%  { background-image: url("cat3/damage3/frame0003.png"); }
-  50.0%  { background-image: url("cat3/damage3/frame0006.png"); }
-  75.0%  { background-image: url("cat3/damage3/frame0009.png"); }
+  0.0%   { background-image: url("cat3/damage3/frame0000.webp"); }
+  25.0%  { background-image: url("cat3/damage3/frame0003.webp"); }
+  50.0%  { background-image: url("cat3/damage3/frame0006.webp"); }
+  75.0%  { background-image: url("cat3/damage3/frame0009.webp"); }
 }
 
 .boil[data-cat="cat4"][data-danio="1"] {
-  background-image: url("cat4/damage1/frame0000.png");
+  background-image: url("cat4/damage1/frame0000.webp");
   animation: cat4-danio1 480ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat4-danio1 {
-  0.0%   { background-image: url("cat4/damage1/frame0000.png"); }
-  25.0%  { background-image: url("cat4/damage1/frame0003.png"); }
-  50.0%  { background-image: url("cat4/damage1/frame0006.png"); }
-  75.0%  { background-image: url("cat4/damage1/frame0009.png"); }
+  0.0%   { background-image: url("cat4/damage1/frame0000.webp"); }
+  25.0%  { background-image: url("cat4/damage1/frame0003.webp"); }
+  50.0%  { background-image: url("cat4/damage1/frame0006.webp"); }
+  75.0%  { background-image: url("cat4/damage1/frame0009.webp"); }
 }
 
 .boil[data-cat="cat4"][data-danio="2"] {
-  background-image: url("cat4/damage2/frame0000.png");
+  background-image: url("cat4/damage2/frame0000.webp");
   animation: cat4-danio2 480ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat4-danio2 {
-  0.0%   { background-image: url("cat4/damage2/frame0000.png"); }
-  25.0%  { background-image: url("cat4/damage2/frame0003.png"); }
-  50.0%  { background-image: url("cat4/damage2/frame0006.png"); }
-  75.0%  { background-image: url("cat4/damage2/frame0010.png"); }
+  0.0%   { background-image: url("cat4/damage2/frame0000.webp"); }
+  25.0%  { background-image: url("cat4/damage2/frame0003.webp"); }
+  50.0%  { background-image: url("cat4/damage2/frame0006.webp"); }
+  75.0%  { background-image: url("cat4/damage2/frame0010.webp"); }
 }
 
 .boil[data-cat="cat4"][data-danio="3"] {
-  background-image: url("cat4/damage3/frame0000.png");
+  background-image: url("cat4/damage3/frame0000.webp");
   animation: cat4-danio3 480ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat4-danio3 {
-  0.0%   { background-image: url("cat4/damage3/frame0000.png"); }
-  25.0%  { background-image: url("cat4/damage3/frame0003.png"); }
-  50.0%  { background-image: url("cat4/damage3/frame0006.png"); }
-  75.0%  { background-image: url("cat4/damage3/frame0010.png"); }
+  0.0%   { background-image: url("cat4/damage3/frame0000.webp"); }
+  25.0%  { background-image: url("cat4/damage3/frame0003.webp"); }
+  50.0%  { background-image: url("cat4/damage3/frame0006.webp"); }
+  75.0%  { background-image: url("cat4/damage3/frame0010.webp"); }
 }
 
 .boil[data-cat="cat5"][data-danio="1"] {
-  background-image: url("cat5/damage1/frame0000.png");
+  background-image: url("cat5/damage1/frame0000.webp");
   animation: cat5-danio1 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat5-danio1 {
-  0.0%   { background-image: url("cat5/damage1/frame0000.png"); }
-  33.3%  { background-image: url("cat5/damage1/frame0003.png"); }
-  66.7%  { background-image: url("cat5/damage1/frame0006.png"); }
+  0.0%   { background-image: url("cat5/damage1/frame0000.webp"); }
+  33.3%  { background-image: url("cat5/damage1/frame0003.webp"); }
+  66.7%  { background-image: url("cat5/damage1/frame0006.webp"); }
 }
 
 .boil[data-cat="cat5"][data-danio="2"] {
-  background-image: url("cat5/damage2/frame0000.png");
+  background-image: url("cat5/damage2/frame0000.webp");
   animation: cat5-danio2 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat5-danio2 {
-  0.0%   { background-image: url("cat5/damage2/frame0000.png"); }
-  33.3%  { background-image: url("cat5/damage2/frame0003.png"); }
-  66.7%  { background-image: url("cat5/damage2/frame0006.png"); }
+  0.0%   { background-image: url("cat5/damage2/frame0000.webp"); }
+  33.3%  { background-image: url("cat5/damage2/frame0003.webp"); }
+  66.7%  { background-image: url("cat5/damage2/frame0006.webp"); }
 }
 
 .boil[data-cat="cat5"][data-danio="3"] {
-  background-image: url("cat5/damage3/frame0000.png");
+  background-image: url("cat5/damage3/frame0000.webp");
   animation: cat5-danio3 360ms var(--ease-peleador-boil-danio) infinite;
 }
 @keyframes cat5-danio3 {
-  0.0%   { background-image: url("cat5/damage3/frame0000.png"); }
-  33.3%  { background-image: url("cat5/damage3/frame0003.png"); }
-  66.7%  { background-image: url("cat5/damage3/frame0006.png"); }
+  0.0%   { background-image: url("cat5/damage3/frame0000.webp"); }
+  33.3%  { background-image: url("cat5/damage3/frame0003.webp"); }
+  66.7%  { background-image: url("cat5/damage3/frame0006.webp"); }
 }
 
 /* Sin movimiento se queda en el primer dibujo de su etapa. El CAMBIO de

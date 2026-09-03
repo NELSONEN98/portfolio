@@ -17,11 +17,11 @@
  * al `title`.
  */
 export const EMOJIS = [
-  { id: "smart", img: "emojis/smart.png", label: "Te lo dije" },
-  { id: "anger", img: "emojis/anger.png", label: "Bronca" },
-  { id: "electrocutado", img: "emojis/electrocutado.png", label: "Fulminado" },
-  { id: "cry", img: "emojis/cry.png", label: "Llanto" },
-  { id: "piedad", img: "emojis/piedad.png", label: "Piedad" },
+  { id: "smart", img: "emojis/smart.webp", label: "Te lo dije" },
+  { id: "anger", img: "emojis/anger.webp", label: "Bronca" },
+  { id: "electrocutado", img: "emojis/electrocutado.webp", label: "Fulminado" },
+  { id: "cry", img: "emojis/cry.webp", label: "Llanto" },
+  { id: "piedad", img: "emojis/piedad.webp", label: "Piedad" },
 ];
 
 export function emojiPorId(id) {

@@ -269,13 +269,13 @@ export const SQUARE_ICON = {
  * entradas de `CARD_ICON` quedan de respaldo.
  */
 export const CARD_ART = {
-  [CARD.STEAL]: "cards/steal-card-cat.png",
-  [CARD.DEFENSE]: "cards/shield-card.png",
-  [CARD.CURSE]: "cards/curse-cat.png",
-  [CARD.DOUBLE]: "cards/double-dice.png",
-  [CARD.PUNCH]: "cards/punch-cat.png",
-  [CARD.SKIP]: "cards/jump-card.png",
-  [CARD.REVERSE]: "cards/switch.png",
+  [CARD.STEAL]: "cards/steal-card-cat.webp",
+  [CARD.DEFENSE]: "cards/shield-card.webp",
+  [CARD.CURSE]: "cards/curse-cat.webp",
+  [CARD.DOUBLE]: "cards/double-dice.webp",
+  [CARD.PUNCH]: "cards/punch-cat.webp",
+  [CARD.SKIP]: "cards/jump-card.webp",
+  [CARD.REVERSE]: "cards/switch.webp",
 };
 
 export const CARD_ICON = {
