@@ -99,7 +99,7 @@ export const SONIDOS = {
    * `volumen: 1` es el techo de la pista, no su volumen final: el
    * reproductor ya baja la música al 55% para que no se coma los golpes
    * del dado, que son cortos y agudos. */
-  tema: { archivo: BASE + "gambling-katz-intro2.webm", volumen: 1, tipo: "musica" },
+  tema: { archivo: BASE + "gambling-katz-v3.webm", volumen: 1, tipo: "musica" },
 };
 
 /* ►► Lo que todavía no existe, dicho acá y no en un comentario suelto. ◄◄
