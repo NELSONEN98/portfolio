@@ -22,18 +22,29 @@ import { leerAjuste, guardarAjuste } from "../storage";
  * desbloqueo por gesto.
  *
  * MÚSICA con HTMLAudio: se transmite y se repite sin quedar decodificada en
- * memoria. Una pista de tres minutos como AudioBuffer son decenas de megas
- * de PCM; como <audio> son unos cientos de kilobytes en vuelo.
+ * memoria. Una pista de cuatro minutos como AudioBuffer son decenas de megas
+ * de PCM; como <audio> son unos pocos megas en vuelo, y encima de a pedazos.
  *
- * Las dos cuelgan del mismo nodo de ganancia, así que el volumen y el
- * silencio valen para las dos sin tener que acordarse de aplicarlos dos
- * veces.
+ * ►► Y por eso el volumen se aplica en DOS lugares, no en uno. ◄◄
+ *
+ * Acá decía que las dos colgaban del mismo nodo de ganancia. No era cierto:
+ * había un `gainMusica` creado y conectado al maestro al que nunca llegó
+ * nada, porque el <audio> nunca pasó por el grafo — se controlaba, y se
+ * sigue controlando, con su propio `.volume`. Un nodo que promete gobernar
+ * algo que no gobierna es peor que no tenerlo, así que se fue.
+ *
+ * Meterlo de verdad al grafo sería `createMediaElementSource`, y eso cuesta
+ * más de lo que da: el elemento queda atado al contexto —su audio deja de
+ * salir por su cuenta— y en Safari es una fuente conocida de silencios. El
+ * `.volume` del elemento hace exactamente el mismo trabajo.
+ *
+ * `aplicarNivel` es el que mantiene a los dos de acuerdo: toca el maestro
+ * para los efectos y el `.volume` de la pista para la música.
  */
 
 let ctx = null;
 let maestro = null;
 let gainSfx = null;
-let gainMusica = null;
 
 const buffers = new Map();
 let precargaPedida = false;
@@ -64,20 +75,24 @@ function crearContexto() {
   ctx = new AC();
   maestro = ctx.createGain();
   gainSfx = ctx.createGain();
-  gainMusica = ctx.createGain();
-  /* La música va más abajo que los efectos: es fondo, y compitiendo de igual
-     a igual se come los golpes del dado, que son cortos y agudos. */
-  gainMusica.gain.value = 0.55;
   gainSfx.connect(maestro);
-  gainMusica.connect(maestro);
   maestro.connect(ctx.destination);
   aplicarNivel();
   return ctx;
 }
 
+/* ►► Cuánto más bajo que los efectos va la música. ◄◄
+ *
+ * Es fondo: compitiendo de igual a igual se come los golpes del dado, que
+ * son cortos y agudos. Vive acá como constante y no repetido en cada cuenta
+ * porque lo leen dos lugares —el arranque de la pista y cada cambio de
+ * volumen— y un número escrito dos veces se separa en cuanto alguien toca
+ * uno solo. */
+const NIVEL_MUSICA = 0.55;
+
 function aplicarNivel() {
   if (maestro) maestro.gain.value = silenciado ? 0 : nivel;
-  if (pistaActual) pistaActual.volume = silenciado ? 0 : nivel * 0.55;
+  if (pistaActual) pistaActual.volume = silenciado ? 0 : nivel * NIVEL_MUSICA;
 }
 
 /* Se llama desde un manejador de gesto y de ningún otro lado. Devuelve si el
@@ -227,7 +242,7 @@ export function musica(nombre) {
   if (!def || def.tipo !== "musica") return;
   const el = new Audio(def.archivo);
   el.loop = true;
-  el.volume = silenciado ? 0 : nivel * 0.55 * (def.volumen ?? 1);
+  el.volume = silenciado ? 0 : nivel * NIVEL_MUSICA * (def.volumen ?? 1);
   el.play().catch(() => {
     /* Sin gesto todavía, o el archivo no está. Se ignora: el juego no
        depende de la música para funcionar. */

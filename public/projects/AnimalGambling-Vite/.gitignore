@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ►► Los originales del arte y del audio: 58MB que no van al repo. ◄◄
+#
+# Acá viven las exportaciones sin comprimir de las que salen los archivos
+# que SÍ se publican: los diez fotogramas del fieltro (15MB) y el wav del
+# soundtrack (44MB, contra los 3,2MB del opus que se sirve). Se conservan
+# para poder volver a exportar con otro recorte o calidad.
+#
+# Ignorados y no sólo "sin agregar": un `git add .` distraído los deja como
+# blobs en el historial y de ahí no salen más — es el mismo motivo por el
+# que el repo ignora `local_cache/`, y ese ya pasó una vez.
+source-art/

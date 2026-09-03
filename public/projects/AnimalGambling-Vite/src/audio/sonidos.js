@@ -79,14 +79,35 @@ export const SONIDOS = {
    * a un RESULTADO: el ataque rebotó. Bautizarlo como la carta sugeriría que
    * suena al jugarla, que es lo único que esa carta no hace. */
   shield: { archivo: BASE + "shield.mp3", volumen: 0.8, tipo: "sfx", solapa: true },
+
+  /* ►► El tema, y va en Opus por el BUCLE, no sólo por el peso. ◄◄
+   *
+   * El original es un WAV de 43MB —sin comprimir son 10MB por minuto, y
+   * dura 4:17—; queda en `source-art/soundtrack/`, fuera de `public/`, así
+   * que no viaja al juego publicado. Lo que sí viaja son 3,2MB de Opus a
+   * 96kbps, un 92% menos.
+   *
+   * Y Opus antes que mp3 aunque el resto del catálogo sea mp3, porque acá
+   * el archivo se repite para siempre. Medido sobre estas mismas
+   * conversiones: el mp3 declara `start: 0.025057` —los 25ms de silencio
+   * que el codificador le mete adelante, los mismos que el `desde` del dado
+   * saltea— y en un bucle eso es un bache audible en cada vuelta. El Opus
+   * declara `start: -0.007`, que es su pre-skip: el decodificador descarta
+   * exactamente lo que el codificador agregó y el bucle cierra sin hueco.
+   * De paso pesa menos que el mp3 a 128k (3,2MB contra 3,9MB).
+   *
+   * `volumen: 1` es el techo de la pista, no su volumen final: el
+   * reproductor ya baja la música al 55% para que no se coma los golpes
+   * del dado, que son cortos y agudos. */
+  tema: { archivo: BASE + "gambling-katz-intro2.webm", volumen: 1, tipo: "musica" },
 };
 
 /* ►► Lo que todavía no existe, dicho acá y no en un comentario suelto. ◄◄
  *
- * Van a llegar sonidos para casi cada carta y dos pistas de música. Cuando
- * lleguen, cada uno es UNA LÍNEA en `SONIDOS` con su nombre, y el nombre lo
- * consume `hechos.js` desde los hechos que ya emite el motor. Nada más del
- * proyecto se entera.
+ * Van a llegar sonidos para casi cada carta y una segunda pista de música
+ * —la primera ya está, `tema`—. Cuando lleguen, cada uno es UNA LÍNEA en
+ * `SONIDOS` con su nombre, y el nombre lo consume `hechos.js` desde los
+ * hechos que ya emite el motor. Nada más del proyecto se entera.
  *
  * Los nombres de los hechos ya están puestos y son estos —salen de
  * `useGame`, no hay que inventarlos—:
