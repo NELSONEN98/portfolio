@@ -349,6 +349,20 @@ export default function Board({
             }${esquina}`}
             style={{ gridColumn: col, gridRow: row }}
           >
+            {/* ►► Los cuatro tornillos, como elementos y no como box-shadow. ◄◄
+             *
+             * Un box-shadow puede clonar la FORMA de la casilla en las otras
+             * tres esquinas, pero no puede clonar el degradado radial que hace
+             * que un tornillo se lea como metal y no como un punto plano: la
+             * sombra sólo repite color sólido, no `background`. Cuatro
+             * elementos de verdad es lo que permite que cada uno lleve su
+             * propio brillo — y son baratos: sin imagen, sin lógica, sin
+             * eventos, es la misma clase de nodo que ya usan los papelitos
+             * del confeti. */}
+            <span className="screw screw-tl" />
+            <span className="screw screw-tr" />
+            <span className="screw screw-bl" />
+            <span className="screw screw-br" />
             {Icono ? <Icono /> : null}
             {esMeta && confeti > 0 ? (
               <span className="confeti" key={confeti} aria-hidden="true">

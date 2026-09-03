@@ -2712,149 +2712,177 @@ body {
 /* Cada casilla llena su celda, así el camino se lee como una cadena y no
    como puntos sueltos.
  *
- * ►► Las casillas se apoyan SOBRE la mesa, no están pintadas en ella. ◄◄
+ * ►► Las casillas son PLACAS atornilladas, no luces de neón. ◄◄
  *
- * Antes eran un velo blanco translúcido: dejaban ver el fieltro por debajo
- * y se leían como una mancha de pintura sobre el paño. Ahora el fondo es
- * oscuro y opaco —tapa el fieltro, que es lo que hace que sea un OBJETO— y
- * el volumen sale de tres sombras que hay que leer juntas:
+ * Antes el camino era una instalación eléctrica: el mismo dorado y el mismo
+ * halo que las bombillas del marco de la mesa, con un aro que ocupaba un
+ * tercio de la pieza y brillaba hacia el centro. Ahora es hardware — una
+ * chapa de madera oscura o de metal, atornillada en las cuatro esquinas a
+ * un marco de bronce. Es un cambio de material, no de detalle, así que se
+ * reescribe entero: dejar mitad neón y mitad chapa se hubiera visto como
+ * dos tableros distintos superpuestos.
  *
- *   1. `inset 0 1px 0` claro    → la luz pegando en el canto de arriba
- *   2. `inset 0 -3px 4px` oscuro → el hueco bajo el canto de abajo
- *   3. la última, sin `inset`    → la sombra que la ficha proyecta en la mesa
+ * Siguen siendo tres capas, igual que antes, y sigue siendo el mismo
+ * principio —cada tipo de casilla pisa un puñado de variables y el resto de
+ * la pieza las sigue sin repetir una sola declaración—. Lo que cambia es
+ * qué hace cada capa:
  *
- * Son las tres las que arman el relieve, y en ese orden: sólo con la de
- * afuera la casilla flota sin espesor, y sólo con las de adentro se hunde
- * en el paño en lugar de levantarse. El truco es el mismo de los botones de
- * la botonera —luz arriba, sombra abajo, apoyo debajo—, que ya está probado
- * en esta misma pantalla.
+ *   1. La CARA — un degradado en diagonal por tipo de casilla, en vez de un
+ *      negro liso con luz por dentro.
+ *   2. El MARCO — una franja angosta de metal con un filete claro apenas
+ *      por dentro, el borde de una chapa atornillada. Antes era un aro que
+ *      ocupaba el 35% de la pieza porque ÉL era la fuente de luz; ahora no
+ *      alumbra nada, así que no necesita tanto ancho para leerse.
+ *   3. Los TORNILLOS — la capa nueva. Cuatro elementos de verdad en las
+ *      esquinas (`.screw`, más abajo) y no un `box-shadow`: la sombra puede
+ *      clonar la FORMA de la pieza en las otras tres esquinas, pero no
+ *      puede clonar el degradado radial que hace que un tornillo se lea
+ *      como metal y no como un punto plano.
  *
- * El aro negro de 1px queda de antes: es el filo de la pieza, lo que la
- * separa de la de al lado cuando dos quedan pegadas. */
+ * El marco sigue en `box-shadow` inset y no en `border`, por el motivo de
+ * siempre: un borde real se comería parte de la celda y correría el ícono;
+ * la sombra interior lo pinta por dentro sin tocar la caja.
+ */
 .square {
-  /* El relieve va en una variable porque `box-shadow` es UNA propiedad: las
-     casillas de colores y la salida redeclaran la suya para agregarse un
-     resplandor, y al hacerlo borraban la lista entera. Con la variable cada
-     una escribe `var(--relieve), <su brillo>` y el volumen no se puede
-     perder por olvido. */
-  /* ►► El aro dorado: el mismo color que las bombillas del marco. ◄◄
-     No es un dorado parecido sino EL de las luces —`--c-gold`, igual que
-     los `radial-gradient` del borde de la mesa— y con su mismo halo. Ahí
-     está el sentido: el camino deja de ser una decoración suelta sobre el
-     paño y pasa a ser parte de la misma instalación eléctrica que rodea la
-     mesa. Un dorado distinto habría leído como otro objeto.
-     Va PRIMERO en la lista porque `box-shadow` pinta la primera encima de
-     las demás, y este aro es el filo de la pieza: tiene que quedar sobre el
-     degradado, no debajo. */
-  /* ►► La luz en la juntura. ◄◄
-     Entre casilla y casilla hay 2px de separación, y ahí es donde va a
-     parar este resplandor: cada pieza lo tira hacia afuera por sus cuatro
-     lados, así que en la juntura se encuentran los de las dos vecinas y la
-     costura se enciende sola. No hace falta dibujar la línea —no existe
-     como elemento, es el hueco de la grilla—; alcanza con que las piezas
-     iluminen a su alrededor.
-     El desenfoque es corto (3px) y con 1px de expansión a propósito: apenas
-     lo necesario para cruzar la separación. Más ancho y el camino entero se
-     empasta en una mancha dorada en vez de leerse como piezas separadas por
-     una costura encendida.
-     Va antes que la sombra negra de apoyo porque en la lista de `box-shadow`
-     la primera se pinta sobre las siguientes, y la juntura tiene que ganar
-     ahí; la negra igual se sigue viendo porque cae desplazada hacia abajo y
-     con más desenfoque, así que asoma por debajo de la pieza. */
-  /* ►► La luz de la pieza, parametrizada. ◄◄
-   *
-   * `--luz` y `--luz-halo` van como componentes RGB sueltos —no como color—
-   * para poder modular la opacidad capa por capa. Cada tipo de casilla las
-   * redefine y TODA la pila las sigue: no hay que repetir ocho sombras por
-   * color, y agregar un tipo nuevo son tres líneas y no un bloque entero.
-   *
-   * Funciona porque las variables se sustituyen en el momento de usarse:
-   * `--relieve` se declara acá una sola vez, pero `var(--luz)` resuelve
-   * contra el valor que tenga el ELEMENTO, así que una casilla que redefine
-   * `--luz` cambia las ocho capas sin volver a escribirlas.
-   *
-   * ►► Y la luz NO es el color del relleno. ◄◄
-   * `--c-blue` tiene una luminancia de 0.026 contra 0.010 del paño: apenas
-   * 2,7 veces el fondo, cuando el dorado está a 46 veces. Un resplandor de
-   * ese azul no ilumina, ensucia. La luz lleva el mismo tono encendido,
-   * igual que un cartel de neón: el tubo apagado no es del color que emite. */
-  --luz: 255, 201, 61;
-  --luz-halo: 228, 167, 0;
-  --aro: var(--c-gold);
+  /* Ancla para los tornillos y para la línea interior (`::before`). Antes
+     sólo `.meta` la necesitaba, para el confeti; ahora TODAS las casillas
+     tienen hijos posicionados de forma absoluta, así que el contexto de
+     posicionamiento tiene que existir en todas, no en una sola. */
+  position: relative;
+  box-sizing: border-box;
 
-  --relieve:
-    /* ►► El aro, medido en la CELDA y no en píxeles. ◄◄
-       Es el filo de la pieza. A un píxel era una línea: se leía como un
-       contorno dibujado encima y no como el canto de algo con espesor.
-       Ahora cierra un 35% de la casilla —`--aro-grosor` por lado— y el
-       dorado pasa a ser la pieza, con el negro como hueco en el medio.
-       Va en `inset` y no en un `border` porque un borde real se comería
-       parte de la celda y correría el ícono; la sombra interior lo pinta
-       por dentro sin tocar la caja. */
-    inset 0 0 0 var(--aro-grosor) var(--aro),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    /* Luz POR DENTRO. Es la capa nueva y la que más cambia la lectura: hasta
-       acá el dorado era un contorno, o sea una pieza con el borde pintado.
-       Un resplandor que entra desde los cuatro cantos hacia el centro la
-       convierte en una pieza ENCENDIDA — la misma diferencia que hay entre
-       una baldosa con filete y una luz empotrada en el piso. */
-    inset 0 0 1rem rgba(var(--luz), 0.66),
-    inset 0 -3px 4px rgba(0, 0, 0, 0.34),
-    /* La juntura, ahora al tope de opacidad. Lo que sube es la INTENSIDAD:
-       el desenfoque queda en 5px y la expansión en 1.5px, apenas lo
-       necesario para cruzar la separación de 2px.
-       Es la decisión de todo este bloque: para que brille más hay que
-       encender, no desenfocar. Abriendo el desenfoque acá el camino se
-       empasta en una sola mancha dorada y las piezas dejan de contarse de
-       un vistazo, que es justo lo que la costura tiene que permitir. */
-    0 0 5px 1.5px rgba(var(--luz), 1),
-    0 2px 4px rgba(0, 0, 0, 0.6),
-    /* Y el halo que cae sobre el fieltro, de 0.6rem a 1rem: es lo que hace
-       que la pieza parezca estar iluminando la mesa en vez de sólo brillar. */
-    0 0 1.7rem rgba(var(--luz-halo), 0.85),
-    /* El halo ancho, la capa nueva. Es la que hace el salto de brillo sin
-       tocar la juntura: muy abierto y a media opacidad, así que se suma
-       entre casillas vecinas y enciende el paño alrededor del camino
-       entero, pero al ser tan difuso no borra el filo de ninguna pieza.
-       Subir el desenfoque de la juntura habría dado el mismo brillo y
-       empastado el camino en una sola mancha, que es lo que hay que
-       evitar. */
-    0 0 3.4rem rgba(var(--luz-halo), 0.45);
+  /* ►► Los cuatro colores de la placa, en variables. ◄◄
+   *
+   * Misma técnica que antes usaban `--luz`/`--aro`: cada tipo de casilla
+   * redefine sólo estas cuatro, más abajo, y el degradado, el marco y el
+   * filete las siguen solos. Agregar un tipo de casilla nuevo son cuatro
+   * líneas, no un bloque entero.
+   *
+   * Los valores de acá son los de la casilla VACÍA — madera oscura y
+   * bronce, el material por defecto de un tablero físico. Las que hacen
+   * algo (penitencia, bonus, la maldición) las pisan más abajo. */
+  --placa-1: #382719;
+  --placa-2: #1b130c;
+  --marco: #76501f;
+  --marco-brillo: #b17a26;
 
-  /* A escuadra. El redondeo ya no es de la casilla sino del TABLERO: sólo
-     las tres esquinas del anillo se curvan, y cada una por su lado de
-     afuera. Redondeando todas, el camino se leía como una fila de fichas
-     sueltas en vez de una cinta continua. */
-  /* ►► El grosor del aro sale de la CASILLA, no de la ventana. ◄◄
-   *
-   * Un valor en píxeles se vería gordo en una pantalla y como una línea en
-   * otra; la celda cambia de tamaño con la mesa y el aro tiene que
-   * acompañarla.
-   *
-   * Se mide contra el tablero —que es quien declara `container-type`— y se
-   * divide por las columnas y las filas para llegar a UNA casilla. Se toma
-   * el menor de los dos: la celda es casi cuadrada pero no exactamente, y
-   * con el lado largo el aro se pasaría por el corto.
-   *
-   * Un 17.5% POR LADO cierra el 35% pedido y deja el 65% del centro
-   * abierto. Va en una variable para que cada tipo de casilla pueda pisarlo
-   * —el bonus lo hace— sin volver a escribir las ocho capas del relieve. */
-  --aro-grosor: calc(
-    min(100cqw / var(--board-cols), 100cqh / var(--board-rows)) * 0.175
+  /* El grosor del marco, medido contra el TABLERO y no en píxeles fijos —
+     la misma técnica que usaba `--aro-grosor`: la celda cambia de tamaño
+     con la mesa, y un marco en píxeles se vería grueso en una pantalla y
+     apenas una línea en otra.
+     Más angosto que el aro de antes —12% contra 17.5% por lado— porque acá
+     el marco es un borde, no una fuente de luz: no necesita tanto ancho
+     para leerse. */
+  --marco-grosor: calc(
+    min(100cqw / var(--board-cols), 100cqh / var(--board-rows)) * 0.12
   );
 
-  border-radius: 0;
-  /* Negro pleno y no el verde translúcido de antes. Con el paño asomando
-     por debajo, cada casilla arrastraba un poco del color de la mesa y la
-     luz de los cantos caía sobre algo que ya tenía tono. Sobre negro, lo
-     único que se ve dentro de la pieza es lo que ella emite. */
-  background: var(--c-black);
-  box-shadow: var(--relieve);
+  /* Un radio chico y parejo en las cuatro puntas de CADA placa: el detalle
+     que la separa de una baldosa cuadrada y la acerca a una chapa de
+     verdad, que nunca tiene el canto vivo. Las tres esquinas del ANILLO
+     (`.esq-*`, más abajo) lo pisan con un radio mayor, para marcar la
+     curva del camino; acá sólo se redondea la punta. */
+  --placa-radio: calc(
+    min(100cqw / var(--board-cols), 100cqh / var(--board-rows)) * 0.1
+  );
+  border-radius: var(--placa-radio);
+
+  background: linear-gradient(135deg, var(--placa-1), var(--placa-2));
+
+  /* El marco, el filete y la sombra de apoyo, en una sola pila —igual que
+     hacía `--relieve`— para que la transición de más abajo anime las tres
+     capas juntas y no una detrás de la otra. */
+  box-shadow:
+    /* El marco: metal por dentro del borde de la celda. */
+    inset 0 0 0 var(--marco-grosor) var(--marco),
+    /* El filete claro, apenas por dentro del marco: la luz que pega en el
+       canto de una chapa real. */
+    inset 0 0 0 calc(var(--marco-grosor) + 1px) var(--marco-brillo),
+    /* El hueco del centro, hundido respecto del marco. */
+    inset 0 2px 4px rgba(0, 0, 0, 0.55),
+    /* La sombra que la placa proyecta sobre el paño: sin ella la pieza se
+       ve pintada sobre la mesa y no puesta encima. */
+    0 2px 4px rgba(0, 0, 0, 0.6);
+
+  /* El cambio de tipo —un bonus que la maldición convierte, por ejemplo—
+     se desliza y no salta: un corte seco se leería como un parpadeo del
+     juego y no como el efecto de una carta. Antes sólo hacía falta animar
+     `box-shadow`, porque era la única capa que un tipo de casilla podía
+     cambiar; ahora el color también vive en `background`, así que entra a
+     la lista. */
+  transition: box-shadow 420ms ease, background 420ms ease;
 
   display: grid;
   place-items: center;
 }
 
+/* La línea interior de la chapa: el segundo canto que separa el marco del
+   centro, como en cualquier placa atornillada de verdad. Es un `::before`
+   y no otra capa de `box-shadow` porque acá SÍ conviene un `border` real:
+   es puramente decorativo y no le come sitio a nada. El ícono se sigue
+   centrando por el `place-items` del padre, que no sabe que este
+   pseudo-elemento existe. */
+.square::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--marco-grosor) * 1.8);
+  border: 1px solid var(--marco-brillo);
+  border-radius: calc(var(--placa-radio) * 0.6);
+  opacity: 0.5;
+  box-shadow: inset 0 0 0.3em rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+/* ►► Los tornillos. ◄◄
+ *
+ * Metal en las cuatro esquinas, siempre del mismo tono sea cual sea el
+ * color de la placa: es tornillería, no iluminación, así que no sigue a
+ * `--marco`. Un tornillo azul en una casilla de penitencia roja no leería
+ * como parte del mismo objeto — el metal de un tornillo no cambia porque
+ * cambie la chapa que sujeta.
+ *
+ * El tamaño y la posición salen del mismo cálculo que `--marco-grosor`,
+ * relativos al TABLERO y no a la ventana, para que crezcan y se achiquen
+ * con la mesa exactamente igual que el marco que los sostiene. */
+.screw {
+  position: absolute;
+  width: calc(
+    min(100cqw / var(--board-cols), 100cqh / var(--board-rows)) * 0.16
+  );
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    #f0c866 0%,
+    #c18a2d 35%,
+    #6b4718 70%,
+    #2c1c0b 100%
+  );
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.75),
+    inset 0 1px 1px rgba(255, 224, 150, 0.5);
+  z-index: 2;
+}
+
+/* La ranura del tornillo: un detalle de un solo píxel que en una pantalla
+   grande se lee como tornillo de verdad y en un teléfono chico
+   sencillamente desaparece por chico — no hace falta ocultarla a mano en
+   ningún breakpoint, el tamaño se encarga solo. */
+.screw::after {
+  content: "";
+  position: absolute;
+  width: 60%;
+  height: 1px;
+  background: rgba(40, 26, 10, 0.85);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-25deg);
+}
+
+.screw-tl { top: calc(var(--marco-grosor) * 0.9); left: calc(var(--marco-grosor) * 0.9); }
+.screw-tr { top: calc(var(--marco-grosor) * 0.9); right: calc(var(--marco-grosor) * 0.9); }
+.screw-bl { bottom: calc(var(--marco-grosor) * 0.9); left: calc(var(--marco-grosor) * 0.9); }
+.screw-br { bottom: calc(var(--marco-grosor) * 0.9); right: calc(var(--marco-grosor) * 0.9); }
 
 /* ►► El confeti de la meta. ◄◄
  *
@@ -2993,8 +3021,8 @@ body {
 
 /* ►► LA MALDICIÓN TIÑE LA MESA. ◄◄
  *
- * Mientras la condena dura, la instalación eléctrica entera se pone morada:
- * las bombillas del marco y la luz de TODAS las casillas.
+ * Mientras la condena dura, la mesa entera se pone morada: las bombillas
+ * del marco y cada placa del camino, una por una.
  *
  * Que sean todas y no sólo las convertidas es el punto. La maldición ya
  * cambia los bonus por penitencias; si además el resto
@@ -3019,16 +3047,17 @@ body {
 }
 
 .versus-screen.maldito .square {
-  --luz: 205, 155, 255;
-  --luz-halo: 165, 95, 240;
-  --aro: #d6b3ff;
-}
-
-/* El cambio se desliza en vez de saltar: la maldición entra y sale sola al
-   cumplirse los turnos, y un corte seco se leería como un parpadeo del
-   juego y no como el efecto de una carta. */
-.square {
-  transition: box-shadow 420ms ease;
+  /* Acá pisa las CUATRO variables y no sólo el marco. Con el aro de neón,
+     "la mesa entera se pone morada" lo hacía el halo —una luz que se
+     escapaba de la pieza y bañaba el paño alrededor—; el marco de una chapa
+     no alumbra nada, así que si sólo él cambiara de color el efecto se
+     vería como un detalle y no como una condena. Pisando también la cara,
+     cada placa se vuelve morada de verdad mientras dura, que es lo que la
+     frase de arriba pide. */
+  --placa-1: #4a1f78;
+  --placa-2: #23103d;
+  --marco: #a86bd6;
+  --marco-brillo: #d6b3ff;
 }
 
 /* ►► Las tres esquinas del tablero. ◄◄
@@ -3044,9 +3073,15 @@ body {
  * En porcentaje por lo mismo que todo lo demás del tablero: la celda es un
  * `1fr` que escala con la mesa, y un radio fijo se vería gordo en pantalla
  * chica y apenas insinuado en grande. */
-.square.esq-sd { border-top-right-radius: 45%; }
-.square.esq-id { border-bottom-right-radius: 45%; }
-.square.esq-ii { border-bottom-left-radius: 45%; }
+/* De 45% a 26%. Con el aro de neón la curva no tenía nada que respetar
+   adentro de la pieza —era una luz, no un objeto con esquinas—; ahora hay
+   un tornillo a un par de puntos del canto, y un radio tan grande lo dejaba
+   flotando fuera de la silueta redondeada de la placa. 26% sigue marcando
+   la curva del camino contra las piezas vecinas y deja al tornillo de esa
+   punta bien adentro del contorno. */
+.square.esq-sd { border-top-right-radius: 26%; }
+.square.esq-id { border-bottom-right-radius: 26%; }
+.square.esq-ii { border-bottom-left-radius: 26%; }
 
 /* La salida, a cuadros de bandera. Es de donde arrancan las fichas y por
    donde vuelven a pasar en cada vuelta, así que el recorrido necesita un
@@ -3054,21 +3089,22 @@ body {
 
    El damero sale de un gradiente cónico repetido y no de cuadraditos
    sueltos: son cuatro celdas y no vale sumar nodos al DOM por eso. */
-/* Sin aro: el filete dorado le partía el damero por la mitad de la primera
-   fila de cuadros y lo hacía leer como un cuadro más, torcido. Los cuadros
-   ya dicen dónde empieza el camino mejor que cualquier borde.
-   La luz sí queda, y en blanco: es la única pieza que no es del color de
-   nada, y teñirla de dorado la devolvía al montón. */
 .square.meta {
-  /* Contexto de posicionamiento para el confeti. Va sólo acá y no en
-     `.square`: es la única casilla que lo necesita. */
+  /* Sigue siendo la que necesita `position: relative` para el confeti,
+     pero ya no es la ÚNICA: ahora vive en la base de `.square`, para los
+     tornillos. Esto queda declarado igual —repetirlo no cuesta nada y una
+     regla de `.square` que cambiara de opinión el día de mañana no debería
+     poder romper el confeti de acá sin que se note en este mismo lugar. */
   position: relative;
-  --luz: 255, 255, 255;
-  --luz-halo: 235, 235, 235;
-  --aro: transparent;
+  /* La única placa que no es del color de nada: acero neutro en vez de
+     bronce, así que el marco no compite con ningún tipo — es la meta, y su
+     propio dibujo (el damero) ya dice lo que hay que decir. Misma técnica
+     que las demás: pisa `--marco`/`--marco-brillo` y el resto de la pieza
+     la sigue sola. */
+  --marco: #9aa3ad;
+  --marco-brillo: #e3e8ec;
   background-image: repeating-conic-gradient(#f2f2f2 0% 25%, #111 0% 50%);
   background-size: 50% 50%;
-  box-shadow: var(--relieve);
 }
 /* Sobre los cuadros no entra ningún ícono: acá manda la meta. */
 .square.meta svg { display: none; }
@@ -3083,29 +3119,27 @@ body {
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.55));
 }
 
-/* Los dos tipos que hacen algo se leen por color, no por ícono: a este
-   tamaño un símbolo no se distingue. */
-/* ►► Las dos casillas que HACEN algo conservan el filo fino. ◄◄
+/* ►► Las dos casillas que HACEN algo, con su propio material. ◄◄
  *
- * El aro grueso es para las vacías: sin ícono ni color propio, el dorado es
- * lo único que tienen y es lo que arma la cinta del camino.
- * Éstas se identifican por su color pleno más el dibujo encima, y cerrarles
- * el 35% deja el rojo y el azul reducidos a un cuadradito en el medio: la
- * casilla que castiga y la que premia se leerían igual de cerradas que el
- * suelo. Acá el borde tiene que dejar ver la pieza, no comérsela. */
+ * Antes se identificaban por un color PLENO de fondo —`background: var(--c-red)`—
+ * más un aro fino, porque el aro grueso de las vacías les hubiera dejado
+ * apenas un cuadradito en el medio. Ahora no hay más aro grueso: el marco
+ * mide lo mismo en todas, así que penitencia y bonus pisan directamente
+ * `--placa-1`/`--placa-2` como cualquier otro tipo, con su propio metal en
+ * `--marco`. Rojo óxido para la que castiga, azul acero para la que
+ * premia — el mismo lenguaje de la casilla vacía, sólo que en otro
+ * material. */
 .square.penalty {
-  background: var(--c-red);
-  --luz: 255, 140, 110;
-  --luz-halo: 240, 70, 45;
-  --aro: #ff9d85;
-  --aro-grosor: 3px;
+  --placa-1: #b51d18;
+  --placa-2: #720b08;
+  --marco: #d85b32;
+  --marco-brillo: #ff9d85;
 }
 .square.bonus {
-  background: var(--c-blue);
-  --luz: 140, 180, 255;
-  --luz-halo: 80, 130, 255;
-  --aro: #a8c2ff;
-  --aro-grosor: 3px;
+  --placa-1: #174078;
+  --placa-2: #092653;
+  --marco: #557db7;
+  --marco-brillo: #a8c2ff;
 }
 /* El bonus dado vuelta por la maldición. Morado y no rojo: el rojo es la
    penitencia, que existe en el tablero de los dos y siempre; ésta la puso
@@ -3114,13 +3148,10 @@ body {
    tu situación. El morado es el color de la carta de maldición, así que la
    casilla se explica sola. */
 .square.turnloss {
-  background: var(--c-purple);
-  /* Sigue al bonus y a la penitencia: si esta quedara alumbrando dorado
-     mientras las otras dos alumbran lo suyo, se leería como una casilla
-     neutra pintada de morado en vez de una que hace algo. */
-  --luz: 205, 155, 255;
-  --luz-halo: 165, 95, 240;
-  --aro: #d6b3ff;
+  --placa-1: #4a1f78;
+  --placa-2: #23103d;
+  --marco: #a86bd6;
+  --marco-brillo: #d6b3ff;
 }
 
 /* ---- caer en una casilla ----
