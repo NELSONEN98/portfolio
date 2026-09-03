@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ms } from "../theme";
-import { desbloquear, musica } from "../audio/player";
+import { desbloquear, musica, silenciar, volumen } from "../audio/player";
 
 /* Piso en pantalla: un preloader que aparece cien milisegundos y se va
    parece un parpadeo defectuoso, no una presentación. */
@@ -66,6 +66,25 @@ export default function Preloader() {
   const entrar = () => {
     if (!listo || yendose) return;
     desbloquear();
+
+    /* ►► Un botón que dice "con sonido" tiene que dar sonido. ◄◄
+     *
+     * El silencio y el volumen se guardan en `localStorage` y sobreviven a
+     * la pestaña. Sin esto, alguien con un `ag:mute` viejo guardado apretaba
+     * "Entrar con sonido" y entraba en silencio: la pista arrancaba, corría
+     * y avanzaba —comprobado, `paused:false` y el tiempo subiendo— pero con
+     * `volume: 0`. Todo bien y nada que oír, que es la peor forma de fallar
+     * porque no deja ni un error para seguir.
+     *
+     * Apretar ESTE botón es una declaración de intención de este momento, y
+     * le gana a un ajuste que quedó de otra sesión. El volumen en cero se
+     * trata igual que el silencio: es lo mismo puesto por otro lado.
+     *
+     * El día que haya un control de sonido adentro del juego, lo que ese
+     * control guarde vale igual — esto corre una sola vez, al entrar. */
+    silenciar(false);
+    if (volumen() <= 0) volumen(0.8);
+
     musica("tema");
     setYendose(true);
     // Desmontar recién cuando terminó de desvanecerse.
@@ -79,9 +98,7 @@ export default function Preloader() {
       <div className="preloader-caja">
         <div className="preloader-nota" aria-hidden="true">♪</div>
         <div className="preloader-text">
-          La mini taberna
-          <br />
-          GAMES
+          ACTIVAR SONIDO
         </div>
         <p className="preloader-aviso">
           Este juego tiene música y sonido.
