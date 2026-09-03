@@ -301,6 +301,25 @@ export const MOTION = {
       el: ".impacto-onda",
       nota: "El destello que sale de la casilla. Conecta dónde cayó la ficha con el número que se mueve.",
     },
+    /* ►► El paño respira. ◄◄
+     *
+     * Cuatro fotos de la misma textura, casi iguales entre sí, una detrás de
+     * otra en bucle — el mismo truco que el boil de los personajes, pero
+     * sobre un material y no sobre un dibujo con pose.
+     *
+     * `EASE.cuadro` (step-end) por el mismo motivo que el boil: `
+     * background-image` no se puede mezclar entre paradas, así que la única
+     * forma de que el salto caiga EXACTO en 0/25/50/75% es un timing que no
+     * intente suavizarlo — con cualquier otra curva el navegador corta a
+     * mitad de tramo, no en la parada.
+     *
+     * 12s el ciclo completo, 3s por foto: no hay una tirada ni un turno que
+     * dependa de este número, así que se eligió por sensación y no por
+     * medición — lo bastante lento para que el ojo no lo cace cambiando,
+     * lo bastante vivo para que la mesa no se sienta una foto fija. Es un
+     * número de gusto, no de regla: si se siente lento o nervioso, se
+     * cambia acá y nada más se entera. */
+    fieltroVivo: { ms: 12000, ease: EASE.cuadro, keyframes: "fieltro-vivo", el: ".board-track::after", loop: true },
     /* El respiro entre que los puntos del dado terminan de contar y la
        casilla dice lo suyo. No es una animación: es el silencio que separa
        dos hechos para que se lean como dos y no como uno. Sale por encima

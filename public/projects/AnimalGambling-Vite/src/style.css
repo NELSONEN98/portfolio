@@ -2680,17 +2680,44 @@ body {
      el paño de alrededor tenía relieve de luz, y el centro se leía como una
      calcomanía pegada en vez de como parte de la mesa.
      Va en la MISMA propiedad que la imagen —una lista de capas, la primera
-     arriba— para no sumar un elemento sólo por oscurecer. */
-  background-image:
-    radial-gradient(
-      ellipse 66% 58% at 50% 22%,
-      transparent 0%,
-      rgba(0, 0, 0, 0.34) 52%,
-      rgba(0, 0, 0, 0.68) 100%
-    ),
-    url("board/board3.png");
+     arriba— para no sumar un elemento sólo por oscurecer.
+
+     ►► Y ahora en una variable, porque el keyframe de abajo la repite. ◄◄
+     `background-image` no se puede animar en capas sueltas: cada parada del
+     keyframe tiene que escribir la propiedad ENTERA, lámpara incluida, o esa
+     parada apagaría la luz en vez de sólo cambiar el paño. Con la lámpara en
+     `--fieltro-luz` las cuatro paradas la repiten por variable y no por
+     texto: tocar el degradado sigue siendo UN lugar, no cinco. */
+  --fieltro-luz: radial-gradient(
+    ellipse 66% 58% at 50% 22%,
+    transparent 0%,
+    rgba(0, 0, 0, 0.34) 52%,
+    rgba(0, 0, 0, 0.68) 100%
+  );
+
+  /* ►► El paño VIVE. Cuatro fotos, no una. ◄◄
+   *
+   * Estaba quemado en un solo archivo (`board3.png`, 2,6MB) y ahora son
+   * cuatro cuadros de una animación real, encogidos y pasados a WebP: 144KB
+   * los cuatro juntos, MENOS que la imagen única que reemplazan. El origen
+   * era una exportación de diez fotogramas a 1920×1080 sin comprimir —15MB—
+   * pero comparados byte a byte sólo hay CUATRO dibujos distintos: los
+   * fotogramas 1/2, 4/5 y 7/8 son copias exactas de sus vecinos. Los
+   * originales quedaron en `source-art/board-animation/` —fuera de
+   * `public/`, así que no viajan al juego publicado— para poder volver a
+   * exportarlos el día de mañana con otro recorte o calidad.
+   *
+   * El cambio de cuadro es un salto, no un fundido: `background-image` es
+   * de las propiedades que CSS no sabe interpolar, así que animarla entre
+   * paradas siempre es una foto reemplazando a la otra, nunca una mezclada
+   * con la otra. Es la misma técnica que ya usa el boil de los personajes
+   * (`@keyframes boil`, más abajo en este archivo) — cuatro fotos de una
+   * textura casi igual a sí misma, uno tras otro, se leen como una tela que
+   * respira y no como un parpadeo, aunque el cambio sea instantáneo. */
+  background-image: var(--fieltro-luz), url("board/felt-0.webp");
   background-size: cover, cover;
   background-position: center, center;
+  animation: fieltro-vivo var(--dur-tablero-fieltro-vivo) var(--ease-tablero-fieltro-vivo) infinite;
 
   /* La regla global `* { image-rendering: pixelated }` existe para los
      dibujos a mano de los gatos, que son pixel art y se arruinan si el
@@ -2707,6 +2734,23 @@ body {
     inset 0 0 1rem rgba(0, 0, 0, 0.45),
     inset 0 0 0.35rem rgba(0, 0, 0, 0.5),
     inset 0 3px 0.6rem rgba(0, 0, 0, 0.4);
+}
+
+/* Las cuatro paradas repiten `var(--fieltro-luz)` porque tienen que: una
+   parada de keyframe fija TODA la propiedad, y omitir la lámpara acá la
+   apagaría un cuarto del tiempo. `step-end` —en la duración de arriba— es
+   lo que hace que el salto ocurra JUSTO en 0/25/50/75% y no a mitad de
+   trayecto: sin él, el navegador interpola el cambio de foto a su manera
+   —a la mitad de cada tramo— y el corte deja de caer donde dice el número. */
+@keyframes fieltro-vivo {
+  0%   { background-image: var(--fieltro-luz), url("board/felt-0.webp"); }
+  25%  { background-image: var(--fieltro-luz), url("board/felt-1.webp"); }
+  50%  { background-image: var(--fieltro-luz), url("board/felt-2.webp"); }
+  75%  { background-image: var(--fieltro-luz), url("board/felt-3.webp"); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-track::after { animation: none; }
 }
 
 /* Cada casilla llena su celda, así el camino se lee como una cadena y no
