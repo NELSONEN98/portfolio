@@ -2749,14 +2749,26 @@ body {
      escalarla. Es la única imagen del juego que necesita esta excepción. */
   image-rendering: auto;
 
-  /* La sombra baja de 1.4rem a 1rem: el dibujo YA trae su propia viñeta —los
-     bordes se van a negro solos— y sumarle la sombra entera empastaba el
-     canto en una franja oscura sin forma. Lo que queda es lo justo para que
-     el anillo de casillas siga leyéndose por encima del fondo. */
-  box-shadow:
-    inset 0 0 1rem rgba(0, 0, 0, 0.45),
-    inset 0 0 0.35rem rgba(0, 0, 0, 0.5),
-    inset 0 3px 0.6rem rgba(0, 0, 0, 0.4);
+  /* ►► Sin sombra propia: se la comía el ruido amplificado. ◄◄
+   *
+   * Había una acá —tres capas inset, hasta 1rem de desenfoque— pensada para
+   * cuando el fondo era liso: separaba el anillo de casillas del fieltro y
+   * le daba profundidad de mesa al hueco. Un inset box-shadow se pinta
+   * ENCIMA del `background-image` de su propio elemento —va después del
+   * fondo en el orden de pintado—, así que oscurecía directamente los
+   * píxeles ya amplificados de `felt-1/2/3.webp`, y más fuerte justo en las
+   * esquinas, que es donde una sombra inset pega más.
+   *
+   * Medido en las cuatro esquinas del hueco, con y sin esta sombra: en la
+   * superior izquierda el píxel más oscuro pasaba de 8 (se lee negro) a 27
+   * (se lee paño) apagándola. No era el mismo recorte a 0/255 que ya se
+   * había corregido —esto no tocaba ningún límite— pero cumplía la misma
+   * función a ojo: aplanaba la esquina en una mancha pareja en vez de dejar
+   * ver la textura.
+   *
+   * La separación entre casillas y fieltro la sigue dando el marco de
+   * madera (`border-image`, arriba) y el propio contraste del dibujo; no
+   * hacía falta una segunda capa oscureciendo por encima. */
 }
 
 /* Las cuatro paradas repiten `var(--fieltro-luz)` porque tienen que: una
@@ -5076,11 +5088,19 @@ body {
       var(--felt-mesa-medio) 54%,
       var(--felt-mesa-bajo) 88%
     );
-  /* Y las sombras internas se cargan un poco: el paño más oscuro perdía el
-     hundido de las esquinas, que es lo que le da profundidad de mesa. */
-  box-shadow:
-    inset 0 0 5rem rgba(0, 0, 0, 0.72),
-    inset 0 0.4rem 1.2rem rgba(0, 0, 0, 0.55);
+  /* ►► Ésta se sacó por prolijidad, no porque estuviera implicada. ◄◄
+   *
+   * Daba el mismo hundido de esquinas que la de `.board-track::after`, pero
+   * ÉSTA pinta como fondo del PADRE: `.board-track` —con sus casillas y,
+   * en el hueco del medio, el fieltro animado— se dibuja encima entera y
+   * opaca, así que esta sombra nunca llegó a verse en pantalla. Medida
+   * junto con la otra al diagnosticar las manchas —para no dejar una
+   * variable sin controlar— pero la mejora que se vio fue toda de la
+   * sombra del hijo; ésta no aportaba ni restaba nada.
+   *
+   * Se deja apagada igual, no reactivada: declarar una sombra que ningún
+   * píxel puede mostrar es la clase de código que engaña al que lo lee
+   * después, aunque hoy no le cueste nada al render. */
   display: grid;
   place-items: center;
 }
