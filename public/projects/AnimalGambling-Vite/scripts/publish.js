@@ -18,9 +18,23 @@ if (!existsSync(dist)) {
   process.exit(1);
 }
 
-const isBundle = (f) => /^index-.*\.(js|css)$/.test(f);
+/* ►► Cualquier archivo con hash, no sólo los que se llaman `index-`. ◄◄
+ *
+ * Era `/^index-.*\.(js|css)$/`, y alcanzaba mientras el build escupía un
+ * único archivo. Al partir el dado 3D en su propio trozo apareció
+ * `escena-<hash>.js`, que ese patrón no reconocía: se copiaba pero no se
+ * borraba nunca, así que cada publicación iba dejando el anterior de 617KB
+ * al lado del nuevo, para siempre.
+ *
+ * Ahora el patrón es el de Vite —`<nombre>-<hash>.<ext>`— y además se
+ * cruza contra lo que dist trae de verdad: se borra lo que parece un
+ * trozo de build Y ya no está en la salida nueva. Con las dos condiciones,
+ * un archivo suelto que alguien haya dejado a mano en la carpeta publicada
+ * no se lo lleva puesto por parecerse a un bundle. */
+const pareceBundle = (f) => /^[\w.]+-[A-Za-z0-9_-]{6,}\.(js|css)$/.test(f);
+const enLaSalida = new Set(readdirSync(dist));
 
-const stale = readdirSync(target).filter(isBundle);
+const stale = readdirSync(target).filter((f) => pareceBundle(f) && !enLaSalida.has(f));
 for (const f of stale) rmSync(join(target, f));
 
 /* Copiar encima no borra nada, así que un asset renombrado queda en las
@@ -124,7 +138,7 @@ function copiarFiltrando(desde, hacia) {
 
 copiarFiltrando(dist, target);
 
-const fresh = readdirSync(target).filter(isBundle);
+const fresh = readdirSync(target).filter(pareceBundle);
 console.log(`Publicado en AnimalGambling/`);
 if (stale.length) console.log(`  bundles viejos borrados: ${stale.join(", ")}`);
 if (orphans) console.log(`  assets huérfanos borrados: ${orphans}`);

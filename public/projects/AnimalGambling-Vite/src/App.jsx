@@ -7,6 +7,7 @@ import { useAlerta } from "./hooks/useAlerta";
 import { useOnlineRoom } from "./hooks/useOnlineRoom";
 import { ROSTER, charFromCatId, warmRosterFrames } from "./roster";
 import { warmEmojis } from "./emojis";
+import { calentarEscena } from "./dice3d/cargar";
 import { getRoomId } from "./storage";
 
 /* ►► El código de sala que vino en el enlace, si vino alguno. ◄◄
@@ -546,10 +547,17 @@ export default function App() {
     /* Los emojis van con los gatos: mismo problema —aparecen sin aviso y
        pesan— y misma solución. Se calientan los dos juntos, en el mismo
        momento, que es cuando la página terminó de cargar y todavía faltan
-       dos pantallas para que hagan falta. */
+       dos pantallas para que hagan falta.
+
+       El dado 3D se suma acá por lo mismo, aunque no sea una imagen: desde
+       que Three y cannon-es viajan en su propio archivo, dejarlo para
+       cuando aparezca la mesa sería mover la espera al peor momento —el
+       jugador ya sentado, esperando para tirar—. Pedido acá, baja mientras
+       se elige gato y para cuando hace falta ya está. */
     const calentar = () => {
       warmRosterFrames();
       warmEmojis();
+      calentarEscena();
     };
     if (document.readyState === "complete") calentar();
     else window.addEventListener("load", calentar, { once: true });
