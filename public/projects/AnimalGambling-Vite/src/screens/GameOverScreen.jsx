@@ -1,9 +1,10 @@
 /* Final de partida.
  *
- * La revancha sólo aparece en local: en online reusaría los picks de este
- * lado y el backend rechaza toda jugada contra una sala terminada. Una
- * revancha online de verdad necesita que los dos acepten y que la sala se
- * reinicie, que es otra funcionalidad.
+ * La revancha ya no es sólo local. `rooms:rematchRoom` reinicia la mesa del
+ * servidor conservando la gente y los gatos —y sorteando tablero y cartas de
+ * nuevo—, así que en línea el botón también funciona. Lo lanza el anfitrión,
+ * igual que el arranque: la mesa ya tiene un dueño para eso y darle otra
+ * regla a la revancha sería tener dos.
  *
  * ►► Antes esto recibía `ganador` y `perdedor`. ◄◄
  *
@@ -29,6 +30,7 @@ export default function GameOverScreen({
   porAbandono,
   online,
   onRematch,
+  puedeRevancha = true,
   onExit,
   gano,
   mesa,
@@ -88,7 +90,17 @@ export default function GameOverScreen({
       </div>
 
       <div className="gameover-actions">
-        {!online && (
+        {/* ►► Antes esto era `{!online && …}`: en línea no había revancha. ◄◄
+         *
+         * No era un olvido — el backend rechaza cualquier jugada contra una
+         * sala terminada, así que el botón habría fallado. Ahora existe
+         * `rooms:rematchRoom`, que reinicia la mesa conservando la gente y
+         * los gatos, y por eso el botón puede aparecer también en línea.
+         *
+         * Lo decide `puedeRevancha` y no `online`: en línea la lanza sólo el
+         * anfitrión, igual que el arranque. Mostrárselo a los demás sería
+         * ofrecer algo que el servidor va a rechazar. */}
+        {puedeRevancha && (
           <button className="btn-nav" onClick={onRematch}>⟲ Revancha</button>
         )}
         <button className="btn-nav secondary" onClick={onExit}>

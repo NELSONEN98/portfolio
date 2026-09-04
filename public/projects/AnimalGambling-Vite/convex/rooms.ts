@@ -1081,3 +1081,95 @@ export const holdScore = mutation({
     return { newScore, gameFinished: false, newTurn: siguiente, resolved, ...flujo };
   },
 });
+
+/* ►► LA REVANCHA. La misma gente, los mismos gatos, todo lo demás nuevo. ◄◄
+ *
+ * Hasta acá la revancha existía sólo en local, y el comentario de
+ * `GameOverScreen` explicaba por qué: de este lado no hay forma de reiniciar
+ * una sala terminada — el resto de las mutaciones rechazan cualquier jugada
+ * que no llegue con la sala en `playing`, así que apretar "otra vez" sobre
+ * una partida cerrada no hacía nada.
+ *
+ * ►► La lanza el anfitrión, y es la misma regla que `startRoom`. ◄◄
+ *
+ * No es una preferencia: la sala YA tiene dueño para arrancarla —el asiento
+ * 0— y darle a la revancha una regla distinta obligaría a explicar dos veces
+ * quién manda en la mesa. Además evita lo peor de dejarla abierta a
+ * cualquiera: que alguien que ya se estaba yendo quede metido en otra
+ * partida por el toque de otro.
+ *
+ * ►► Qué sobrevive y qué no. ◄◄
+ *
+ * Sobreviven la sesión, el nombre y el GATO: una revancha es la misma gente
+ * con los mismos personajes, y volver a elegir sería otra partida, no una
+ * revancha. Se van los puntos, las posiciones, las cartas, las maldiciones y
+ * las cervezas — todo lo que `freshPlayer` pone en cero.
+ *
+ * El tablero se sortea de nuevo y las manos también. Reusar el tablero
+ * anterior le daría al que ya lo caminó una ventaja que nadie pidió, y las
+ * cartas viejas incluyen las que quedaron jugadas boca abajo.
+ */
+export const rematchRoom = mutation({
+  args: {
+    roomId: v.string(),
+    sessionId: v.string(),
+  },
+  async handler(ctx, args) {
+    const room = await findRoom(ctx, args.roomId);
+    if (!room) throw new ConvexError("Room not found");
+
+    /* Idempotente igual que `startRoom`: dos toques al botón, o el sondeo
+       del otro llegando tarde, no son un error — la mesa ya volvió a
+       arrancar y eso era justo lo que se pedía. Sin esto, el segundo toque
+       repartiría cartas nuevas encima de una partida ya empezada. */
+    if (room.status === "playing") return { restarted: true };
+    if (room.status !== "finished") throw new ConvexError("La partida no terminó");
+
+    const me = whoIs(room, args.sessionId);
+    if (!me) throw new ConvexError("You are not in this room");
+    if (me.seat !== 0) throw new ConvexError("Sólo el anfitrión pide la revancha");
+
+    const seats = seatsOf(room);
+    /* Si el rival se fue, no hay revancha que jugar. Se dice con el mismo
+       texto que usa `startRoom` cuando falta gente: es la misma situación
+       —una mesa que no llega al mínimo— y merece el mismo mensaje. */
+    if (seats.length < MIN_PLAYERS) throw new ConvexError("Falta gente en la mesa");
+
+    await ctx.db.patch(room._id, {
+      players: seats.map((p: any, i: number) => ({
+        ...freshPlayer(p.sessionId, dealHand(rand, i)),
+        /* Lo único que cruza de una partida a la otra. */
+        name: p.name ?? null,
+        catId: p.catId ?? null,
+      })),
+      board: makeBoard(rand),
+      sentido: A_LA_DERECHA,
+      /* ►► `seat`, que es donde vive el turno de verdad. ◄◄
+       *
+       * `turn` es el campo viejo —guardaba "player1"/"player2"— y hoy sólo
+       * lo lee `seatOf` como respaldo de las salas de antes. El turno actual
+       * se escribe en `seat`, y sin reiniciarlo la revancha arrancaría con
+       * el turno del que jugó último en la partida anterior.
+       *
+       * Vuelve al 0, como una mesa nueva: dejar arrancando al que ganó le
+       * sumaría la ventaja del primer turno a quien menos la necesita. Y se
+       * limpia `turn` de paso, o una sala vieja reiniciada seguiría
+       * arrastrando su "player2". */
+      seat: 0,
+      turn: undefined,
+      status: "playing",
+      size: seats.length,
+      /* El resultado anterior se borra: si quedara, la pantalla final de la
+         partida nueva podría pintar al ganador de la vieja mientras llega
+         el primer sondeo. */
+      winner: undefined,
+      endedByAbandon: undefined,
+      /* La mesa vuelve a estar viva: sin correr el vencimiento, una sala
+         reiniciada cerca del límite se la lleva el cron a mitad de la
+         revancha. */
+      expiresAt: Date.now() + ROOM_TTL_MS,
+    });
+
+    return { restarted: true, size: seats.length };
+  },
+});

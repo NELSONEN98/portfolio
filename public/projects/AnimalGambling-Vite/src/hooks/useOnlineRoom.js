@@ -183,6 +183,21 @@ export function useOnlineRoom() {
     }
   }, []);
 
+  /* Volver a jugar sin cambiar de sala. Va acá y no como una llamada suelta
+     desde la pantalla final por lo mismo que `empezar`: si falla, el error
+     tiene que quedar en el hook —que es quien lo sabe mostrar— y no perderse
+     en un `catch` de un componente que no tiene dónde ponerlo. */
+  const revancha = useCallback(async () => {
+    const id = getRoomId();
+    if (!id) return;
+    try {
+      await api.rematchRoom(id);
+    } catch (e) {
+      setError(e);
+      throw e;
+    }
+  }, []);
+
   const salir = useCallback(() => {
     const id = getRoomId();
     detener();
@@ -204,7 +219,7 @@ export function useOnlineRoom() {
 
   return {
     roomId, room, miLado, error, novedad, cerrada,
-    crear, unirse, empezar, salir, consumirNovedad, detener,
+    crear, unirse, empezar, revancha, salir, consumirNovedad, detener,
     // Acciones que van al servidor; el estado real vuelve por el sondeo.
     setCharacter: api.setCharacter,
     playCard: api.playCard,

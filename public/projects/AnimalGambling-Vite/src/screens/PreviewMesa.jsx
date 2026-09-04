@@ -58,6 +58,9 @@ export default function PreviewMesa({ inicial = 4 }) {
   const [pantalla, setPantalla] = useState("mesa");
   const [ganadorIdx, setGanadorIdx] = useState(0);
   const [porAbandono, setPorAbandono] = useState(false);
+  /* El botón de revancha en línea lo ve sólo el anfitrión, y esa diferencia
+     hay que poder mirarla sin armar dos navegadores. */
+  const [soyAnfitrion, setSoyAnfitrion] = useState(true);
   const [reglasAbiertas, setReglasAbiertas] = useState(false);
 
   /* El tablero se sortea UNA vez y no en cada pintado: con `useMemo` sin
@@ -173,6 +176,7 @@ export default function PreviewMesa({ inicial = 4 }) {
             ganadorIdx={Math.min(ganadorIdx, cuantos - 1)}
             porAbandono={porAbandono}
             online
+            puedeRevancha={soyAnfitrion}
             onRematch={() => {}}
             onExit={() => {}}
           />
@@ -268,6 +272,10 @@ export default function PreviewMesa({ inicial = 4 }) {
 
             <button style={boton(porAbandono)} onClick={() => setPorAbandono((v) => !v)}>
               {porAbandono ? "por abandono" : "final normal"}
+            </button>
+
+            <button style={boton(soyAnfitrion)} onClick={() => setSoyAnfitrion((v) => !v)}>
+              {soyAnfitrion ? "anfitrión" : "invitado"}
             </button>
           </>
         )}

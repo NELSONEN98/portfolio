@@ -28,6 +28,12 @@ export const joinRoom = (roomId) =>
 export const startRoom = (roomId) =>
   convex.mutation("rooms:startRoom", conSesion({ roomId }));
 
+/* Volver a jugar con la misma gente y los mismos gatos. La acepta sólo el
+   anfitrión, igual que `startRoom`: la mesa ya tiene dueño para arrancarla
+   y darle otra regla a la revancha sería tener dos. */
+export const rematchRoom = (roomId) =>
+  convex.mutation("rooms:rematchRoom", conSesion({ roomId }));
+
 export const setCharacter = (roomId, playerName, catId) =>
   convex.mutation("rooms:updatePlayerCharacter", conSesion({ roomId, playerName, catId }));
 

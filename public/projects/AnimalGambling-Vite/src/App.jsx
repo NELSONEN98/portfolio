@@ -1412,6 +1412,32 @@ export default function App() {
     }
   };
 
+  /* ►► La revancha online, que es sólo pedirla: la mesa la arma el servidor. ◄◄
+   *
+   * A diferencia de la local, acá no se llama a `juego.start` con jugadores
+   * nuevos: el servidor reparte cartas, sortea tablero y devuelve todo por
+   * el sondeo, igual que en el arranque. Armar la mesa de este lado sería
+   * adivinar lo que el servidor está por mandar, y por un momento se verían
+   * dos partidas distintas.
+   *
+   * Lo único que hace falta de este lado es lo mismo que hace `empezarPartida`
+   * al arrancar: soltar la pantalla final y limpiar los golpes, que son
+   * locales y no viajan en la sala — sin eso la revancha empieza con los
+   * personajes molidos de la partida anterior. */
+  const revanchaOnline = async () => {
+    try {
+      await sala.revancha();
+    } catch {
+      /* El hook ya guardó el error y la pantalla lo muestra; acá sólo hay
+         que no seguir como si la mesa hubiera arrancado. */
+      return;
+    }
+    setGolpes({});
+    juego.setFinished(false);
+    alEmpezarPartida();
+    go("game");
+  };
+
   const volverAlMenu = () => {
     juego.setPlaying(false);
     juego.setFinished(false);
@@ -1622,7 +1648,18 @@ export default function App() {
             ganadorIdx={ganadorIdx}
             porAbandono={Boolean(sala.room?.endedByAbandon)}
             online={online}
-            onRematch={jugar}
+            onRematch={online ? revanchaOnline : jugar}
+            /* ►► En online la revancha la lanza el anfitrión, y sólo él. ◄◄
+             *
+             * Es la misma regla que ya tiene `startRoom`: la mesa tiene un
+             * dueño para arrancarla —el asiento 0— y darle a la revancha una
+             * regla distinta obligaría a explicar dos veces quién manda. El
+             * servidor la rechaza igual si llega de otro asiento; esto es
+             * para no mostrar un botón que va a fallar.
+             *
+             * En local no hay anfitrión: juegan todos en la misma pantalla y
+             * el que la tiene adelante decide. */
+            puedeRevancha={!online || sala.miLado === 0}
             onExit={volverAlMenu}
             /* ►► Contexto para leer la opinión, no para identificar a nadie. ◄◄
              *
