@@ -21,6 +21,8 @@
  * tarjeta blanca con el color de ESE jugador. La tarjeta en sí sigue blanca
  * a propósito: es el papel del dibujo, y teñirla habría tapado el trazo.
  */
+import FeedbackForm from "../components/FeedbackForm";
+
 export default function GameOverScreen({
   jugadores = [],
   ganadorIdx = 0,
@@ -28,6 +30,10 @@ export default function GameOverScreen({
   online,
   onRematch,
   onExit,
+  gano,
+  mesa,
+  inicioPartida,
+  version,
 }) {
   const ganador = jugadores[ganadorIdx];
   if (!ganador?.char) return null;
@@ -89,6 +95,12 @@ export default function GameOverScreen({
           {online ? "× Volver al menú" : "× Otros jugadores"}
         </button>
       </div>
+
+      {/* Va DESPUÉS de los botones y no antes: el que quiere otra partida
+          la tiene a mano sin pasar por encima de un formulario, y el que se
+          queda mirando el final se lo encuentra al bajar. Un demo necesita
+          las dos cosas, y en ese orden. */}
+      <FeedbackForm gano={gano} mesa={mesa} inicioPartida={inicioPartida} version={version} />
     </section>
   );
 }

@@ -7422,6 +7422,184 @@ body {
 }
 
 /* ============================================
+   LA OPINIÓN DEL FINAL
+   ============================================ */
+/* ►► Mide como un formulario, no como el juego. ◄◄
+ *
+ * Misma decisión que la ventana de reglas y por el mismo motivo: el juego
+ * escala con `html { font-size: 62.5% }` y baja hasta el 34% en pantallas
+ * chicas, que es correcto para un marcador y pésimo para escribir. Un
+ * campo de texto que encoge con la mesa se vuelve imposible de usar justo
+ * en el teléfono, que es donde más cuesta escribir. */
+.fb {
+  font-size: clamp(14px, 1vw, 17px);
+  width: min(52rem, 92vw);
+  margin: clamp(2rem, 5vh, 3.5rem) auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9em;
+  padding: 1.6em 1.4em;
+  border-top: 1px dashed rgba(232, 225, 204, 0.18);
+}
+
+.fb-titulo {
+  font-family: var(--display);
+  font-size: 1.15em;
+  letter-spacing: 0.16em;
+  color: var(--bone);
+  text-transform: uppercase;
+}
+
+.fb-estrellas {
+  display: flex;
+  gap: 0.15em;
+}
+.fb-estrella {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.05em 0.12em;
+  font-size: 2.4em;
+  line-height: 1;
+  /* Apagada es hueso muy bajo y no gris: el gris la sacaría de la paleta y
+     la haría parecer rota en vez de sin elegir. */
+  color: rgba(232, 225, 204, 0.22);
+  transition: color 0.15s, transform 0.15s;
+}
+.fb-estrella.encendida { color: var(--neon-amber); }
+.fb-estrella:hover { transform: scale(1.12); }
+.fb-estrella:focus-visible {
+  outline: 2px solid var(--c-gold);
+  outline-offset: 2px;
+  border-radius: 0.2em;
+}
+
+/* Ocupa su renglón siempre, con nota o sin ella: si apareciera al elegir,
+   empujaría el formulario entero hacia abajo justo cuando el dedo va al
+   siguiente campo. */
+.fb-significa {
+  min-height: 1.4em;
+  font-family: var(--lectura);
+  font-size: 0.95em;
+  color: var(--bone-dim);
+}
+
+.fb-resto {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8em;
+  margin-top: 0.4em;
+}
+
+.fb-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+.fb-etiqueta {
+  font-family: var(--lectura);
+  font-size: 0.9em;
+  color: var(--bone);
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+}
+/* "opcional", "si querés respuesta": aclaran sin competir con la pregunta. */
+.fb-etiqueta em {
+  font-style: normal;
+  font-size: 0.85em;
+  color: var(--bone-dim);
+}
+.fb-ayuda {
+  font-size: 0.85em;
+  color: var(--bone-dim);
+}
+
+.fb textarea,
+.fb input {
+  font-family: var(--lectura);
+  font-size: 1em;
+  color: var(--bone);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(232, 225, 204, 0.2);
+  border-radius: 0.3em;
+  padding: 0.55em 0.7em;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+.fb textarea:focus,
+.fb input:focus {
+  outline: none;
+  border-color: var(--c-gold);
+}
+
+.fb-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  flex-wrap: wrap;
+}
+.fb-si-no { display: flex; gap: 0.4em; }
+.fb-chip {
+  font-family: var(--display);
+  font-size: 0.85em;
+  letter-spacing: 0.1em;
+  color: var(--bone-dim);
+  background: transparent;
+  border: 1px solid rgba(232, 225, 204, 0.22);
+  border-radius: 0.3em;
+  padding: 0.45em 1.1em;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.fb-chip.activo {
+  color: var(--c-black);
+  background: var(--neon-amber);
+  border-color: var(--neon-amber);
+}
+
+/* Nombre y email comparten renglón: son los dos cortos y los dos
+   opcionales, y juntos se leen como un bloque que se puede saltear. */
+.fb-dos {
+  display: flex;
+  gap: 0.8em;
+}
+.fb-dos .fb-campo { flex: 1; min-width: 0; }
+
+.fb-error {
+  margin: 0;
+  font-family: var(--lectura);
+  font-size: 0.9em;
+  color: var(--blood);
+  text-align: center;
+}
+
+.fb-enviar { margin-top: 0.4em; }
+.fb-enviar:disabled { opacity: 0.4; cursor: default; }
+
+.fb-listo { text-align: center; }
+.fb-gracias {
+  font-family: var(--display);
+  font-size: 1.6em;
+  color: var(--neon-amber);
+  letter-spacing: 0.1em;
+}
+.fb-nota {
+  margin: 0.3em 0 0;
+  font-family: var(--lectura);
+  color: var(--bone-dim);
+}
+
+/* En un teléfono los dos campos cortos tampoco entran al lado: el email
+   quedaría en una caja de treinta píxeles. */
+@media (max-width: 560px) {
+  .fb-dos { flex-direction: column; }
+}
+
+/* ============================================
    PARTICLES
    ============================================ */
 .particle-layer {

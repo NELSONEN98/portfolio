@@ -8,7 +8,7 @@ import { useOnlineRoom } from "./hooks/useOnlineRoom";
 import { ROSTER, charFromCatId, warmRosterFrames } from "./roster";
 import { warmEmojis } from "./emojis";
 import { calentarEscena } from "./dice3d/cargar";
-import { getRoomId } from "./storage";
+import { getRoomId, leerAjuste, guardarAjuste } from "./storage";
 
 /* ►► El código de sala que vino en el enlace, si vino alguno. ◄◄
  *
@@ -18,6 +18,12 @@ import { getRoomId } from "./storage";
  *
  * Se lee una sola vez, al cargar el módulo. Después la URL se limpia, así
  * que preguntar más tarde daría null y la respuesta hay que guardarla. */
+/* La fecha del build, que `vite.config.js` inyecta. Viaja con cada opinión
+   del formulario final: sin ella no se puede saber si un reporte es de
+   antes o después de un arreglo. El respaldo es para `vite dev`, donde el
+   define existe igual pero conviene que se note que no es una publicación. */
+const VERSION = typeof __VERSION__ === "string" ? __VERSION__ : "dev";
+
 const INVITACION = (() => {
   try {
     const c = new URLSearchParams(location.search).get("sala");
@@ -563,6 +569,34 @@ export default function App() {
     else window.addEventListener("load", calentar, { once: true });
   }, []);
 
+  /* ►► Las reglas se abren solas la PRIMERA partida, y sólo esa. ◄◄
+   *
+   * Nadie lee un reglamento que hay que ir a buscar, y este juego tiene una
+   * regla que no se deduce mirando —lo acumulado se pierde con un 1— así
+   * que quien no la leyó no entiende su primera derrota: le parece que el
+   * juego le sacó puntos porque sí.
+   *
+   * Una sola vez, guardada en el mismo `localStorage` que el resto de los
+   * ajustes. Abrirlas en cada partida sería un peaje, y el botón de arriba
+   * a la derecha sigue estando para el que quiera volver.
+   *
+   * Es una función y no un efecto que espíe `screen`, por lo mismo que
+   * `RulesModal` no usa un efecto para cerrarse: empezar una partida es un
+   * EVENTO, no un estado del que esto se derive. Los dos caminos a la mesa
+   * —la local y la online— la llaman; el arranque del reloj viaja con ella
+   * porque las dos cosas pasan en el mismo instante y por el mismo motivo. */
+  const [inicioPartida, setInicioPartida] = useState(0);
+  const alEmpezarPartida = useCallback(() => {
+    /* Estado y no referencia: este valor SE DIBUJA —viaja como prop hasta
+       el formulario del final— y leer una referencia durante el pintado es
+       justo lo que React no garantiza. Escribirlo desde acá no cuesta un
+       pintado de más: ya estamos en el evento que cambia de pantalla. */
+    setInicioPartida(Date.now());
+    if (leerAjuste("reglasVistas", false)) return;
+    guardarAjuste("reglasVistas", true);
+    setReglasAbiertas(true);
+  }, []);
+
   /* Los hechos del motor se vacían apenas se muestran, o se repetirían en
      cada pintado. */
   const eventos = juego.events;
@@ -813,6 +847,7 @@ export default function App() {
       juego.start(
         newPlayers(elegidos.map((idx, i) => ROSTER[idx ?? (primero + i) % ROSTER.length]))
       );
+      alEmpezarPartida();
       go("game");
       return;
     }
@@ -878,8 +913,9 @@ export default function App() {
     setGolpes({});
     setPlaying(true);
     setFinished(false);
+    alEmpezarPartida();
     go("game");
-  }, [online, esperandoRival, sala.room, hayPartida, setPlaying, setFinished, go]);
+  }, [online, esperandoRival, sala.room, hayPartida, setPlaying, setFinished, go, alEmpezarPartida]);
 
   /* ►► Los casilleros que VE la pantalla de selección. ◄◄
    *
@@ -1588,6 +1624,24 @@ export default function App() {
             online={online}
             onRematch={jugar}
             onExit={volverAlMenu}
+            /* ►► Contexto para leer la opinión, no para identificar a nadie. ◄◄
+             *
+             * `gano` sólo tiene sentido en online, que es donde hay UN
+             * jugador de este lado: en local juegan varios en la misma
+             * pantalla y "ganaste" no tiene sujeto. Va null y el formulario
+             * lo manda así, que es distinto de "perdió".
+             *
+             * Sin este dato una nota baja es ilegible —no se sabe si dice
+             * "el juego es malo" o "acabo de perder"— y con él se puede
+             * comparar la media de los que ganaron contra la de los que no. */
+            gano={online ? ganadorIdx === sala.miLado : null}
+            mesa={juego.players.filter((p) => p?.char).length}
+            /* El INSTANTE de arranque, no la duración ya calculada: restarle
+               `Date.now()` acá daría un número nuevo en cada pintado, y el
+               rato que alguien pase escribiendo su opinión se sumaría a lo
+               que duró la partida. El formulario la congela al montarse. */
+            inicioPartida={inicioPartida}
+            version={VERSION}
           />
         )}
 

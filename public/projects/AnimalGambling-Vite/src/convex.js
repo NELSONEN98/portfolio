@@ -56,3 +56,16 @@ export const leaveRoom = (roomId) =>
   roomId
     ? convex.mutation("rooms:leaveRoom", conSesion({ roomId })).catch(() => {})
     : Promise.resolve();
+
+/* ►► La opinión del final. La única llamada que no es del juego. ◄◄
+ *
+ * Lleva la sesión como todo lo demás, pero acá no es para identificar a
+ * nadie: es para poder juntar la opinión con la partida que la provocó si
+ * algún día hace falta, y para notar si una misma persona mandó veinte.
+ *
+ * A diferencia del resto, esta SÍ deja pasar el error hacia arriba: el
+ * formulario tiene que poder decir "no se pudo enviar" y ofrecer
+ * reintentar. Tragárselo como hace `leaveRoom` haría que el jugador crea
+ * que mandó su opinión cuando no llegó a ninguna parte. */
+export const enviarFeedback = (datos) =>
+  convex.mutation("feedback:enviar", conSesion(datos));

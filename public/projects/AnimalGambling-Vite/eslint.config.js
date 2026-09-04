@@ -14,7 +14,11 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     languageOptions: {
-      globals: globals.browser,
+      /* `__VERSION__` lo inyecta `vite.config.js` al compilar: no existe en
+         el navegador ni en el editor, así que sin declararlo acá el linter
+         lo lee como una variable inventada. `readonly` porque nadie debe
+         asignarle nada — el valor lo pone el build. */
+      globals: { ...globals.browser, __VERSION__: 'readonly' },
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },

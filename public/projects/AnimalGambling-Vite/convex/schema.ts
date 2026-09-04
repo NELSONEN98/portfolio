@@ -167,6 +167,27 @@ export default defineSchema({
     gusto: v.optional(v.union(v.null(), v.string())),
     mejoraria: v.optional(v.union(v.null(), v.string())),
     comentario: v.optional(v.union(v.null(), v.string())),
+    /* Lo que se rompió, separado de `comentario` a propósito: un bug y una
+       opinión se leen en momentos distintos y por gente distinta. Mezclados
+       en un campo, para encontrar los reportes hay que leerlos todos. */
+    bug: v.optional(v.union(v.null(), v.string())),
+
+    /* ►► Si ganó o perdió, y es el campo que da sentido al resto. ◄◄
+     *
+     * Sin esto, un 2 de calificación es ilegible: no se sabe si dice "el
+     * juego es malo" o "acabo de perder". Con esto se puede mirar la nota
+     * media de los que ganaron contra la de los que perdieron, y recién ahí
+     * se sabe si una nota baja habla del juego o del resultado. */
+    gano: v.optional(v.union(v.null(), v.boolean())),
+    /* Si volvería a jugar. Es la pregunta más barata que existe para un
+       demo —una sola respuesta de sí o no— y la que mejor predice si esto
+       le interesó a alguien de verdad: se puede puntuar bien algo que no se
+       piensa volver a abrir. */
+    volveria: v.optional(v.union(v.null(), v.boolean())),
+    /* Cuánto duró la partida, en segundos. Una nota baja de alguien que
+       jugó cuarenta minutos no dice lo mismo que la de alguien que se fue a
+       los dos. */
+    duracionSeg: v.optional(v.number()),
 
     /* ►► Contexto que el formulario no pregunta. ◄◄
      *
