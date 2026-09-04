@@ -7852,7 +7852,17 @@ body {
   text-transform: none;
   font-size: 1.1em;
   line-height: 1.6;
-  color: var(--bone-dim);
+  /* ►► Hueso y no el hueso apagado, en TODO el bloque. ◄◄
+   *
+   * Este recuadro se llama a sí mismo "la regla que define el juego" y
+   * tiene borde propio para decirlo. Que su texto fuera el más apagado de
+   * la ventana —#a89e85 contra el #e8e1cc de la primera línea— se
+   * contradecía con todo lo demás que hace por destacarlo: el que llega
+   * acá tiene que LEER esto, no reconocerlo de reojo.
+   *
+   * El contraste sobre el negro del modal sube de 7,9:1 a 16:1. Los dos
+   * pasan AA de sobra; la diferencia no es de norma, es de jerarquía. */
+  color: var(--bone);
   display: flex;
   flex-direction: column;
   gap: 0.8em;
@@ -7861,9 +7871,16 @@ body {
   color: var(--blood);
   font-weight: 400;
 }
+/* ►► Y por eso la cursiva cambia de color. ◄◄
+ *
+ * Marcaba lo suyo poniéndose hueso sobre un texto apagado. Con el texto ya
+ * en hueso quedaba idéntica al resto: dejaba de marcar nada. El oro es el
+ * mismo que usa `.rule-text b` para el dato que no hay que perderse, así
+ * que el bloque termina con tres voces y ninguna repetida — hueso para
+ * leer, rojo para lo que te saca puntos, oro para el concepto. */
 .rule-hero-texto i {
   font-style: normal;
-  color: var(--bone);
+  color: var(--c-gold);
 }
 
 .rule-hero-linea {
