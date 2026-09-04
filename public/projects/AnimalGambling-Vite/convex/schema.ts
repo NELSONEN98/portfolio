@@ -152,10 +152,11 @@ export default defineSchema({
        ejecución — el mismo tipo de error que rompió `createRoom` con
        `beerStacks` y que no agarra ni el build ni un typecheck. */
     name: v.optional(v.union(v.null(), v.string())),
-    /* Para responderle a quien quiera respuesta. Es un dato personal y es
-       lo único de esta tabla que lo es: si algún día esto se muestra en
-       algún lado, este campo se queda afuera. */
-    email: v.optional(v.union(v.null(), v.string())),
+    /* Acá había un `email`, y se fue antes de guardar el primero. Era el
+       único dato personal de la tabla, y un demo que sólo quiere saber si
+       el juego se entiende no tiene por qué pedir una forma de contactar a
+       nadie: lo que no se recolecta no hay que cuidarlo ni borrarlo
+       después. */
 
     /* La calificación general, y el único campo pedido de verdad.
        Va como número —no como "bueno"/"malo"— para poder promediarlo. */
@@ -184,6 +185,12 @@ export default defineSchema({
        le interesó a alguien de verdad: se puede puntuar bien algo que no se
        piensa volver a abrir. */
     volveria: v.optional(v.union(v.null(), v.boolean())),
+    /* Si le parecieron complicadas las reglas. Es la pregunta que más sirve
+       en un demo y la que no se puede deducir del resto: un juego que no se
+       entiende no se juega mal, se abandona — y quien abandona no llega a
+       la pantalla que tiene el formulario, así que un "sí" acá vale por
+       todos los que se fueron sin decir nada. */
+    reglasComplicadas: v.optional(v.union(v.null(), v.boolean())),
     /* Cuánto duró la partida, en segundos. Una nota baja de alguien que
        jugó cuarenta minutos no dice lo mismo que la de alguien que se fue a
        los dos. */

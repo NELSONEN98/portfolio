@@ -21,7 +21,6 @@ import { v } from "convex/values";
    su opinión entera por pasarse de largo sería el peor canje posible. */
 const TOPE_TEXTO = 1200;
 const TOPE_NOMBRE = 60;
-const TOPE_EMAIL = 120;
 
 /* Recorta y limpia. Devuelve null —y no "" — para lo que quedó vacío: el
    schema distingue "no lo mandó" de "lo mandó en blanco", y guardar cadenas
@@ -36,13 +35,13 @@ export const enviar = mutation({
   args: {
     rating: v.number(),
     name: v.optional(v.union(v.null(), v.string())),
-    email: v.optional(v.union(v.null(), v.string())),
     gusto: v.optional(v.union(v.null(), v.string())),
     mejoraria: v.optional(v.union(v.null(), v.string())),
     comentario: v.optional(v.union(v.null(), v.string())),
     bug: v.optional(v.union(v.null(), v.string())),
     gano: v.optional(v.union(v.null(), v.boolean())),
     volveria: v.optional(v.union(v.null(), v.boolean())),
+    reglasComplicadas: v.optional(v.union(v.null(), v.boolean())),
     duracionSeg: v.optional(v.number()),
     sessionId: v.optional(v.string()),
     mesa: v.optional(v.number()),
@@ -75,13 +74,14 @@ export const enviar = mutation({
     await ctx.db.insert("feedback", {
       rating,
       name: texto(args.name, TOPE_NOMBRE),
-      email: texto(args.email, TOPE_EMAIL),
       gusto: texto(args.gusto, TOPE_TEXTO),
       mejoraria: texto(args.mejoraria, TOPE_TEXTO),
       comentario: texto(args.comentario, TOPE_TEXTO),
       bug: texto(args.bug, TOPE_TEXTO),
       gano: typeof args.gano === "boolean" ? args.gano : null,
       volveria: typeof args.volveria === "boolean" ? args.volveria : null,
+      reglasComplicadas:
+        typeof args.reglasComplicadas === "boolean" ? args.reglasComplicadas : null,
       duracionSeg,
       sessionId: args.sessionId,
       mesa,

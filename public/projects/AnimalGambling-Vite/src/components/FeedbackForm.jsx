@@ -19,6 +19,35 @@ import { enviarFeedback } from "../convex";
 
 const ESTRELLAS = [1, 2, 3, 4, 5];
 
+/* Un par de botones sí/no. Sale como componente en cuanto hubo dos
+   preguntas de este tipo: la segunda copiada a mano son doce líneas
+   repetidas donde el día de mañana se arregla una y se olvida la otra.
+   Volver a apretar el elegido lo desmarca — nadie tiene por qué quedar
+   atado a una respuesta que dio de más en un formulario opcional. */
+function SiNo({ etiqueta, valor, alElegir }) {
+  return (
+    <div className="fb-fila">
+      <span className="fb-etiqueta">{etiqueta}</span>
+      <div className="fb-si-no">
+        {[
+          ["Sí", true],
+          ["No", false],
+        ].map(([texto, v]) => (
+          <button
+            key={texto}
+            type="button"
+            className={`fb-chip${valor === v ? " activo" : ""}`}
+            aria-pressed={valor === v}
+            onClick={() => alElegir(valor === v ? null : v)}
+          >
+            {texto}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* Qué dice cada nota. No es decoración: una estrella sola es ambigua —hay
    quien puntúa 3 pensando "está bien"— y el rótulo fija la escala para
    todos, que es lo que hace comparables las respuestas. */
@@ -49,13 +78,16 @@ export default function FeedbackForm({ gano, mesa, inicioPartida, version }) {
      encima de una nota más baja apagaría las que ya están elegidas. */
   const [encima, setEncima] = useState(0);
   const [volveria, setVolveria] = useState(null);
+  /* Si le costó entender de qué iba. Es la pregunta que más sirve en un
+     demo: un juego que no se entiende no se juega mal, se abandona — y eso
+     no aparece en la calificación, que la deja quien llegó al final. */
+  const [reglasComplicadas, setReglasComplicadas] = useState(null);
   const [campos, setCampos] = useState({
     name: "",
     gusto: "",
     mejoraria: "",
     bug: "",
     comentario: "",
-    email: "",
   });
   const [estado, setEstado] = useState("editando"); // editando | enviando | listo | error
 
@@ -70,6 +102,7 @@ export default function FeedbackForm({ gano, mesa, inicioPartida, version }) {
         rating,
         ...campos,
         volveria,
+        reglasComplicadas,
         gano,
         mesa,
         duracionSeg,
@@ -88,7 +121,7 @@ export default function FeedbackForm({ gano, mesa, inicioPartida, version }) {
     return (
       <div className="fb fb-listo" role="status">
         <div className="fb-gracias">¡Gracias!</div>
-        <p className="fb-nota">Lo tuyo ya nos llegó.</p>
+        <p className="fb-nota">Ya nos llegó lo que escribiste.</p>
       </div>
     );
   }
@@ -134,27 +167,16 @@ export default function FeedbackForm({ gano, mesa, inicioPartida, version }) {
           sería pedirle seis respuestas a alguien que todavía no dio una. */}
       {rating > 0 && (
         <div className="fb-resto">
-          <div className="fb-fila">
-            <span className="fb-etiqueta">¿Volverías a jugar?</span>
-            <div className="fb-si-no">
-              <button
-                type="button"
-                className={`fb-chip${volveria === true ? " activo" : ""}`}
-                aria-pressed={volveria === true}
-                onClick={() => setVolveria(volveria === true ? null : true)}
-              >
-                Sí
-              </button>
-              <button
-                type="button"
-                className={`fb-chip${volveria === false ? " activo" : ""}`}
-                aria-pressed={volveria === false}
-                onClick={() => setVolveria(volveria === false ? null : false)}
-              >
-                No
-              </button>
-            </div>
-          </div>
+          <SiNo
+            etiqueta="¿Volverías a jugar?"
+            valor={volveria}
+            alElegir={setVolveria}
+          />
+          <SiNo
+            etiqueta="¿Te parecieron complicadas las reglas?"
+            valor={reglasComplicadas}
+            alElegir={setReglasComplicadas}
+          />
 
           <label className="fb-campo">
             <span className="fb-etiqueta">¿Qué te gustó?</span>
@@ -169,7 +191,7 @@ export default function FeedbackForm({ gano, mesa, inicioPartida, version }) {
           <label className="fb-campo">
             <span className="fb-etiqueta">
               ¿Se rompió algo?
-              <span className="fb-ayuda">contá qué hacías cuando pasó</span>
+              <span className="fb-ayuda">cuenta qué hacías cuando pasó</span>
             </span>
             <textarea rows={2} value={campos.bug} onChange={cambiar("bug")} />
           </label>
@@ -179,27 +201,16 @@ export default function FeedbackForm({ gano, mesa, inicioPartida, version }) {
             <textarea rows={2} value={campos.comentario} onChange={cambiar("comentario")} />
           </label>
 
-          <div className="fb-dos">
-            <label className="fb-campo">
-              <span className="fb-etiqueta">Tu nombre <em>opcional</em></span>
-              <input type="text" value={campos.name} onChange={cambiar("name")} maxLength={60} />
-            </label>
-            <label className="fb-campo">
-              <span className="fb-etiqueta">Email <em>si querés respuesta</em></span>
-              <input
-                type="email"
-                value={campos.email}
-                onChange={cambiar("email")}
-                maxLength={120}
-              />
-            </label>
-          </div>
+          <label className="fb-campo">
+            <span className="fb-etiqueta">Tu nombre <em>opcional</em></span>
+            <input type="text" value={campos.name} onChange={cambiar("name")} maxLength={60} />
+          </label>
         </div>
       )}
 
       {estado === "error" && (
         <p className="fb-error" role="alert">
-          No se pudo enviar. Lo que escribiste sigue acá: probá de nuevo.
+          No se pudo enviar. Lo que escribiste sigue aquí: inténtalo de nuevo.
         </p>
       )}
 

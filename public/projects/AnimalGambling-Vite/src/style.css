@@ -7561,14 +7561,6 @@ body {
   border-color: var(--neon-amber);
 }
 
-/* Nombre y email comparten renglón: son los dos cortos y los dos
-   opcionales, y juntos se leen como un bloque que se puede saltear. */
-.fb-dos {
-  display: flex;
-  gap: 0.8em;
-}
-.fb-dos .fb-campo { flex: 1; min-width: 0; }
-
 .fb-error {
   margin: 0;
   font-family: var(--lectura);
@@ -7593,11 +7585,9 @@ body {
   color: var(--bone-dim);
 }
 
-/* En un teléfono los dos campos cortos tampoco entran al lado: el email
-   quedaría en una caja de treinta píxeles. */
-@media (max-width: 560px) {
-  .fb-dos { flex-direction: column; }
-}
+/* Acá vivía `.fb-dos`, la fila que ponía el nombre y el email uno al lado
+   del otro. Con el email afuera el nombre quedó solo, y una fila de un
+   solo elemento es una fila que no hace nada. */
 
 /* ============================================
    PARTICLES
