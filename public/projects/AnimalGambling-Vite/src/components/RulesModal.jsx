@@ -184,9 +184,14 @@ export default function RulesModal({ abierta, onClose }) {
               disabled={i > pasoMax}
               className={`rules-tab${paso === i ? " activa" : ""}${i > pasoMax ? " bloqueada" : ""}${i < paso ? " vista" : ""}`}
               onClick={() => irA(i)}
+              /* El nombre se esconde en pantallas angostas —no entra sin
+                 partirse ni cortarse— pero el botón tiene que seguir
+                 diciendo a dónde lleva, así que va también acá, donde el
+                 CSS no lo puede tapar. */
+              aria-label={`${i + 1}. ${s.nombre}`}
             >
               <span className="rules-tab-n">{i + 1}</span>
-              {s.nombre}
+              <span className="rules-tab-nombre">{s.nombre}</span>
             </button>
           ))}
         </div>

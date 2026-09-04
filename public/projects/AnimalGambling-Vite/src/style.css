@@ -8256,6 +8256,121 @@ body {
     align-items: flex-start;
     gap: 0.6em;
   }
+
+  /* ►► En un teléfono el marco se comía la ventana. ◄◄
+   *
+   * Medido en un 360×640: encabezado 94px, pestañas 88, navegación 84 y
+   * pie 89 — 355px de marco contra 233px de reglas. El SESENTA por ciento
+   * de una ventana que existe para leer no se podía leer, y en "las
+   * cartas" eso obligaba a scrollear veinticinco veces su propio alto.
+   *
+   * Nada de esto se arregla achicando la letra: el texto ya está en su
+   * mínimo cómodo. Lo que sobra es todo lo que NO es la regla, así que es
+   * eso lo que cede. */
+  .rules-header {
+    /* El título estaba centrado en todo el ancho y la ✕ encima, en
+       absoluto: en 360px se pisaban. Reservarle su lugar a la derecha es
+       lo que los separa sin achicar ninguno de los dos. */
+    padding: 1.1em 4.2em 0.9em 1.4em;
+    gap: 0.3em;
+  }
+  .rules-title { font-size: 1.7em; letter-spacing: 0.16em; }
+  .rules-close { top: 0.9em; right: 0.9em; width: 2.6em; height: 2.6em; font-size: 1.2em; }
+  .rules-logo { height: 2.2em; }
+
+  /* Las cuatro pestañas entraban en dos filas y cobraban el doble. En una
+     sola, apretadas, siguen diciendo lo mismo: en qué paso vas y cuántos
+     faltan. El número solo alcanza — el nombre de la sección ya está en el
+     título de la regla que se está leyendo. */
+  .rules-tabs {
+    padding: 0.7em 1.4em 0;
+    gap: 0.3em;
+    flex-wrap: nowrap;
+  }
+  .rules-tab {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+    padding: 0.55em 0.2em;
+    font-size: 0.85em;
+  }
+  /* ►► El nombre se va entero, no cortado. ◄◄
+   *
+   * Cuatro botones en 360px dan unos 80 píxeles cada uno, y "LAS CARTAS"
+   * no entra ahí de ninguna manera. El primer intento fue recortarlo con
+   * `overflow:hidden` y quedaba peor que no ponerlo: "1 EL JUEG",
+   * "4 LAS CART" — una palabra cortada se lee como un error, no como una
+   * abreviatura.
+   *
+   * Queda el número, que es lo que esta barra vino a decir: en qué paso
+   * vas y cuántos faltan. El nombre de la sección ya está, grande, en el
+   * título de la regla que se está leyendo justo abajo — y sigue en el
+   * `aria-label` del botón para quien navegue sin verlo. */
+  .rules-tab-nombre { display: none; }
+  .rules-tab-n { font-size: 1.15em; }
+
+  .rules-body { padding: 1.2em 1.4em; }
+
+  /* Los botones partían las palabras en tres renglones —"A / JUGAR / ✕"—
+     y por eso la barra medía 106px. Con menos relleno y sin partir, mide
+     lo que mide un botón. */
+  .rules-nav { padding: 0.8em 1.4em 0; gap: 0.6em; }
+  .rules-nav-btn {
+    padding: 0.7em 1em;
+    font-size: 0.9em;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .rules-nav-paso { font-size: 0.85em; white-space: nowrap; }
+
+  /* El pie es una broma, y una buena, pero cuesta 89px de los 233 que le
+     quedaban a las reglas. En una pantalla grande está; acá se va, que es
+     donde el chiste sale más caro que el contenido. */
+  .rules-footer { display: none; }
+
+  /* El badge del título —"× sacar un 1 ×"— no encogía y sacaba la fila
+     entera de la ventana: medido, 426px de contenido contra 266 de ancho.
+     El título pasa a poder envolver y el badge a caber en su renglón. */
+  .rule-title {
+    flex-wrap: wrap;
+    gap: 0.5em;
+    font-size: 1.5em;
+  }
+  /* Sin `nowrap`: el más largo de los badges —"× mesa de 3 y 4 ×", con su
+     espaciado de letras— mide más que el ancho entero de la columna, así
+     que atarlo a un renglón lo sacaba de la ventana igual que antes
+     (medido: 248px contra 222 de sitio). Partido en dos renglones entra, y
+     un badge de dos renglones se lee perfecto. */
+  .rule-badge { font-size: 0.85em; letter-spacing: 0.08em; }
+}
+
+/* ►► Acostado, el problema no es el ancho: es el ALTO. ◄◄
+ *
+ * Un teléfono en horizontal deja 390px de alto, y de ahí el marco se
+ * llevaba el 85%: quedaban SESENTA Y UN PÍXELES de reglas, que no es una
+ * ventana de lectura, es una rendija — se veía el "01" cortado al medio y
+ * nada más.
+ *
+ * Va por `max-height` y no por ancho porque eso es lo que escasea: la
+ * misma pantalla parada anda bien. Y como el ancho sobra, las pestañas
+ * pueden quedarse enteras; lo que se aplasta es todo lo que ocupa ALTO. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .rules-modal { max-height: 96vh; max-height: 96dvh; }
+  .rules-header { padding: 0.7em 4em 0.5em 1.4em; }
+  .rules-title { font-size: 1.4em; }
+  .rules-logo { display: none; }
+  .rules-close { top: 0.5em; right: 0.7em; width: 2.4em; height: 2.4em; }
+  .rules-tabs { padding: 0.4em 1.4em 0; }
+  .rules-tab { padding: 0.4em 0.9em; font-size: 0.8em; }
+  .rules-body { padding: 0.9em 1.4em; }
+  .rules-nav { padding: 0.5em 1.4em 0; }
+  .rules-nav-btn { padding: 0.5em 1.1em; font-size: 0.85em; white-space: nowrap; }
+  .rules-footer { display: none; }
+  /* Acostado hay ancho de sobra: la carta vuelve al lado del texto en vez
+     de apilarse, que es lo que la haría comerse la rendija entera. */
+  .rule-item { flex-direction: row; align-items: center; gap: 1em; }
+  .rule-card { --card-w: 5.5em; }
+  .rule-hero-body { flex-direction: row; text-align: left; }
 }
 
 /* — Small mobile ≤ 420px — */
