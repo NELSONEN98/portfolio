@@ -7904,16 +7904,6 @@ body {
   .rules-body {
     padding: 1.4em 1.4em;
   }
-  /* El fondo del hover sale por los costados con un margen negativo que
-     está calzado al padding del cuerpo. Acá el padding es menor, y sin
-     recalcularlo el bloque se pasa de largo — y como el cuerpo scrollea en
-     vertical, el eje horizontal también deja de ser `visible` y aparece una
-     barra de scroll lateral. */
-  .rules-rule:hover {
-    margin: 0 -1.4em;
-    padding-left: 1.4em;
-    padding-right: 1.4em;
-  }
   /* En una columna angosta el dado al costado le deja al texto un canal de
      pocas palabras por renglón, que es donde la lectura se rompe. */
   .rule-hero-body {
@@ -7930,15 +7920,25 @@ body {
   align-items: flex-start;
   padding: 1.6em 0;
   border-bottom: 1px solid rgba(232, 225, 204, 0.07);
-  transition: background 0.2s;
 }
 .rules-rule:last-child { border-bottom: none; }
-.rules-rule:hover {
-  background: rgba(245, 185, 66, 0.03);
-  margin: 0 -3rem;
-  padding-left: 3em;
-  padding-right: 3em;
-}
+
+/* ►► Acá vivía el hover de cada regla, y se fue entero. ◄◄
+ *
+ * Encendía el fondo, aclaraba el número y estiraba la fila hasta los
+ * bordes con un margen negativo calzado al padding del cuerpo. El gesto
+ * está bien en una lista donde se ELIGE algo; acá no hay nada que elegir
+ * —son párrafos para leer— así que lo único que hacía era mover la página
+ * bajo el cursor mientras alguien la lee.
+ *
+ * Se va también el margen negativo, y con él un problema que ese margen
+ * se había traído: había que recalcularlo en cada consulta de medios,
+ * porque descalzado del padding empujaba la fila fuera del cuerpo y
+ * aparecía una barra de scroll lateral. Un efecto decorativo no debería
+ * costar tres reglas de mantenimiento.
+ *
+ * Los botones —pestañas, navegación, cerrar— conservan el suyo: ésos sí
+ * se aprietan, y ahí el hover dice "esto responde". */
 
 .rule-num {
   font-family: var(--display);
@@ -7956,9 +7956,6 @@ body {
   min-width: 1.3em;
   margin-top: -0.4em;
   user-select: none;
-}
-.rules-rule:hover .rule-num {
-  color: rgba(245, 185, 66, 0.25);
 }
 
 /* `min-width: 0` y no el `auto` que trae `flex:1` por default: un hijo
@@ -8115,15 +8112,13 @@ body {
 }
 .rule-card:hover { transform: none; }
 
-/* bust row — blood red accent */
+/* Las dos reglas con color propio. El número ya sale teñido de entrada
+   —rojo la de quemarse, ámbar la de ganar— y eso es lo que las distingue;
+   el realce al pasar por encima se fue con el resto de los hover. */
 .rules-rule.bust .rule-num { color: rgba(199, 54, 95, 0.18); }
-.rules-rule.bust:hover .rule-num { color: rgba(199, 54, 95, 0.35); }
-.rules-rule.bust:hover { background: rgba(199, 54, 95, 0.04); }
 
-/* win row — amber accent */
 .rules-rule.win .rule-title { color: var(--neon-amber); }
 .rules-rule.win .rule-num { color: rgba(245, 185, 66, 0.2); }
-.rules-rule.win:hover .rule-num { color: rgba(245, 185, 66, 0.4); }
 
 /* El paso obligado. Fuera del cuerpo que scrollea a propósito: tiene que
    verse siempre, sin bajar hasta el final de una sección larga a buscarlo. */
@@ -8260,7 +8255,6 @@ body {
      seguir leyéndose de lejos— pero el `min-width` ya no reserva más que
      lo que ese número realmente ocupa. */
   .rules-rule { gap: 0.6em; padding: 1.2em 0; }
-  .rules-rule:hover { margin: 0 -2rem; padding-left: 2em; padding-right: 2em; }
   .rule-num { font-size: 2.6em; min-width: 1.3em; }
   /* La carta de muestra creció para leerse sola (3.4: 4.4em → 8.5em) y en
      una columna angosta ya no entra al lado del texto sin repetir el
