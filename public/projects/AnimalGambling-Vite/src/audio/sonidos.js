@@ -115,7 +115,7 @@ export const SONIDOS = {
    * 46,6MB del wav— y por el mismo motivo del bucle: esta se repite durante
    * toda la partida, que es donde los 25ms de silencio del mp3 se
    * escucharían una y otra vez. */
-  partida: { archivo: BASE + "gambling-katz-gameplay.webm", volumen: 1, tipo: "musica" },
+  partida: { archivo: BASE + "gambling-katz-gameplay-v2.webm", volumen: 1, tipo: "musica" },
 };
 
 /* ►► Lo que todavía no existe, dicho acá y no en un comentario suelto. ◄◄

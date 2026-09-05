@@ -96,6 +96,15 @@ for (const entry of readdirSync(dist, { withFileTypes: true })) {
  *      `.xcf`        abre; el que se usa es el PNG exportado. Uno solo son
  *                    427KB.
  *  · `*.zip`         paquetes de assets sin desempaquetar.
+ *  · `*.wav`         el audio SIN COMPRIMIR del que sale el `.webm`. Uno
+ *                    solo son 47MB, más que el juego entero, y el que suena
+ *                    es siempre el convertido. Los originales van a
+ *                    `source-art/`, pero uno se copia a `public/` cada vez
+ *                    que llega una versión nueva y basta con olvidarse de
+ *                    moverlo una vez.
+ *  · `*.asd`         el análisis que Ableton deja al lado de cada wav.
+ *                    Llegó pegado a un soundtrack —838KB— y no lo abre
+ *                    nadie más que Ableton.
  *  · `local_cache`   el caché de modelos de una herramienta que no es el
  *                    juego. Se coló una vez y publicó 127MB.
  *  · vacías          carpetas sin nada adentro, que no sirven a nadie.
@@ -103,7 +112,7 @@ for (const entry of readdirSync(dist, { withFileTypes: true })) {
  * Se filtra al COPIAR y no borrando después: lo segundo deja una ventana en
  * la que los archivos ya están en la carpeta publicada, y si alguien
  * commitea en el medio se van igual. */
-const NO_PUBLICAR = [/~$/, /\.(kra|psd|xcf|zip)$/i];
+const NO_PUBLICAR = [/~$/, /\.(kra|psd|xcf|zip|wav|asd)$/i];
 const CARPETAS_NO_PUBLICAR = new Set(["local_cache"]);
 
 let saltados = 0;
