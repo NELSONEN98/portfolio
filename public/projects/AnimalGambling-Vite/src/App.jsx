@@ -8,6 +8,7 @@ import { useOnlineRoom } from "./hooks/useOnlineRoom";
 import { ROSTER, charFromCatId, warmRosterFrames } from "./roster";
 import { warmEmojis } from "./emojis";
 import { calentarEscena } from "./dice3d/cargar";
+import { musica } from "./audio/player";
 import { getRoomId, leerAjuste, guardarAjuste } from "./storage";
 
 /* ►► El código de sala que vino en el enlace, si vino alguno. ◄◄
@@ -592,6 +593,13 @@ export default function App() {
        justo lo que React no garantiza. Escribirlo desde acá no cuesta un
        pintado de más: ya estamos en el evento que cambia de pantalla. */
     setInicioPartida(Date.now());
+
+    /* La música cambia de pista acá: `tema` es la de estar mirando y ésta la
+       de estar jugando. Va antes del `return` de abajo —no después— o la
+       segunda partida en adelante se quedaría con la música del menú, que es
+       justo cuando ya nadie está mirando el menú. */
+    musica("partida");
+
     if (leerAjuste("reglasVistas", false)) return;
     guardarAjuste("reglasVistas", true);
     setReglasAbiertas(true);
@@ -1439,6 +1447,10 @@ export default function App() {
   };
 
   const volverAlMenu = () => {
+    /* Vuelve la música de estar mirando. Sin esto, la de la mesa seguiría
+       sonando sobre el título y la selección de gato: `musica()` sólo cambia
+       de pista cuando se le pide otra, no adivina que la partida terminó. */
+    musica("tema");
     juego.setPlaying(false);
     juego.setFinished(false);
     /* Se suelta la partida: sin esto, escribir #/game en la barra volvería

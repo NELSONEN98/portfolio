@@ -100,6 +100,22 @@ export const SONIDOS = {
    * reproductor ya baja la música al 55% para que no se coma los golpes
    * del dado, que son cortos y agudos. */
   tema: { archivo: BASE + "gambling-katz-v3.webm", volumen: 1, tipo: "musica" },
+
+  /* ►► La de la mesa, y por eso es OTRA pista y no la misma. ◄◄
+   *
+   * `tema` suena desde la puerta del sonido hasta que alguien elige gato:
+   * es la música de estar mirando. Ésta arranca cuando empieza la partida,
+   * que es cuando el juego pasa de mostrarse a jugarse — y el cambio de
+   * pista es lo que marca ese salto sin que haya que decirlo con un cartel.
+   *
+   * El reproductor ya sabe hacer el relevo: `musica()` desvanece la que está
+   * sonando antes de poner la nueva, así que pedirla es todo el trabajo.
+   *
+   * Mismo tratamiento que la otra —Opus a 96k, 4:37 en 3,5MB contra los
+   * 46,6MB del wav— y por el mismo motivo del bucle: esta se repite durante
+   * toda la partida, que es donde los 25ms de silencio del mp3 se
+   * escucharían una y otra vez. */
+  partida: { archivo: BASE + "gambling-katz-gameplay.webm", volumen: 1, tipo: "musica" },
 };
 
 /* ►► Lo que todavía no existe, dicho acá y no en un comentario suelto. ◄◄
