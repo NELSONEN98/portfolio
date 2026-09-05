@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { ms } from "../theme";
 
-const REGLAS_MS = ms("apertura.reglas");
+const ENTRADA_MS = ms("apertura.entrada");
+const META_MS = ms("apertura.meta");
 const CARTA_MS = ms("apertura.carta");
 const ESCALON_MS = ms("apertura.escalon");
 const RESPIRO_MS = ms("apertura.respiro");
@@ -10,14 +11,28 @@ const RESPIRO_MS = ms("apertura.respiro");
  *
  * Cuatro pasos, y cada uno explica el siguiente:
  *
- *   reglas    "PRIMERO EN LLEGAR A 100", solo en pantalla
+ *   entrada   la mesa sola, un respiro antes de que vuele nada
  *   reparto   las cartas salen del mazo hacia cada jugador
  *   mano      las cartas llegaron: aparece el abanico
- *   listo     aparece el dado con su bocanada y se va el cartel
+ *   listo     aparece el dado, y CON él el cartel de la meta
+ *   jugando   el cartel ya se leyó y se va; queda la mesa
  *
- * Es el orden de una mesa de verdad: se dice a qué se juega, se reparte, y
- * recién entonces alguien toca el dado. Todo junto, el jugador ve una
- * pantalla llena de cosas sin saber cuál mirar primero.
+ * Es el orden de una mesa de verdad: se reparte, y recién entonces alguien
+ * toca el dado. Todo junto, el jugador ve una pantalla llena de cosas sin
+ * saber cuál mirar primero.
+ *
+ * ►► El cartel de la meta cambió de punta. ◄◄
+ *
+ * Estaba en el primer paso, solo en pantalla y antes del reparto: 900ms en
+ * los que todavía no hay nada que mirar, así que se leía como parte de la
+ * carga y no como una regla. Y se iba JUSTO cuando entraba el dado, o sea
+ * en el momento en que el jugador por fin miraba la mesa.
+ *
+ * Ahora entra con el dado —cuando ya hay una partida delante y la frase
+ * significa algo— y se va sola unos segundos después, que es lo que tarda
+ * en leerse. El paso de entrada se queda igual: dejó de sostener el cartel,
+ * pero sigue siendo el respiro que evita que las cartas vuelen encima de
+ * una mesa que todavía se está pintando.
  *
  * ►► `mano` existe por una razón concreta. ◄◄
  * Sin ese paso, el abanico aparecía durante el reparto y las cartas volaban
@@ -37,16 +52,21 @@ export function useApertura(cuantas, activa = true) {
      a una partida ya empezada: en online la pantalla se monta igual al
      reconectar, y repartir de nuevo unas cartas que el jugador ya tiene
      sería contar una mentira sobre el estado de la mesa. */
-  const [fase, setFase] = useState(activa ? "reglas" : "listo");
+  const [fase, setFase] = useState(activa ? "entrada" : "jugando");
 
   useEffect(() => {
     if (!activa) return;
 
     const repartoMs = CARTA_MS + Math.max(0, cuantas - 1) * ESCALON_MS;
+    const hastaListo = ENTRADA_MS + repartoMs + RESPIRO_MS;
     const t = [
-      setTimeout(() => setFase("reparto"), REGLAS_MS),
-      setTimeout(() => setFase("mano"), REGLAS_MS + repartoMs),
-      setTimeout(() => setFase("listo"), REGLAS_MS + repartoMs + RESPIRO_MS),
+      setTimeout(() => setFase("reparto"), ENTRADA_MS),
+      setTimeout(() => setFase("mano"), ENTRADA_MS + repartoMs),
+      setTimeout(() => setFase("listo"), hastaListo),
+      /* Y una más: el cartel de la meta se apaga solo. Va como fase y no
+         como un `setTimeout` suelto en la pantalla para que el orden entero
+         de la apertura siga viviendo en un lugar. */
+      setTimeout(() => setFase("jugando"), hastaListo + META_MS),
     ];
     return () => t.forEach(clearTimeout);
   }, [activa, cuantas]);
@@ -56,9 +76,12 @@ export function useApertura(cuantas, activa = true) {
     /* Se exponen como banderas y no comparando la fase afuera: así el orden
        de los pasos vive sólo acá, y la pantalla no tiene que saber cuál
        viene antes que cuál para dibujarse. */
-    muestraReglas: fase !== "listo",
+    /* El cartel de la meta: sólo en el paso donde entra el dado. Antes era
+       `fase !== "listo"` —o sea, todo el rato MENOS ese— que es exactamente
+       al revés de donde sirve. */
+    muestraMeta: fase === "listo",
     reparte: fase === "reparto",
-    muestraMano: fase === "mano" || fase === "listo",
-    muestraDado: fase === "listo",
+    muestraMano: fase === "mano" || fase === "listo" || fase === "jugando",
+    muestraDado: fase === "listo" || fase === "jugando",
   };
 }

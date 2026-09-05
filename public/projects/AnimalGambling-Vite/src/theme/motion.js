@@ -102,10 +102,16 @@ export const MOTION = {
      estos tiempos es lo que el jugador espera antes de tocar nada: con dos
      jugadores son ~2.1s, con cuatro ~2.8s. */
   apertura: {
-    /* El cartel de la meta, solo en pantalla antes de que se reparta. Es lo
-       único que hay que saber para jugar, así que se dice primero y sin
-       nada más compitiendo. */
-    reglas: { ms: 900, el: ".pool-goal" },
+    /* El respiro antes de que se reparta: la mesa sola, sin nada volando.
+       Sostenía el cartel de la meta y ya no —ese se mudó al final, cuando
+       entra el dado— pero el paso se queda: sin él las cartas salen
+       disparadas encima de una mesa que todavía se está pintando. */
+    entrada: { ms: 900 },
+    /* Cuánto queda el cartel de la meta una vez que entró el dado. Es tiempo
+       de LECTURA, no de animación: "primero a 50" son cuatro palabras, y
+       tres segundos y medio alcanzan para leerlas sin apuro y sin que el
+       cartel se instale sobre la mesa el resto de la partida. */
+    meta: { ms: 3500, el: ".pool-goal" },
     carta: {
       ms: 420,
       ease: EASE.salida,

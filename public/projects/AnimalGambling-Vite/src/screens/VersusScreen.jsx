@@ -376,10 +376,13 @@ export default function VersusScreen({
           />
 
           <div className="dice-arena">
-            {/* Se va cuando aparece el dado, no cuando alguien tira: la
-                apertura es la que decide, y el dado entrando es la señal de
-                que ya se puede jugar. */}
-            <div className={`pool-goal${apertura.muestraReglas ? "" : " oculto"}`}>
+            {/* ►► Entra CON el dado, no antes. ◄◄
+                Estaba al revés: se mostraba durante la carga y se iba justo
+                cuando el dado aparecía, o sea en el momento en que el
+                jugador por fin miraba la mesa. Ahora llega con el dado
+                —cuando la frase ya significa algo— y se apaga sola unos
+                segundos después, que es lo que tarda en leerse. */}
+            <div className={`pool-goal${apertura.muestraMeta ? "" : " oculto"}`}>
               primero a <span className="num">{goal}</span>
             </div>
           </div>
