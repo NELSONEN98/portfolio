@@ -589,11 +589,40 @@ export const getRoom = query({
        dado. Comparando puntajes no alcanza: una tirada que suma y un
        plantarse se ven casi igual desde afuera, y un 1 deja el acumulado
        en cero sin decir que salió un 1. */
-    const lastEvent = await ctx.db
+    /* ►► Los ULTIMOS, en plural, y por eso los emojis no se veian. ◄◄
+     *
+     * Aca habia un `.first()`: la sala viajaba con UN evento, el mas
+     * reciente. El sondeo corre cada dos segundos, asi que todo lo que
+     * pasara entre dos sondeos menos lo ultimo se perdia sin dejar rastro.
+     *
+     * Casi nunca se notaba, y el motivo es que el resto de los eventos
+     * tiene RESPALDO: una tirada perdida igual se ve porque el puntaje y el
+     * acumulado viajan en la sala, y un plantarse tambien. El emoji es el
+     * unico que no deja huella en ningun otro campo — si se pierde el
+     * evento, no hay de donde reconstruirlo. Por eso el sintoma aparecia
+     * ahi y no en las tiradas.
+     *
+     * Y se perdia SIEMPRE que alguien tirara emoji y dado en la misma
+     * ventana de dos segundos, que en una partida es todo el tiempo: se
+     * tira un emoji justo PORQUE acaba de pasar algo.
+     *
+     * Ahora viajan los ultimos doce en orden cronologico y el cliente
+     * reproduce los que todavia no vio. Doce y no mas: en dos segundos, con
+     * cuatro jugadores, no hay forma de generar tantos, y traer una lista
+     * larga en cada sondeo es peso por nada.
+     *
+     * `lastEvent` se queda por compatibilidad: durante el despliegue hay un
+     * rato en que pantallas con el codigo viejo hablan con este backend, y
+     * quitarlo las dejaria sin animaciones hasta que recarguen. */
+    const ultimos = await ctx.db
       .query("gameEvents")
       .withIndex("by_roomId", (q) => q.eq("roomId", args.roomId))
       .order("desc")
-      .first();
+      .take(12);
+    /* Del mas viejo al mas nuevo: el cliente los reproduce en orden, y un
+       emoji que llego antes de una tirada tiene que verse antes. */
+    const lastEvents = ultimos.slice().reverse();
+    const lastEvent = ultimos[0] ?? null;
 
     /* El objetivo viaja con la sala: es el backend quien corta la partida,
        así que las dos pantallas tienen que leerlo de acá.
@@ -616,6 +645,7 @@ export const getRoom = query({
       sentido: sentidoOf(room),
       goal: GOAL,
       lastEvent,
+      lastEvents,
     };
   },
 });

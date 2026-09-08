@@ -60,6 +60,16 @@ export function useOnlineRoom() {
      misma animación, y al entrar a una partida en curso se reproducirían de
      golpe todas las tiradas anteriores. */
   const ultimoEvento = useRef(null);
+  /* Los eventos ajenos que llegaron y todavía no se mostraron. Es una cola
+     y no un solo valor porque un sondeo puede traer varios de golpe, y
+     `App` los anima de a uno. */
+  const cola = useRef([]);
+  /* Si ya llegó la primera respuesta del sondeo. Separa "todavía no miré"
+     de "no hay eventos" — ver el comentario en `sondear`. */
+  const sincronizado = useRef(false);
+  /* Espejo de `novedad`: dice si `App` tiene una sin consumir. Va en un ref
+     porque el sondeo vive en un `useCallback([])` y no ve el estado. */
+  const hayNovedad = useRef(false);
   const [novedad, setNovedad] = useState(null);
   const vivo = useRef(false);
   /* La sala existía y dejó de existir.
@@ -119,12 +129,100 @@ export function useOnlineRoom() {
        conoce la forma vieja en vez de un `??` en cada lectura. */
     setRoom(enAsientos(sala));
 
-    const ev = sala.lastEvent;
-    if (ev && ev._id !== ultimoEvento.current) {
-      const primera = ultimoEvento.current === null;
-      ultimoEvento.current = ev._id;
-      // Lo propio ya se mostró al hacerlo; lo viejo no se reproduce.
-      if (!primera && ev.sessionId !== getSessionId()) setNovedad(ev);
+    /* ►► TODOS los eventos nuevos, no sólo el último. ◄◄
+     *
+     * Acá se leía `sala.lastEvent` —uno solo— y se descartaba en silencio
+     * todo lo que hubiera pasado antes en la ventana de sondeo. El emoji
+     * era el que lo pagaba: es el único evento que no deja huella en ningún
+     * otro campo de la sala, así que perdido el evento no hay de dónde
+     * reconstruirlo. Cualquier tirada en los mismos dos segundos se lo
+     * comía, y se tira un emoji justo porque acaba de pasar algo.
+     *
+     * Ahora llegan los últimos doce en orden y se reproduce lo que falte.
+     * `lastEvent` de respaldo: si el backend todavía no tiene el despliegue
+     * nuevo, esto sigue funcionando como antes en vez de romperse. */
+    const llegados = Array.isArray(sala.lastEvents)
+      ? sala.lastEvents
+      : sala.lastEvent
+        ? [sala.lastEvent]
+        : [];
+
+    /* Se marca ACA, fuera del `if`: sincronizarse es haber recibido una
+       respuesta, con eventos o sin ellos. Adentro del `if` una sala recien
+       creada —que sondea vacia varias veces— nunca se marcaba, y entonces
+       su primer lote real seguia contando como "pasada de sincronizacion" y
+       se descartaba. Es el mismo bug una capa mas adentro. */
+    const primera = !sincronizado.current;
+    sincronizado.current = true;
+
+    if (llegados.length) {
+      /* ►► "Primera pasada" es del SONDEO, no del primer evento. ◄◄
+       *
+       * Acá decía `ultimoEvento.current === null`, y eso confunde dos cosas
+       * distintas: "todavía no miré la sala" con "la sala todavía no tuvo
+       * eventos". Si alguien entra a una mesa recién creada, sondea varias
+       * veces sin eventos, y recién ahí pasa algo, el cursor sigue en null
+       * y ese primer lote se descartaba ENTERO — que es justo el caso de un
+       * emoji al principio de la partida.
+       *
+       * Con una bandera propia, la pasada de sincronización es la primera
+       * respuesta que llega, tenga eventos o no. De ahí en adelante todo lo
+       * nuevo se reproduce. */
+      const visto = llegados.findIndex((e) => e._id === ultimoEvento.current);
+
+      /* ►► Si el último visto ya no está en la ventana, se toma UNO. ◄◄
+       *
+       * Pasa cuando la pestaña estuvo dormida o la red se cayó un rato: se
+       * acumularon más de doce y no hay forma de saber cuáles se vieron.
+       * Reproducir los doce de golpe dispararía una tanda de animaciones de
+       * cosas que ya pasaron —el jugador vería tiradas viejas encimadas—,
+       * así que se toma sólo la última y se sigue desde ahí. Perder
+       * animaciones viejas es mejor que mostrarlas todas juntas y fuera de
+       * tiempo. */
+      const nuevos =
+        /* Sin cursor y ya sincronizados: no vimos NINGUNO, así que van
+           todos. Sin este caso, un lote que llega cuando el cursor está en
+           null se recortaba al último y el emoji se perdía igual que
+           antes — con el agravante de que ahora sí había llegado. */
+        ultimoEvento.current === null
+          ? llegados
+          : visto >= 0
+            ? llegados.slice(visto + 1)
+            : llegados.slice(-1);
+
+      ultimoEvento.current = llegados[llegados.length - 1]._id;
+
+      /* Lo propio ya se mostró al hacerlo; lo viejo no se reproduce. */
+      if (!primera) {
+        const mia = getSessionId();
+        const ajenos = nuevos.filter((e) => e.sessionId !== mia);
+        if (ajenos.length) {
+          cola.current.push(...ajenos);
+          /* ►► El `shift()` va AFUERA del `setNovedad`. ◄◄
+           *
+           * Acá decía `setNovedad((actual) => actual ?? cola.current.shift())`
+           * y se comía el emoji en silencio. El motivo: ese updater MUTA la
+           * cola, y React puede llamarlo más de una vez — `main.jsx` monta en
+           * StrictMode, que lo hace a propósito para destapar justamente
+           * esto. La primera pasada sacaba el emoji y devolvía el emoji; la
+           * segunda encontraba la cola vacía y devolvía null, y null es lo
+           * que quedaba. El evento llegaba, se reconocía como ajeno, se
+           * encolaba... y desaparecía en el `setState`.
+           *
+           * Un updater tiene que ser una función pura de su argumento. Si
+           * hay algo que mutar, se muta afuera y se pasa el resultado.
+           *
+           * `hayNovedad` es el espejo de `novedad` en un ref, porque el
+           * estado no se puede leer desde este callback —está congelado en
+           * el `useCallback([])`— y hace falta saber si `App` todavía tiene
+           * una sin mirar para no pisársela. */
+          if (!hayNovedad.current) {
+            const siguiente = cola.current.shift() ?? null;
+            hayNovedad.current = siguiente !== null;
+            setNovedad(siguiente);
+          }
+        }
+      }
     }
 
     setTimeout(() => sondear(id), SONDEO_MS);
@@ -134,6 +232,9 @@ export function useOnlineRoom() {
     (id) => {
       vivo.current = true;
       ultimoEvento.current = null;
+      cola.current = [];
+      sincronizado.current = false;
+      hayNovedad.current = false;
       setCerrada(false);
       sondear(id);
     },
@@ -205,6 +306,11 @@ export function useOnlineRoom() {
     setSala(null);
     setRoom(null);
     ultimoEvento.current = null;
+    sincronizado.current = false;
+    hayNovedad.current = false;
+    /* La cola se vacia con el cursor. Si quedaran eventos de la sala que se
+       acaba de dejar, se reproducirian encima de la proxima partida. */
+    cola.current = [];
     // Sin await: la navegación no espera a la red.
     api.leaveRoom(id);
   }, [detener]);
@@ -215,7 +321,16 @@ export function useOnlineRoom() {
     return detener;
   }, [roomId, observar, detener]);
 
-  const consumirNovedad = useCallback(() => setNovedad(null), []);
+  /* Al consumir se entrega el SIGUIENTE de la cola en vez de dejar en
+     null: si no, un sondeo que trajo tres eventos mostraria uno y perderia
+     dos, que es el mismo bug con otra forma. */
+  const consumirNovedad = useCallback(() => {
+    /* Mismo cuidado que arriba: se saca de la cola ACÁ y se pasa el valor
+       ya resuelto, nunca dentro del updater. */
+    const siguiente = cola.current.shift() ?? null;
+    hayNovedad.current = siguiente !== null;
+    setNovedad(siguiente);
+  }, []);
 
   return {
     roomId, room, miLado, error, novedad, cerrada,
