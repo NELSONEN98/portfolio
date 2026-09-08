@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ms } from "../theme";
 import { desbloquear, musica, silenciar, volumen } from "../audio/player";
+import { silencioDeDesarrollo } from "../dev/silencio";
 
 /* Piso en pantalla: un preloader que aparece cien milisegundos y se va
    parece un parpadeo defectuoso, no una presentación. */
@@ -82,8 +83,23 @@ export default function Preloader() {
      *
      * El día que haya un control de sonido adentro del juego, lo que ese
      * control guarde vale igual — esto corre una sola vez, al entrar. */
-    silenciar(false);
-    if (volumen() <= 0) volumen(0.8);
+    /* ►► Salvo que el interruptor de desarrollo diga que no. ◄◄
+     *
+     * Todo lo de arriba vale para quien JUEGA. Pero en desarrollo cada
+     * guardado recarga la pagina y vuelve a pasar por aca, asi que sin esta
+     * guardia el silencio duraba exactamente hasta el proximo Ctrl+S.
+     *
+     * Es la excepcion que el comentario de arriba dejaba anotada —"el dia
+     * que haya un control de sonido, lo que ese control guarde vale
+     * igual"—, sin la parte de guardar: `devMute` no toca el ajuste del
+     * jugador, solo decide si este boton lo enciende.
+     *
+     * En produccion es `false` constante y estas dos lineas corren siempre,
+     * igual que antes. */
+    if (!silencioDeDesarrollo()) {
+      silenciar(false);
+      if (volumen() <= 0) volumen(0.8);
+    }
 
     musica("tema");
     setYendose(true);

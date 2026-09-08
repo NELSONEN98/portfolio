@@ -5,6 +5,7 @@ import PreviewMesa from "./screens/PreviewMesa";
 /* Ruta completa a propósito: es el único import de todo el proyecto que
    depende del navegador, y se pide por su nombre para que se vea. */
 import { aplicarTema } from "./theme/applyTheme";
+import SilencioDev from "./dev/SilencioDev";
 import "./style.css";
 
 /* El tema se aplica antes de montar y no dentro de un efecto: los tiempos
@@ -33,8 +34,20 @@ aplicarTema();
  * la query no se carga nada distinto. */
 const preview = new URLSearchParams(location.search).get("preview");
 
+/* ►► El interruptor de silencio, hermano de App y no hijo. ◄◄
+ *
+ * Mismo motivo que `?preview` unas lineas mas arriba: una herramienta de
+ * andamiaje no tiene por que aparecer en el arbol del juego. Colgado aca
+ * funciona igual en las dos ramas —el juego y la mesa de mentira— y `App`
+ * no se entera de que existe.
+ *
+ * `import.meta.env.DEV` es una constante que Vite reemplaza al construir,
+ * asi que en produccion esta rama queda muerta y el bundler se lleva el
+ * componente entero. Verificado sobre el build: `SilencioDev` no aparece
+ * en ningun trozo publicado. */
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     {preview === null ? <App /> : <PreviewMesa inicial={Number(preview) || 4} />}
+    {import.meta.env.DEV && <SilencioDev />}
   </StrictMode>
 );

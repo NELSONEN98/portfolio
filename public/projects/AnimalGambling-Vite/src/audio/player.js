@@ -1,5 +1,6 @@
 import { definicion, efectos } from "./sonidos";
 import { leerAjuste, guardarAjuste } from "../storage";
+import { silencioDeDesarrollo } from "../dev/silencio";
 
 /* ►► EL REPRODUCTOR. Es lo único de audio que NO viaja. ◄◄
  *
@@ -54,7 +55,16 @@ let precargaPedida = false;
 let pistaActual = null;
 let nombrePista = null;
 
-let silenciado = leerAjuste("mute", false);
+/* ►► El silencio de desarrollo gana desde el primer instante. ◄◄
+ *
+ * Puesto en la inicializacion y no en un efecto: si se aplicara despues de
+ * montar, la musica alcanzaria a sonar el rato que tarda en correr el
+ * primer efecto. Corto, pero suficiente para oirse — y evitar justamente
+ * eso es todo el punto del interruptor.
+ *
+ * En produccion `silencioDeDesarrollo()` es `false` constante y esta linea
+ * queda igual que antes. */
+let silenciado = silencioDeDesarrollo() || leerAjuste("mute", false);
 let nivel = leerAjuste("volumen", 0.8);
 
 /* ►► Nada suena hasta que el jugador toque algo. ◄◄
@@ -251,9 +261,23 @@ export function musica(nombre) {
   nombrePista = nombre;
 }
 
-export function silenciar(valor) {
+/* ►► `persistir` separa APLICAR de RECORDAR, y hacen falta las dos. ◄◄
+ *
+ * Por defecto guarda, que es lo que quiere el jugador: apagar el sonido una
+ * vez y encontrarlo apagado la proxima.
+ *
+ * Con `persistir: false` el silencio vale para esta pagina y nada mas. Lo
+ * usa el interruptor de desarrollo, que lleva su propia clave (`devMute`) y
+ * NO debe pisar la preferencia del jugador — si la pisara, apagar la musica
+ * para trabajar dejaria mudo el juego para quien lo abra despues en este
+ * navegador, y volver a encenderla borraria un silencio que el jugador
+ * habia elegido. Dos cosas distintas, dos lugares distintos.
+ *
+ * Se descubrio midiendo: la primera version llamaba a `silenciar()` a secas
+ * y el boton de desarrollo escribia `ag:mute` sin que nadie lo pidiera. */
+export function silenciar(valor, { persistir = true } = {}) {
   silenciado = valor ?? !silenciado;
-  guardarAjuste("mute", silenciado);
+  if (persistir) guardarAjuste("mute", silenciado);
   aplicarNivel();
   return silenciado;
 }
