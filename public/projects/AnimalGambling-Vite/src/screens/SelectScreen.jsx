@@ -107,6 +107,36 @@ export default function SelectScreen({
             </div>
           );
         })}
+
+        {/* ►► El sexto casillero, que no es un gato. ◄◄
+         *
+         * Los personajes dibujados son cinco, y cinco en una grilla de dos
+         * columnas dejan a uno solo en la última fila: la pantalla se lee
+         * como si faltara algo o como si ese último fuera especial. Con seis
+         * casilleros la grilla cierra —tres filas de dos, o dos de tres en
+         * pantallas anchas— y el hueco pasa de parecer un error a decir lo
+         * que de verdad pasa: viene otro.
+         *
+         * ►► Va acá y NO en el ROSTER, y esa diferencia importa. ◄◄
+         *
+         * `ROSTER` no es una lista de dibujos: de ahí salen las manos que se
+         * reparten (`ROSTER.slice(0, cuantos)`), el gato que reconstruye el
+         * sondeo (`charFromCatId`) y los cuadros que se precargan. Un sexto
+         * elemento sin `dir`, sin `cuadros` y sin `danios` habría entrado en
+         * todas esas cuentas: una mesa de cuatro podría repartirle una mano
+         * a un gato que no existe.
+         *
+         * Como casillero de la pantalla no toca nada de eso. No es
+         * clickeable ni enfocable: no hay nada que elegir todavía. */}
+        <div className="char-card char-card-proximo" aria-disabled="true">
+          <div className="char-art-caja">
+            <div className="char-art char-art-proximo" role="img" aria-label="Personaje en camino">
+              <span aria-hidden="true">?</span>
+            </div>
+          </div>
+          <div className="char-name">EN CAMINO</div>
+          <div className="char-desc">Otro gato con cuentas pendientes.</div>
+        </div>
       </div>
 
       <div className="select-footer">

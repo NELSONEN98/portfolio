@@ -94,13 +94,18 @@ export default function VersusScreen({
    * responden. Calcularlo de nuevo arriba serían dos definiciones de "podés
    * jugar" que se despegan el día que una cambie.
    *
-   * ►► Corre SÓLO mientras se puede actuar, y por eso son diez de verdad. ◄◄
+   * ►► Corre SÓLO mientras se puede actuar, y por eso son ocho de verdad. ◄◄
    *
    * `puedeActuar` es falso mientras los dados ruedan y mientras la ficha
    * camina, así que el reloj se frena solo en toda esa parte y arranca de
-   * nuevo cuando el control vuelve. Diez segundos de pensar, no de mirar
-   * animaciones. Con el dado adentro del presupuesto, diez se sentirían
-   * como cuatro y el reloj castigaría por ver el juego.
+   * nuevo cuando el control vuelve. Ocho segundos de PENSAR, no ocho de
+   * estar en pantalla. Con el dado adentro del presupuesto se sentirían
+   * como tres y el reloj castigaría por ver el juego.
+   *
+   * (Decía "diez" en tres lugares y hacía rato que el número era otro: la
+   * duración vive en `motion.js` bajo `turno.reloj` y ya pasó por 10, 6 y
+   * 8. Un comentario con el número adentro se queda viejo solo, así que si
+   * vuelve a moverse, éste es uno de los sitios a corregir.)
    *
    * `active` está en las dependencias además de `puedeActuar`: en la mesa
    * local `puedeActuar` sigue en verdadero cuando el turno pasa de un
@@ -110,8 +115,8 @@ export default function VersusScreen({
    * El aviso va por un ref y NO en las dependencias. Si entrara como
    * dependencia, un App que rearme esa función en cada pintado volvería a
    * montar el efecto en cada pintado: el temporizador se cancelaría y se
-   * programaría de nuevo sin llegar nunca a los diez segundos, y el reloj
-   * no se cumpliría jamás. Es el mismo motivo por el que el tablero guarda
+   * programaría de nuevo sin llegar nunca al final, y el reloj no se
+   * cumpliría jamás. Es el mismo motivo por el que el tablero guarda
    * `onVueltaRef`. */
   /* ►► EL RELOJ NO CORRE ANTES DE LA PRIMERA TIRADA. ◄◄
    *
@@ -334,21 +339,36 @@ export default function VersusScreen({
                turno, que es quien está con el aparato en la mano. */
             puedeEmotear={ladoMano === i && playing}
             emote={emotes[i] ?? null}
-            /* ►► Cada dos golpes, una etapa. ◄◄
+            /* ►► UN golpe, una etapa. Era cada dos, y esto es TEMPORAL. ◄◄
+             *
+             * En el demo hace falta que el cambio de dibujo se VEA: una
+             * partida de prueba dura pocos turnos y con el ritmo de a dos la
+             * mayoría terminaba sin que nadie llegara a la segunda etapa —o
+             * sea, con el trabajo de dibujo invisible—. A golpe por golpe el
+             * que prueba el juego ve las tres o cuatro caras en una sola
+             * partida, que es lo que este demo tiene que enseñar.
+             *
+             * Lo que se paga: el gato llega a "molido" en 3 golpes en vez de
+             * 6 (o en 4 en vez de 8, los que tienen cuatro etapas), así que
+             * la progresión del castigo se siente más rápida de lo que va a
+             * ser en el juego de verdad.
+             *
+             * ►► Cómo se vuelve atrás: dividir por dos, acá y nada más. ◄◄
+             *
+             * Era `Math.floor((golpes[i] ?? 0) / 2)`. El ritmo del daño vive
+             * en esta única expresión —no hay ningún estado guardado que
+             * ajustar— justo para que cambiarlo sea esto y no una migración.
              *
              * `min` con las etapas que el gato tenga: los que no tienen
              * dibujos de daño reciben 0 siempre y siguen con su boil normal
-             * por más golpes que coman. Los que sí, se detienen en la
-             * tercera — de ahí en adelante ya está molido y no hay más
-             * dibujo que mostrar.
+             * por más golpes que coman. Los que sí, se detienen en la última
+             * — de ahí en adelante ya está molido y no hay más dibujo que
+             * mostrar.
              *
-             * Se calcula acá y no se guarda: es `golpes` dividido dos, y un
-             * segundo estado que hay que mantener de acuerdo con el primero
-             * es un estado que se va a desincronizar. */
-            danio={Math.min(
-              Math.floor((golpes[i] ?? 0) / 2),
-              p?.char?.danios?.length ?? 0
-            )}
+             * Se calcula acá y no se guarda: un segundo estado que hay que
+             * mantener de acuerdo con el primero es un estado que se va a
+             * desincronizar. */
+            danio={Math.min(golpes[i] ?? 0, p?.char?.danios?.length ?? 0)}
             onEmote={(id) => onEmote?.(i, id)}
             /* La mira sólo mientras se pueda hacer algo con ella: apuntada
                durante el turno ajeno contaría una decisión que no es tuya, y

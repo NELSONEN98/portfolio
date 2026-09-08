@@ -279,7 +279,18 @@ body {
 
 .room-choice-header h2 {
   font-family: var(--display);
-  font-size: clamp(2.8rem, 7vw, 4.4rem);
+  /* ►► Los títulos de pantalla suben fuerte, y no es capricho. ◄◄
+   *
+   * Este juego se muestra en un demo, muchas veces sobre el hombro de
+   * alguien o proyectado: un rótulo que se lee cómodo sentado a cincuenta
+   * centímetros no se lee a dos metros. Los tres títulos de pantalla
+   * —éste, "ELIGE TU GATO" y "REGLAS"— suben en bloque para que digan
+   * dónde estás parado de un vistazo.
+   *
+   * El tope de `vw` sube junto con el máximo: sin eso, en una ventana
+   * angosta el clamp se queda pegado al valor del medio y el título crece
+   * sólo en escritorio, que es justo donde menos falta hacía. */
+  font-size: clamp(4rem, 10vw, 6.6rem);
   color: #fff;
   letter-spacing: 0.15rem;
   text-shadow: 0 0 1.6rem rgba(255, 255, 255, 0.35);
@@ -463,7 +474,22 @@ body {
    * apretadas. Con trece no. Era grande porque el texto era largo, no
    * porque el título fuera lo importante de esta pantalla; lo importante
    * son los gatos, y cada píxel que suelta acá se lo llevan ellos. */
-  font-size: clamp(1.8rem, 4.2vw, 3rem);
+  /* ►► +3rem, y por eso se mueven los TRES términos y no sólo el tope. ◄◄
+   *
+   * El comentario de arriba explicaba por qué había BAJADO. Ya no aplica:
+   * se pidió el rótulo bien grande y los gatos ya tienen su tamaño.
+   *
+   * Los 3rem son 30px con la raíz en 62,5%, y el tope pasa de 4,6 a 7,6rem
+   * para dárselos. Pero subir sólo el tope habría dejado el teléfono igual,
+   * y esa es la trampa de esta hoja: la raíz encoge hasta el 34%, así que
+   * en una pantalla angosta el que manda no es ningún `rem` sino el `vw`
+   * del medio —medido: 6,4vw daba los 25px que se veían, con el tope en
+   * 25,3 sin llegar a morder—. Por eso el `vw` sube también, de 6,4 a 10.
+   *
+   * Medido después del cambio: 46 -> 76px en escritorio (los 3rem justos) y
+   * 25 -> 39px en el teléfono. El aumento se ve en las dos medidas, que es
+   * lo que se pidió; con el tope solo se habría visto en una. */
+  font-size: clamp(5.8rem, 10vw, 7.6rem);
   color: var(--neon-amber);
   letter-spacing: 0.15rem;
   text-shadow: 0 0 1.6rem rgba(245, 185, 66, 0.5);
@@ -511,7 +537,7 @@ body {
    * último, cuando son impares"— y ahí se lo hace ocupar el ancho entero y
    * centrarse. Con cuatro o seis la regla no coincide con nadie y no hace
    * nada. */
-  --char-gap: clamp(0.8rem, 1.8vw, 2.2rem);
+  --char-gap: clamp(0.6rem, 1.4vw, 1.6rem);
   /* ►► El alto manda, porque ahora son TRES filas. ◄◄
    *
    * Con cinco en una fila el límite era el ancho. Con dos columnas son
@@ -524,10 +550,39 @@ body {
    * barra del navegador— ese piso GANABA: 10dvh daba 60px y el piso pedía
    * 96, así que bajar el `dvh` no movía un píxel. Estuve ajustando un
    * número que no mandaba. */
-  --char-card-w: clamp(4.5rem, min(38vw, 18.1dvh), 20rem);
+  /* ►► Y ahora son DOS filas, así que el techo del alto se duplica. ◄◄
+   *
+   * Todo lo de arriba describe la grilla de 2 columnas × 3 filas, que es la
+   * que había con cinco gatos. Con el sexto casillero y tres columnas son
+   * dos filas, y cada tarjeta deja de pagar su alto tres veces para pagarlo
+   * dos: por eso el `dvh` sube de 18,1 a 33 y el `vw` baja de 38 a 29 —hay
+   * una columna más que repartir a lo ancho—.
+   *
+   * El `min()` sigue mandando igual: gana el que se quede corto, así que la
+   * tarjeta nunca se sale ni por ancho ni por alto. Lo que cambió no es la
+   * regla, es cuánto hay de cada cosa para repartir. */
+  /* ►► Y el TOPE sube a 46rem porque el de antes era el que mandaba. ◄◄
+   *
+   * Todo lo escrito arriba describe un `min(vw, dvh)` que elige entre el
+   * ancho y el alto. Medido, no elegía nada: en 1600x1000 el `min()` daba
+   * 330px y la tarjeta salía de 300 clavados, que son los `30rem` del tope.
+   * En un teléfono era peor —el `min()` pedía 168px y salían 120, los
+   * `22rem` de la regla angosta—.
+   *
+   * El motivo es que este proyecto ENCOGE la raíz: `html` arranca en 62,5%
+   * y baja hasta el 34% en pantallas chicas, así que un tope en `rem` se
+   * achica justo donde hace falta que no lo haga. Un tope pensado como
+   * "por si acaso" terminó siendo el único número que decidía el tamaño,
+   * en las dos medidas — y yo estuve ajustando `vw` y `dvh` que no movían
+   * un píxel.
+   *
+   * Ahora el tope está fuera de alcance a propósito: es una red por si
+   * alguien abre esto en una pantalla enorme, no un límite de todos los
+   * días. Quien manda es el `min()`, que es lo que siempre se quiso. */
+  --char-card-w: clamp(4.5rem, min(30vw, 36dvh), 46rem);
 
   display: grid;
-  grid-template-columns: repeat(2, var(--char-card-w));
+  grid-template-columns: repeat(3, var(--char-card-w));
   gap: var(--char-gap);
   flex-basis: 0;
   flex-grow: 1;
@@ -563,10 +618,74 @@ body {
   scrollbar-gutter: stable;
 }
 
-/* El último, cuando son impares: ocupa las dos columnas y se centra. */
-.char-card:last-child:nth-child(odd) {
-  grid-column: 1 / -1;
-  justify-self: center;
+/* ►► Acá vivía la regla del último impar, y con seis sobra. ◄◄
+ *
+ * Con cinco gatos la última tarjeta caía sola en la columna izquierda y
+ * esta regla la hacía ocupar el ancho entero para centrarla. Ahora los
+ * casilleros son seis y la grilla cierra siempre —3×2 en pantalla ancha,
+ * 2×3 en angosta— así que no queda ninguna fila a medias que corregir. Se
+ * va la regla y se va el motivo. */
+
+/* En pantallas angostas vuelven las dos columnas: tres tarjetas al lado de
+   la otra en un teléfono son tres gatos del tamaño de una moneda, que es
+   justo lo que este cambio vino a evitar. Con seis casilleros, dos columnas
+   también cierran parejo. */
+@media (max-width: 760px) {
+  .char-grid {
+    grid-template-columns: repeat(2, var(--char-card-w));
+    /* El tope sube por lo mismo que el de la regla ancha: `22rem` con la
+       raíz al 55% son 121px, y aplastaba una tarjeta que el `min()` ya
+       había calculado en 168. Con 46vw las dos columnas se llevan el 92%
+       del ancho del teléfono, que es lo que se pidió. */
+    --char-card-w: clamp(4.5rem, min(46vw, 27dvh), 40rem);
+  }
+}
+
+/* ►► El casillero del que todavía no está. ◄◄
+ *
+ * Se ve que es un lugar reservado y no un gato apagado: sin dibujo, con el
+ * signo en el centro y el borde punteado que en este juego ya significa
+ * "acá va algo" —el mismo de las fichas—. No responde al toque porque no
+ * hay nada que elegir. */
+.char-card-proximo {
+  cursor: default;
+}
+/* ►► Dos clases, y no por capricho: `.char-art` gana por ORDEN. ◄◄
+ *
+ * Esto decía `.char-art-proximo` a secas y el fondo no se aplicaba nunca:
+ * la tarjeta salía BLANCA. El motivo es que `.char-art` trae
+ * `background-color: #fff` unas trescientas líneas más abajo, y entre dos
+ * selectores de una sola clase no decide la especificidad sino quién va
+ * último. Iba él.
+ *
+ * Con `.char-card-proximo .char-art-proximo` son dos clases contra una y la
+ * regla gana esté donde esté, sin tener que mover un bloque de sitio —que
+ * es la otra salida, y la que rompe cosas cuando alguien reordene el
+ * archivo más adelante. */
+.char-card-proximo .char-art-proximo {
+  display: grid;
+  place-items: center;
+  /* Negro, y eso lo funde con el fondo de la pantalla a propósito: lo que
+     define el casillero es el borde punteado, no una superficie. Los otros
+     cinco son papel blanco con un dibujo encima; éste es el hueco donde
+     todavía no hay dibujo, y se lee como hueco justamente por no tener
+     papel. */
+  background-color: #000;
+  /* El borde y el signo suben de opacidad respecto de lo que había: estaban
+     calculados contra el blanco que se veía por el error de arriba, y sobre
+     negro un 0,28 apenas se distingue del fondo. */
+  border: 0.3rem dashed rgba(232, 225, 204, 0.45);
+  box-sizing: border-box;
+  color: rgba(232, 225, 204, 0.6);
+  font-family: var(--display);
+  /* Contra el ANCHO de la tarjeta y no en `rem`: el signo tiene que crecer
+     con el casillero, igual que crece el dibujo de los otros. */
+  font-size: calc(var(--char-card-w) * 0.42);
+  line-height: 1;
+}
+.char-card-proximo .char-name,
+.char-card-proximo .char-desc {
+  opacity: 0.5;
 }
 
 /* Las tarjetas ya no se estiran a una fracción de la grilla: miden lo que
@@ -911,7 +1030,18 @@ body {
 .select-footer {
   display: flex;
   flex-direction: row;
-  gap: 2rem;
+  /* ►► Más aire entre VOLVER y JUGAR. ◄◄
+   *
+   * Eran `2rem` fijos: 20px en escritorio y 11px en un teléfono, porque la
+   * raíz encoge. Con los dos botones ya un 50% más grandes esa separación
+   * los dejaba casi pegados, y son botones que hacen cosas OPUESTAS —uno
+   * se va, el otro arranca la partida—: la distancia es lo que evita que
+   * un pulgar apurado dé uno por el otro.
+   *
+   * Va en `clamp` con el `vw` en el medio por lo mismo que el título de
+   * acá arriba: un `rem` suelto se encogería justo en la pantalla donde el
+   * dedo es más grande en relación a todo lo demás. */
+  gap: clamp(3rem, 4.5vw, 5rem);
   justify-content: center;
   align-items: center;
   margin-top: clamp(0.6rem, 1.6vh, 1.4rem);
@@ -921,9 +1051,21 @@ body {
   /* Los dos botones de esta pantalla son el remate de la decisión: mandan
      más peso que un botón de navegación cualquiera, por eso pisan el
      tamaño base de .btn-nav en vez de agrandarlo para todo el juego. */
+  /* ►► El 50% de `.btn-nav` no llegaba hasta acá. ◄◄
+   *
+   * Al agrandar el botón del juego un 50% esta pantalla no se movió, y el
+   * motivo está tres líneas más arriba: esta regla pisa `font-size` y
+   * `padding`, así que subir el tamaño base no la toca. Se sube acá también,
+   * en la misma proporción: 1,4rem -> 2,1rem y el relleno x1,5.
+   *
+   * El término del medio pasa de `1.4vw` a `3.2vw` y eso NO es parte del
+   * 50%: es que en un teléfono `1.4vw` son 5,5px y ese botón no lo lee
+   * nadie. Como la raíz de este proyecto encoge en pantallas chicas, los
+   * dos extremos del `clamp` encogen con ella y el `vw` es lo único que
+   * puede sostener el tamaño ahí. En escritorio sigue mandando el tope. */
   min-width: 20rem;
-  font-size: clamp(1.1rem, 1.4vw, 1.4rem);
-  padding: clamp(0.7rem, 1.2vh, 1.1rem) clamp(1.4rem, 2vw, 2.2rem);
+  font-size: clamp(1.65rem, 3.2vw, 2.1rem);
+  padding: clamp(1.05rem, 1.8vh, 1.65rem) clamp(2.1rem, 3vw, 3.3rem);
   border-radius: 1.5rem;
 }
 
@@ -1021,7 +1163,24 @@ body {
   /* ►► Los dos botones de la partida. ◄◄
      Suben acá desde .versus-controls porque el presupuesto necesita
      leerlos, y las propiedades personalizadas sólo bajan. */
-  --lado: clamp(84px, 12vmin, 124px);
+  /* ►► El 50% más grande entra por el tramo que escala, NO por el piso. ◄◄
+   *
+   * La tecla de tirar es el botón dorado del juego, así que le toca el mismo
+   * aumento que a los demás. Pero éste no es un botón suelto: su alto lo
+   * resta `--tabla-alto` unas líneas más abajo, y esto es un presupuesto de
+   * suma cero — cada píxel que se lleva el botón se lo saca a la MESA.
+   *
+   * Por eso suben el tramo medio y el techo (12vmin -> 18vmin, 124 -> 186) y
+   * el piso se queda en 84. Medido: en escritorio la tecla pasa de 120 a
+   * 180px, el 50% pedido, y a la mesa le sobra sitio. En un teléfono el que
+   * manda es el piso, y ese 84 no es una decisión de tamaño sino la regla de
+   * toque —44px de dedo, y el círculo es el 60% del lado—; subirlo un 50%
+   * sería agrandar por encima de lo que el dedo necesita y cobrárselo a una
+   * mesa que ahí ya mide 306px de alto.
+   *
+   * O sea: crece donde hay lugar y se queda quieto donde el número no era
+   * estético para empezar. */
+  --lado: clamp(84px, 18vmin, 186px);
   --canto: clamp(0.5rem, 1.1vmin, 0.8rem);
 
   /* Lo que queda para la mesa, en la vista apilada: dos líneas de peleador,
@@ -5421,9 +5580,15 @@ body {
 
 /* ►► LA BARRA DEL TURNO. ◄◄
  *
- * Diez segundos para decidir, sin un solo número. Un contador obliga a leer
+ * Ocho segundos para decidir, sin un solo número. Un contador obliga a leer
  * y a restar; esto se mira de reojo con el dado en la mano, y lo que hace
  * falta saber no es "cuántos segundos quedan" sino "¿me apuro?".
+ *
+ * Y por eso además cambia de COLOR. El largo de la barra contesta "¿me
+ * apuro?" sólo si uno la mira de frente y la compara con lo que había hace
+ * un rato; el color contesta lo mismo de un vistazo, sin memoria. Los dos
+ * dicen lo mismo por dos caminos, que es lo que hace que funcione mirándola
+ * de reojo — que es la única forma en que se la mira.
  *
  * ►► Va absoluta, y eso no es pereza. ◄◄
  *
@@ -5432,7 +5597,27 @@ body {
  * cobraría su alto A LA MESA en todas las ventanas, incluidas las que ya
  * andan justas. Colgada del hueco que los botones ya dejan debajo, no le
  * saca un píxel a nadie. */
+/* ►► Los tres colores del semáforo, en variables y no adentro del keyframe. ◄◄
+ *
+ * Mismo motivo que los seis del botón de tirar unas líneas más arriba:
+ * afinar un color de estos se hace mirándolos juntos, y repartidos adentro
+ * de una animación no se pueden comparar. El tramo de arranque no está acá
+ * porque NO es suyo: usa las mismas `--tirar-*` que la tecla, y de eso
+ * depende que la maldición siga funcionando (ver el keyframe). */
 .turno-reloj {
+  --reloj-naranja-oscuro: #a34a00;
+  --reloj-naranja-medio: #e06a00;
+  --reloj-naranja-claro: #ff9a3c;
+  --reloj-naranja-halo: 224, 106, 0;
+  /* Los dos oscuros salen de la paleta —`--c-red-deep` y `--c-red` son los
+     mismos del camino y de las casillas de castigo—. El claro es nuevo:
+     sobre un carril negro y con 0,66rem de alto, `#c70000` solo se lee casi
+     marrón y perdería justo la lectura que este tramo tiene que dar. */
+  --reloj-rojo-oscuro: var(--c-red-deep);
+  --reloj-rojo-medio: var(--c-red);
+  --reloj-rojo-claro: #ff4d4d;
+  --reloj-rojo-halo: 199, 0, 0;
+
   position: absolute;
   top: calc(100% + 0.85rem);
   /* De punta a punta de los botones: el contenedor se ajusta a ellos, así
@@ -5468,7 +5653,12 @@ body {
   /* Se encoge hacia la izquierda: lo que queda es lo que sigue pegado al
      borde de arranque, como en cualquier barra de carga. */
   transform-origin: left center;
-  animation: reloj-turno var(--dur-turno-reloj) linear forwards;
+  /* Dos animaciones, no una: el vaciado y el color son cosas distintas y se
+     leen por separado. Van con la MISMA duración porque cuentan el mismo
+     reloj, y ésa es la única atadura entre las dos. */
+  animation:
+    reloj-turno var(--dur-turno-reloj) linear forwards,
+    reloj-semaforo var(--dur-turno-reloj) linear forwards;
 }
 
 /* Lineal, sin curva. Toda otra animación del juego imita algo físico y por
@@ -5480,12 +5670,93 @@ body {
   to   { transform: scaleX(0); }
 }
 
+/* ►► EL SEMÁFORO: oro, naranja, rojo. ◄◄
+ *
+ * Con los ocho segundos de `motion.js`:
+ *
+ *   0%   – 37,5%  → quedan 8 a 5 segundos   · oro     · "tenés tiempo"
+ *   37,5% – 75%   → quedan 5 a 2 segundos   · naranja · "decidí"
+ *   75%  – 100%   → quedan 2 a 0 segundos   · rojo    · "ya"
+ *
+ * ►► Son PORCENTAJES de la duración, no segundos. ◄◄
+ *
+ * Es lo único frágil de este bloque y por eso está dicho acá y también en
+ * `motion.js`: 37,5% y 75% son los 5s y los 2s restantes DE OCHO. Si esa
+ * duración cambia, los tramos se estiran con ella y hay que rehacer los dos
+ * números. CSS no puede hacer esa cuenta solo —no sabe cuántos ms vale un
+ * porcentaje de su propia animación— así que el acoplamiento no se puede
+ * eliminar, sólo dejarlo escrito donde se va a leer.
+ *
+ * ►► Los pares de paradas son para que el color SALTE. ◄◄
+ *
+ * `37.49%` y `37.5%` con colores distintos hacen el corte en 0,8ms, o sea
+ * instantáneo. Con una sola parada por tramo la animación interpolaría y el
+ * naranja iría apareciendo de a poco desde el arranque: eso no es un
+ * semáforo, es un degradado, y un degradado no dice "cambiaste de tramo".
+ * La barra ya da la lectura continua; el color tiene que dar la discreta.
+ *
+ * ►► El primer tramo lee `--tirar-*`, y eso es a propósito. ◄◄
+ *
+ * Bajo maldición `.versus-screen.maldito .versus-controls` pone esas seis
+ * variables en morado, y la barra vive adentro: así el tramo de arranque
+ * sale morado con la tecla, sin escribir una regla más.
+ *
+ * Los otros dos tramos NO lo hacen, y es una decisión, no un olvido: la
+ * maldición dice en qué estado está la partida y el reloj dice cuánto te
+ * queda. Son dos cosas distintas, y a los dos segundos la segunda importa
+ * más — el jugador maldito ya ve la condena en la mesa, en el camino y en
+ * la tecla, pero si la barra se quedara morada perdería la única señal de
+ * que se le acaba el turno. Maldito o no, los últimos dos segundos son
+ * rojos. */
+@keyframes reloj-semaforo {
+  0%, 37.49% {
+    background-image: linear-gradient(
+      90deg,
+      var(--tirar-oscuro) 0%,
+      var(--tirar-medio) 45%,
+      var(--tirar-claro) 100%
+    );
+    box-shadow: 0 0 0.7rem rgba(var(--tirar-halo), 0.75);
+  }
+  37.5%, 74.99% {
+    background-image: linear-gradient(
+      90deg,
+      var(--reloj-naranja-oscuro) 0%,
+      var(--reloj-naranja-medio) 45%,
+      var(--reloj-naranja-claro) 100%
+    );
+    box-shadow: 0 0 0.8rem rgba(var(--reloj-naranja-halo), 0.85);
+  }
+  /* El halo crece en el último tramo. Es la misma barra de 0,66rem, y sobre
+     una mesa oscura el resplandor se ve antes que el color: hace que el rojo
+     llegue a la visión periférica, que es donde está el jugador mirando el
+     dado y no la barra. */
+  75%, 100% {
+    background-image: linear-gradient(
+      90deg,
+      var(--reloj-rojo-oscuro) 0%,
+      var(--reloj-rojo-medio) 45%,
+      var(--reloj-rojo-claro) 100%
+    );
+    box-shadow: 0 0 1rem rgba(var(--reloj-rojo-halo), 0.95);
+  }
+}
+
 /* Sin movimiento la barra NO desaparece: es la única señal de que hay un
    reloj corriendo, y quitarla dejaría al jugador perdiendo el turno sin
    ninguna advertencia. Se queda quieta y encendida — dice que el reloj
    existe, aunque no muestre cuánto queda. */
 @media (prefers-reduced-motion: reduce) {
-  .turno-reloj i { animation: none; }
+  /* Se va el VACIADO y se queda el SEMÁFORO. Antes acá decía
+     `animation: none` y la barra quedaba encendida y quieta: decía que
+     había un reloj pero no cuánto quedaba.
+     Tres cambios de color no son movimiento —no hay nada desplazándose ni
+     escalando, que es lo que esta consulta pide evitar— y son la única
+     pista de cuánto falta que le queda a quien pidió menos animación. Con
+     esto pasa de "hay un reloj" a "te quedan dos segundos". */
+  .turno-reloj i {
+    animation: reloj-semaforo var(--dur-turno-reloj) linear forwards;
+  }
 }
 
 /* ►► MALDITO: la tecla se pone morada, y con ella todo lo que hace. ◄◄
@@ -7181,11 +7452,23 @@ body {
 /* Navigation button — unified style */
 .btn-nav {
   font-family: var(--display);
-  font-size: 1.3rem;
+  /* ►► Un 50% más grande, y el interlineado va con él. ◄◄
+   *
+   * 1,3rem son trece píxeles con la raíz de este proyecto al 62,5%: para el
+   * botón que dice TIRAR o JUGAR era chico incluso en escritorio, y en un
+   * teléfono —donde la raíz baja al 40%— quedaba en cinco. Sube a 1,95 y el
+   * relleno lo acompaña en la misma proporción: agrandar sólo la letra deja
+   * un botón apretado en vez de un botón grande.
+   *
+   * El `letter-spacing` NO se toca. Escala solo si se escribiera en `em`,
+   * pero en `rem` es una distancia fija, y esa fijeza es la que mantiene el
+   * texto legible: subiéndolo a la par, "OTROS JUGADORES" se estiraría más
+   * allá del ancho de la pantalla en un móvil. */
+  font-size: 1.95rem;
   font-weight: 700;
   letter-spacing: 0.3rem;
   text-transform: uppercase;
-  padding: 1rem 1.8rem;
+  padding: 1.5rem 2.7rem;
   background: var(--c-gold);
   color: #000;
   border: none;
@@ -7810,7 +8093,7 @@ body {
   font-family: var(--display);
   /* Era 4em, o sea 76px: un titular de portada para una ventana de
      consulta. Lo importante acá son las reglas, no el rótulo. */
-  font-size: 2.1em;
+  font-size: 3.2em;
   color: var(--neon-amber);
   letter-spacing: 0.3em;
   /* ►► La mitad del resplandor que tenía. ◄◄
@@ -8300,13 +8583,16 @@ body {
 }
 .rules-nav-btn {
   font-family: var(--display);
-  font-size: 1.05em;
+  /* En `em` y no en `rem`: la ventana de reglas declara su propia escala de
+     lectura, y estos botones viven adentro. Sube en la misma proporción que
+     los dorados del juego. */
+  font-size: 1.55em;
   letter-spacing: 0.12em;
   color: var(--bone-dim);
   background: transparent;
   border: 1px solid rgba(232, 225, 204, 0.25);
   border-radius: 0.4em;
-  padding: 0.7em 1.4em;
+  padding: 0.75em 1.5em;
   cursor: pointer;
   transition: color 0.2s, background 0.2s, border-color 0.2s, opacity 0.2s;
 }
@@ -8383,7 +8669,12 @@ body {
   /* Select */
   .select-screen { padding: 3.5em 1.5em 2em; }
   .char-grid { gap: clamp(2em, 3vw, 3em); }
-  .select-footer { flex-wrap: wrap; justify-content: center; gap: 0.8em 1.5em; }
+  /* `row-gap` y no `gap`: el shorthand pisa LOS DOS ejes, y acá sólo hace
+     falta decir cuánto separa los renglones cuando la fila envuelve. Con
+     `gap: 0.8em 1.5em` este bloque también reescribía el hueco horizontal,
+     y ese `1.5em` daba 8px en un teléfono — se comía la separación que la
+     regla de arriba define en `vw` justamente para que no se aplaste. */
+  .select-footer { flex-wrap: wrap; justify-content: center; row-gap: 0.8em; }
   .select-footer .sys-msg { width: 100%; text-align: center; font-size: 1em; order: 3; }
 
   /* Versus — the keyboard hints are noise on a device with no keyboard */
@@ -8453,7 +8744,7 @@ body {
     padding: 1.1em 4.2em 0.9em 1.4em;
     gap: 0.3em;
   }
-  .rules-title { font-size: 1.7em; letter-spacing: 0.16em; }
+  .rules-title { font-size: 2.3em; letter-spacing: 0.14em; }
   .rules-close { top: 0.9em; right: 0.9em; width: 2.6em; height: 2.6em; font-size: 1.2em; }
   .rules-logo { height: 2.2em; }
 
@@ -8856,15 +9147,26 @@ body {
    letterbox, away from the sign, which is the intended look.
    Insets are clamped to the viewport, NOT rem: the rem ladder drops to 34%
    on phones and would collapse the corner gap to a few pixels. */
-/* Sólo ubica: el aspecto lo pone .btn-nav, que es el botón de todo el
-   resto del juego. */
+/* ►► Ubica Y dimensiona — el comentario de antes decía que no. ◄◄
+ *
+ * Acá decía "sólo ubica: el aspecto lo pone .btn-nav", y no era cierto:
+ * dos líneas más abajo pisa `font-size` y `padding`. Al agrandar `.btn-nav`
+ * un 50% este botón se quedó en 18px, y el comentario mandaba a buscar el
+ * problema al lugar equivocado. Un comentario que miente cuesta más caro
+ * que no tener ninguno, así que se corrige junto con el tamaño.
+ *
+ * Los tres términos del `clamp` suben x1,5 —igual que el relleno— para que
+ * el 50% valga en toda la escala y no sólo en un tamaño de pantalla: el
+ * `vw` es el que manda en un teléfono y el tope el que manda en
+ * escritorio, y dejar uno sin tocar habría movido el botón en una medida
+ * pero no en la otra. */
 .title-start {
   position: absolute;
   left: auto;
   right: clamp(24px, 3.6vw, 52.8px);
   bottom: clamp(38.4px, 6vw, 86.4px);
-  font-size: clamp(1.3rem, 3vw, 1.8rem);
-  padding: 1.1rem 2.6rem;
+  font-size: clamp(1.95rem, 4.5vw, 2.7rem);
+  padding: 1.65rem 3.9rem;
 }
 
 /* With the hint gone the button is only the 82x27 artwork — under the

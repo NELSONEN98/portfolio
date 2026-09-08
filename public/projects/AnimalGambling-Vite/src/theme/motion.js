@@ -554,17 +554,30 @@ export const MOTION = {
      * animaciones — con el dado rodando adentro del presupuesto se
      * sentirían como dos, y el reloj castigaría por ver el juego.
      *
-     * Bajó de diez a seis: con diez la barra casi no se miraba, porque una
-     * decisión de este juego —tirar de nuevo o plantarse— se toma en dos o
-     * tres. Diez segundos de reloj para una decisión de tres es un reloj
-     * decorativo. Seis todavía alcanzan de sobra y encima se SIENTEN.
+     * Bajó de diez a seis y volvió a ocho. El motivo de bajarla sigue en
+     * pie —con diez la barra casi no se miraba, porque una decisión de este
+     * juego se toma en dos o tres segundos— pero seis dejaban poco margen
+     * al que recién entiende la mesa. Ocho conservan la tensión y no
+     * castigan al que está leyendo sus cartas por primera vez.
+     *
+     * Y ahora la barra avisa además POR COLOR —oro, naranja, rojo— así que
+     * la urgencia ya no depende sólo de cuánto quede de barra: los últimos
+     * dos segundos se ven aunque se mire de reojo. Ese semáforo está en
+     * `.turno-reloj i` y sus cortes son PORCENTAJES de esta duración, no
+     * segundos fijos: si este número vuelve a moverse, los tramos se
+     * estiran con él y hay que rehacer la cuenta allá (37,5% y 75% son los
+     * 5s y los 2s restantes de OCHO, no de otra cosa).
+     *
+     * Este `ms` es la única fuente: `applyTheme` lo publica como
+     * `--dur-turno-reloj` para la animación y `ms("turno.reloj")` lo lee
+     * para el `setTimeout` que planta el turno. Se mueven juntos.
      *
      * Lineal a propósito. Toda otra animación del juego tiene curva porque
      * imita algo físico; ésta representa TIEMPO, y el tiempo no acelera al
      * final. Con una curva, la mitad de la barra valdría más segundos que la
      * otra mitad y sería imposible calcular cuánto queda. */
     reloj: {
-      ms: 6000,
+      ms: 8000,
       ease: "linear",
       keyframes: "reloj-turno",
       el: ".turno-reloj i",
