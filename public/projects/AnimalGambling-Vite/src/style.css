@@ -579,7 +579,11 @@ body {
    * Ahora el tope está fuera de alcance a propósito: es una red por si
    * alguien abre esto en una pantalla enorme, no un límite de todos los
    * días. Quien manda es el `min()`, que es lo que siempre se quiso. */
-  --char-card-w: clamp(4.5rem, min(30vw, 36dvh), 46rem);
+  /* Un escalon mas chicas que hace un rato (30vw/36dvh -> 26vw/31dvh). Lo
+     que hace que se vean completas es el `aspect-ratio` de `.char-art`, no
+     este numero; esto es el aire alrededor, que con seis tarjetas juntas
+     tambien cuenta para poder mirarlas de a una. */
+  --char-card-w: clamp(4.5rem, min(26vw, 31dvh), 46rem);
 
   display: grid;
   grid-template-columns: repeat(3, var(--char-card-w));
@@ -637,7 +641,7 @@ body {
        raíz al 55% son 121px, y aplastaba una tarjeta que el `min()` ya
        había calculado en 168. Con 46vw las dos columnas se llevan el 92%
        del ancho del teléfono, que es lo que se pidió. */
-    --char-card-w: clamp(4.5rem, min(46vw, 27dvh), 40rem);
+    --char-card-w: clamp(4.5rem, min(41vw, 24dvh), 40rem);
   }
 }
 
@@ -921,7 +925,28 @@ body {
    * ventana es baja y ancha: ahí el problema nunca fue el ancho. */
   /* Llena la tarjeta, que es quien decide cuánto mide. */
   width: 100%;
-  aspect-ratio: 5 / 6;
+  /* ►► 7/8, y NO 5/6: el dibujo mide 420x480. ◄◄
+   *
+   * Esta caja decia `5 / 6` con un comentario que explicaba por que estaba
+   * bien —"los cuadros de origen son 400x480"— y 400x480 SI es 5:6 exacto.
+   * Lo que paso es que el arte se re-exporto a 420 de ancho y el numero se
+   * quedo viejo. Medidos hoy, los 45 cuadros son 420x480 sin excepcion.
+   *
+   * El dano es que `.boil` pinta con `background-size: cover` confiando en
+   * que la caja tiene la proporcion del dibujo —su comentario dice "cover
+   * == contain"—, y con la caja mas angosta que el dibujo eso deja de ser
+   * cierto: cover escala por el alto y RECORTA los costados. Medido en la
+   * seleccion, 18px de 378, o sea un 4,8% del gato, nueve pixeles por lado.
+   *
+   * Se veia poco mientras las tarjetas eran chicas. Al agrandarlas el
+   * recorte crecio con ellas y se hizo evidente — pero el gato venia
+   * saliendo cortado en las TRES pantallas desde que se re-exporto el arte.
+   *
+   * Con 7/8 la caja vuelve a tener la proporcion del dibujo y `cover`
+   * vuelve a ser igual que `contain`, como el comentario de `.boil` dice.
+   * Si el arte se re-exporta otra vez, este numero hay que rehacerlo: son
+   * los tres `aspect-ratio` de las cajas que pintan gatos. */
+  aspect-ratio: 7 / 8;
   border-radius: clamp(1.4rem, 3vmin, 3rem);
   background-color: #fff;
   box-shadow:
@@ -1478,7 +1503,11 @@ body {
      renglón, no llenarlo hasta el filo. */
   height: calc(var(--fighter-h) * 0.86);
   width: auto;
-  aspect-ratio: 5 / 6; /* source frames are 400×480 */
+  /* 7/8 porque el dibujo es 420x480. Aca decia `5 / 6` con "source frames
+     are 400×480" al lado: el arte se re-exporto mas ancho y el numero quedo
+     viejo, asi que `cover` venia recortando un 4,8% del gato. Ver la nota
+     larga en `.char-art`. */
+  aspect-ratio: 7 / 8;
   flex: none;
   border-radius: clamp(1.2rem, 3vmin, 2.6rem);
   background: #fff;
@@ -7507,16 +7536,26 @@ body {
   display: none;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* ►► `safe center`, y sin el `safe` la promesa de abajo era falsa. ◄◄
+   *
+   * Con cuatro jugadores el conjunto —título, ganador grande, fila de
+   * perdedores, y ahora el formulario— pide más alto del que da una ventana
+   * baja. `overflow-y: auto` se agregó para que eso se pudiera scrollear en
+   * vez de perderse, y el comentario decía que así "nunca queda algo
+   * inalcanzable".
+   *
+   * Medido, no era cierto: 1235px de contenido en 1000px de alto, y el
+   * retrato del ganador arrancaba en -25px CON EL SCROLL EN EL TOPE. Y
+   * `scrollTop` no puede ser negativo, así que esos 25px no se alcanzaban
+   * de ninguna forma — el desbordamiento se repartía a los dos lados y la
+   * mitad de arriba quedaba fuera del alcance del scroll.
+   *
+   * Eso es lo que arregla `safe`: mientras el contenido entra, centra; en
+   * cuanto no entra, se comporta como `start` y el desbordamiento se va
+   * TODO para abajo, que es el lado que el scroll sí alcanza. */
+  justify-content: safe center;
   padding: 4rem;
   height: 100%;
-  /* Con cuatro jugadores el conjunto —título, ganador grande, fila de
-     perdedores— puede pedir más alto del que da una ventana baja (medido:
-     1058px de contenido contra 1000px de alto, y peor en un notebook de
-     720px). Antes no pasaba nada raro porque `justify-content:center`
-     tapaba el problema centrando lo que entraba y perdiendo el resto sin
-     ningún indicio. `overflow-y:auto` cambia "desaparece" por "se scrollea":
-     nunca deja algo inalcanzable. */
   overflow-y: auto;
   /* Negro plano: el fieltro y el marco de madera son de la mesa, y acá la
      partida ya terminó. */
@@ -7628,7 +7667,9 @@ body {
    sin ella el fondo del gato se recorta contra el negro de la pantalla. */
 .go-art {
   width: clamp(14rem, min(30vw, 42dvh), 34rem);
-  aspect-ratio: 5 / 6;
+  /* 7/8, igual que las otras dos cajas que pintan gatos: el dibujo es
+     420x480 y con 5/6 `cover` le recortaba los costados. */
+  aspect-ratio: 7 / 8;
   background-color: #fff;
   border-radius: clamp(1.4rem, 3vmin, 3rem);
   box-shadow:
