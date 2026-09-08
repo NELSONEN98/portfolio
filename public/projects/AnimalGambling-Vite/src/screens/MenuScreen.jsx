@@ -13,7 +13,6 @@ export const MENU_ITEMS = [
      tamaños posibles el nombre estaba mintiendo sobre dos tercios de los
      casos. */
   { id: "online", label: "Mesa Online", listo: true, ruta: "room-choice", modo: "online", nota: "2 a 4" },
-  { id: "cpu", label: "Vs. IA", listo: false, nota: "práctica" },
   { id: "local", label: "Duelo Local", listo: true, ruta: "select", modo: "local" },
   /* ►► Acá estaban "Mesa de 3" y "Mesa de 4", locales. Se fueron del menú. ◄◄
    *

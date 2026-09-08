@@ -290,7 +290,7 @@ body {
    * El tope de `vw` sube junto con el máximo: sin eso, en una ventana
    * angosta el clamp se queda pegado al valor del medio y el título crece
    * sólo en escritorio, que es justo donde menos falta hacía. */
-  font-size: clamp(4rem, 10vw, 6.6rem);
+  font-size: clamp(5.6rem, 13vw, 9.2rem);
   color: #fff;
   letter-spacing: 0.15rem;
   text-shadow: 0 0 1.6rem rgba(255, 255, 255, 0.35);
@@ -489,7 +489,7 @@ body {
    * Medido después del cambio: 46 -> 76px en escritorio (los 3rem justos) y
    * 25 -> 39px en el teléfono. El aumento se ve en las dos medidas, que es
    * lo que se pidió; con el tope solo se habría visto en una. */
-  font-size: clamp(5.8rem, 10vw, 7.6rem);
+  font-size: clamp(8rem, 13vw, 10.6rem);
   color: var(--neon-amber);
   letter-spacing: 0.15rem;
   text-shadow: 0 0 1.6rem rgba(245, 185, 66, 0.5);
@@ -8536,6 +8536,27 @@ body {
   display: flex;
   align-items: center;
   gap: 1.2em;
+}
+
+/* ►► El dibujo del gesto en el reglamento. ◄◄
+ *
+ * `flex: none` por el mismo motivo que la carta de al lado: sin eso el
+ * flex lo achica para hacerle lugar al texto y el dibujo —que es lo que
+ * hay que reconocer despues en la mesa— sale mas chico en las filas de
+ * texto largo que en las de texto corto. Que se vean todos del mismo
+ * tamano es la mitad del trabajo de esta lista.
+ *
+ * El tamano va en `em` y no en `rem`: sigue al cuerpo de la seccion, que
+ * es lo que el modal ya escala segun la pantalla. */
+.rule-emoji {
+  flex: none;
+  width: 4.4em;
+  height: 4.4em;
+  object-fit: contain;
+  /* Los gestos son dibujos claros sobre fondo transparente y el modal es
+     negro: sin algo que los despegue, los trazos finos se pierden contra
+     el fondo. Es la misma sombra que llevan cuando se tiran a la mesa. */
+  filter: drop-shadow(0 0.2rem 0.5rem rgba(0, 0, 0, 0.85));
 }
 /* Mismo mínimo en 0 que `.rule-content`: la carta de al lado es de ancho
    fijo (`.rule-card`, `flex:none`), y sin esto el texto no cedía nada

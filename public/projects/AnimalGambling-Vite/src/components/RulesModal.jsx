@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { EMOJIS } from "../emojis";
 import {
   GOAL,
   CARD,
@@ -41,6 +42,17 @@ const SECCIONES = [
   { id: "dado", nombre: "EL DADO" },
   { id: "mesa", nombre: "LA MESA" },
   { id: "cartas", nombre: "LAS CARTAS" },
+  /* ►► Los gestos van en su propia pestaña, y de ultimas. ◄◄
+   *
+   * Se penso en meterlos al final de LAS CARTAS, que es donde terminaba el
+   * reglamento. Pero esa seccion es la mas larga de todas: una regla
+   * colgada abajo de todo es una regla que nadie lee, y la unica forma de
+   * enterarse de que los emojis EXISTEN es leerla. Una pestaña propia los
+   * pone en el indice, que es lo unico que mucha gente mira.
+   *
+   * Y van al final porque no hacen falta para jugar: quien cierre el
+   * reglamento en la 4 no se perdio ninguna regla del juego. */
+  { id: "gestos", nombre: "LOS GESTOS" },
 ];
 
 function Regla({ n, titulo, children, extra, tono }) {
@@ -437,6 +449,64 @@ export default function RulesModal({ abierta, onClose }) {
               gana el que estaba segundo cuando alguien por fin rompe. Y tu
               escudo valdría un tercio, porque tapa una carta y te apuntarían
               tres.
+            </Regla>
+            </>
+          )}
+
+          {seccion === "gestos" && (
+            <>
+            <Regla
+              n="01"
+              titulo="MANDAR UN GESTO"
+              extra={
+                <div className="rule-items">
+                  {EMOJIS.map((e) => (
+                    <Item
+                      key={e.id}
+                      muestra={
+                        <img
+                          className="rule-emoji"
+                          src={e.img}
+                          alt=""
+                          draggable="false"
+                        />
+                      }
+                      nombre={e.label}
+                    />
+                  ))}
+                </div>
+              }
+            >
+              <b>Mantén apretado tu propio gato</b> —el de abajo, el que
+              tiene tu nombre— y se abre un abanico con cinco gestos
+              alrededor. Sin soltar, <b>arrastra hasta el que quieras</b> y
+              suelta ahí. Si prefieres, también puedes soltar sin elegir: el
+              abanico se queda abierto un momento y entonces <b>tocas</b> el
+              gesto.
+              <br />
+              <br />
+              Sólo se puede desde <b>tu</b> gato. Tirar un gesto desde la cara
+              de otro sería hablar por él.
+            </Regla>
+
+            <Regla
+              n="02"
+              titulo={<>CUANDO LO VE EL RESTO <span className="rule-badge">× mesa online ×</span></>}
+            >
+              El tuyo aparece <b>al instante</b>, sin esperar a la red: un
+              gesto se manda porque acaba de pasar algo, y medio segundo de
+              ida y vuelta lo desengancha del momento que estaba comentando.
+              A los demás les llega <b>un par de segundos después</b>, como
+              en cualquier chat.
+              <br />
+              <br />
+              Dura <b>unos segundos y se va solo</b>. No hay historial ni se
+              acumulan: un gesto comenta lo que acaba de pasar, y si quedara
+              en pantalla comentaría lo siguiente.
+              <br />
+              <br />
+              En una mesa <i>local</i> también funcionan, aunque ahí todos
+              miran la misma pantalla y son más un chiste que un mensaje.
             </Regla>
             </>
           )}

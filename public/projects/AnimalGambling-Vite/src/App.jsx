@@ -1348,8 +1348,10 @@ export default function App() {
    * declararía un ganador que no ganó.
    *
    * Los números concretos salieron de estos dos comentarios a propósito:
-   * decían "100" y quedaron mintiendo el día que la meta bajó a 50. Un
-   * comentario con el valor escrito adentro envejece solo. */
+   * decían "100" y quedaron mintiendo el día que la meta bajó a 50 — y otra
+   * vez el día que subió a 60. Un comentario con el valor escrito adentro
+   * envejece solo, y éste ya lo demostró dos veces. La meta vive en
+   * `rules.ts` bajo `GOAL`; lo que se lea acá es historia, no el valor. */
   const cerrandoPorMeta = useRef(false);
   /* El espejo se escribe en un efecto y no durante el pintado: `plantarse`
      se arma de nuevo en cada vuelta, así que listarlo en las dependencias

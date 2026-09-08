@@ -12,14 +12,28 @@
 
 /* ►► A cuánto se gana. ◄◄
  *
- * Bajó de 100 a 50, y eso corta la partida por la mitad: un turno gana +7,7
- * en promedio, así que se pasa de unos trece turnos por jugador a unos seis
- * y medio.
+ * Pasó por 100, por 50 y ahora está en 60. Con +7,7 de promedio por turno
+ * eso son unos ocho turnos por jugador, contra los seis y medio de 50 y los
+ * trece de 100.
+ *
+ * ►► Por qué subió de 50 a 60. ◄◄
+ *
+ * Con 50 un turno afortunado alcanzaba para ganar de una: el acumulado no
+ * tiene techo mientras no salga un 1, y con los dos dados, los bonus y el
+ * martini una racha larga pasa los 50 sin despeinarse. Una partida que se
+ * puede terminar en el primer turno de alguien no es una partida, es una
+ * tirada.
+ *
+ * Vale decir que 60 no lo IMPIDE, sólo lo hace menos frecuente: la racha
+ * que llega a 50 llega a 60 casi con la misma probabilidad, porque lo que
+ * la corta es el 1 y no el número de la meta. Si el objetivo es que nadie
+ * gane en un turno, la palanca no es ésta — sería un tope al acumulado o
+ * un mínimo de turnos, y las dos son reglas nuevas, no un número.
  *
  * El número vive acá solo y lo leen las reglas, el motor local, el servidor
  * y el reglamento en pantalla. Cambiarlo es una línea justamente porque
  * nadie más lo escribe. */
-export const GOAL = 50;
+export const GOAL = 60;
 
 /* Un 1 quema el turno. Es la regla original y sigue siendo la que sostiene
    toda la tensión del juego. */
