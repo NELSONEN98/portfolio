@@ -1,0 +1,1334 @@
+<title>Katz UI</title>
+<meta charset="utf-8">
+<!-- Sin esto un telefono renderiza a 980px y ESCALA la pagina entera: toda
+     la escalera de `rem` de la seccion BASE deja de servir para nada, porque
+     el navegador nunca llega a los breakpoints. Es una linea y es la
+     diferencia entre un diseno responsive y uno que solo parece. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Componentes de interfaz para juegos de mesa. HTML y CSS, sin dependencias.">
+
+<!--
+  ══════════════════════════════════════════════════════════════════════
+   KATZ UI — componentes de interfaz para juegos de mesa
+   Licencia MIT. Usalos, cambialos, vendelos. No hace falta pedir permiso.
+  ══════════════════════════════════════════════════════════════════════
+
+  CÓMO USAR ESTO
+
+  Este archivo es la galería Y la fuente. No hay build, no hay npm, no hay
+  dependencias. Para llevarte un componente:
+
+    1. Copiá su bloque del <style> (están separados por cabeceras ══)
+    2. Copiá su marcado del <body>
+    3. Copiá la sección BASE — esa es obligatoria, todo depende de ella
+
+  La única dependencia externa es la tipografía Bungee, de Google Fonts
+  (licencia OFL). Si no la querés, borrá el <link> y cambiá --display: el
+  resto funciona igual, sólo que con otra letra.
+
+  QUÉ NO ESTÁ ACÁ, Y POR QUÉ
+
+  Los dibujos de los personajes, del tablero y de las cartas no viajan:
+  son arte de su autor y no son libres. En su lugar hay placeholders CSS
+  —degradados y formas— que ocupan exactamente el mismo sitio. Enchufá
+  tus propias imágenes donde dice CAMBIAR y todo sigue funcionando.
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   BASE — OBLIGATORIA. Todo lo demás la necesita.
+   ══════════════════════════════════════════════════════════════════════
+
+   Tres cosas viven acá y ninguna es decorativa:
+
+   1. LA ESCALERA DE `rem`. `html` arranca en 62,5% —o sea 1rem = 10px, que
+      hace la aritmética mental trivial— y BAJA en pantallas chicas. Así una
+      interfaz entera se achica moviendo un número, sin tocar un componente.
+
+      El precio hay que saberlo o muerde: un tope en `rem` dentro de un
+      `clamp()` se encoge con la escalera, así que termina mandando él y no
+      el `vw` del medio. Si querés que algo NO se achique en el teléfono,
+      sostenelo con `vw`/`vmin`, nunca con `rem`.
+
+   2. LA PALETA, en `:root`. Van en CSS y no inyectadas por JS a propósito:
+      entre que carga la hoja y corre el script habría un cuadro sin colores,
+      y en una interfaz oscura eso es un destello blanco.
+
+   3. LAS DURACIONES, también en CSS. En el juego original las escribía
+      JavaScript desde un catálogo; acá están horneadas para que el paquete
+      no dependa de nada.
+   ────────────────────────────────────────────────────────────────────── */
+
+html { font-size: 62.5%; }
+@media (max-width: 1200px) { html { font-size: 58%; } }
+@media (max-width: 900px)  { html { font-size: 52%; } }
+@media (max-width: 640px)  { html { font-size: 46%; } }
+@media (max-width: 420px)  { html { font-size: 40%; } }
+
+:root {
+  /* Paleta. Los cuatro del medio son identidades de jugador: el mismo color
+     que lleva un personaje es el que lleva su ficha en el tablero. Un solo
+     código para el mismo dato, no dos. */
+  --c-black:     #000000;
+  --c-blue:      #072475;
+  --c-green:     #13563b;
+  --c-bronze:    #a46928;
+  --c-magenta:   #a41f4b;
+  --c-gold:      #e4a700;
+  --c-red:       #c70000;
+  --c-red-deep:  #7b1414;
+  --c-purple:    #a55ff0;
+  --bone:        #e8e1cc;
+
+  /* Los cuatro de asiento, en el orden en que se sientan. */
+  --p1: #e4a700;
+  --p2: #ffffff;
+  --p3: #7ee787;
+  --p4: #4fc3f7;
+
+  /* Dos familias y nada más. La de mostrar grita; la de leer se calla. */
+  --display: "Bungee", system-ui, sans-serif;
+  --codigo:  "Space Mono", ui-monospace, monospace;
+
+  /* Duraciones. Un solo lugar: cambiás el ritmo de toda la interfaz acá. */
+  --dur-rapido:  140ms;
+  --dur-medio:   260ms;
+  --dur-lento:   520ms;
+  --dur-reloj:   8000ms;
+  --ease-suave:  cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-golpe:  cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ►► `hidden` tiene que GANAR, y por defecto pierde. ◄◄
+ *
+ * El navegador le da a `[hidden]` un `display: none` de hoja de usuario, que
+ * es lo más débil que existe: cualquier `display` que vos declares en una
+ * clase lo pisa. El modal de más abajo tiene `display: grid`, así que salía
+ * ABIERTO aunque el marcado dijera `hidden` — y encima en silencio.
+ *
+ * Es una línea, va en la base, y ahorra el rato de buscar por qué algo
+ * "oculto" se ve. Con esto se puede mostrar y esconder con `el.hidden` sin
+ * tocar estilos en línea. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #0a0a0c;
+  color: var(--bone);
+  font-family: var(--display);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Nadie que pidió menos movimiento debería recibir más. Se apagan los
+   desplazamientos, NO los cambios de color: un color que salta no es
+   movimiento, y muchas veces es la única señal que queda. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   BOTONES
+   ══════════════════════════════════════════════════════════════════════
+
+   Se ven como TECLAS FÍSICAS, y el truco no es la sombra: es el CANTO.
+   Un `box-shadow` sólido debajo, sin desenfoque, hace de grosor del botón
+   visto de costado. Sin él, un botón plano con sombra parece FLOTAR; con
+   él parece APOYADO. Al apretarlo el canto se achica y el botón baja lo
+   mismo que perdió — por eso se siente que se hunde de verdad.
+
+   Los seis colores van en variables para que un estado nuevo —maldito,
+   deshabilitado, de peligro— sea redefinir seis valores y no duplicar el
+   bloque entero con sus animaciones.
+   ────────────────────────────────────────────────────────────────────── */
+
+.k-btn {
+  --btn-claro:  #ffc93d;
+  --btn-medio:  var(--c-gold);
+  --btn-oscuro: #b98700;
+  --btn-canto:  #6d5000;
+  --btn-halo:   228, 167, 0;
+  --btn-texto:  #000;
+  --canto: 0.6rem;
+
+  font-family: var(--display);
+  font-size: 1.95rem;
+  font-weight: 700;
+  /* En `rem` y NO en `em`: si escalara con la letra, un rótulo largo se
+     saldría de la pantalla en un teléfono justo cuando menos sitio hay. */
+  letter-spacing: 0.3rem;
+  text-transform: uppercase;
+  padding: 1.5rem 2.7rem;
+  border: none;
+  border-radius: 1.2rem;
+  cursor: pointer;
+  position: relative;
+  color: var(--btn-texto);
+  background: linear-gradient(
+    180deg,
+    var(--btn-claro) 0%,
+    var(--btn-medio) 46%,
+    var(--btn-oscuro) 100%
+  );
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.22),
+    0 var(--canto) 0 var(--btn-canto),
+    0 calc(var(--canto) + 0.5rem) 1rem rgba(0, 0, 0, 0.55);
+  transition:
+    transform var(--dur-rapido) ease,
+    box-shadow var(--dur-rapido) ease,
+    filter var(--dur-rapido) ease;
+}
+
+.k-btn:hover:not(:disabled) { filter: brightness(1.08); }
+
+/* Baja exactamente lo que se le acorta el canto. Si bajara más o menos,
+   el botón se despegaría de su propia sombra y se rompería la ilusión. */
+.k-btn:active:not(:disabled) {
+  transform: translateY(calc(var(--canto) - 0.2rem));
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.25),
+    0 0.2rem 0 var(--btn-canto),
+    0 0.4rem 0.6rem rgba(0, 0, 0, 0.5);
+}
+
+.k-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.k-btn:focus-visible { outline: 3px solid var(--bone); outline-offset: 0.5rem; }
+
+/* Blanco: la acción secundaria. Misma forma, otro peso. */
+.k-btn--claro {
+  --btn-claro: #ffffff; --btn-medio: #f2efe6; --btn-oscuro: #c9c4b4;
+  --btn-canto: #8d8676; --btn-halo: 255, 255, 255;
+}
+/* Rojo: la que no se puede deshacer. */
+.k-btn--peligro {
+  --btn-claro: #ff5a5a; --btn-medio: var(--c-red); --btn-oscuro: #8f0000;
+  --btn-canto: #4a0000; --btn-halo: 199, 0, 0; --btn-texto: #fff;
+}
+/* Morado: el estado alterado. Seis valores, cero reglas duplicadas. */
+.k-btn--maldito {
+  --btn-claro: #d6b3ff; --btn-medio: var(--c-purple); --btn-oscuro: #6b28b8;
+  --btn-canto: #3d1868; --btn-halo: 150, 80, 235; --btn-texto: #fff;
+}
+
+/* Late para pedir el turno. El halo sale de la variable, así que un botón
+   morado late morado sin escribir un segundo keyframe. */
+.k-btn--late { animation: k-latido 1.6s ease-in-out infinite; }
+@keyframes k-latido {
+  0%, 100% { box-shadow:
+    inset 0 3px 0 rgba(255,255,255,.6), inset 0 -4px 0 rgba(0,0,0,.22),
+    0 var(--canto) 0 var(--btn-canto),
+    0 calc(var(--canto) + .5rem) 1rem rgba(0,0,0,.55),
+    0 0 0 rgba(var(--btn-halo), 0); }
+  50%     { box-shadow:
+    inset 0 3px 0 rgba(255,255,255,.6), inset 0 -4px 0 rgba(0,0,0,.22),
+    0 var(--canto) 0 var(--btn-canto),
+    0 calc(var(--canto) + .5rem) 1rem rgba(0,0,0,.55),
+    0 0 2.4rem rgba(var(--btn-halo), .75); }
+}
+
+/* ►► Botón de ICONO: cuadrado grande contra círculo chico. ◄◄
+   Dos acciones opuestas no se distinguen por color: un daltónico ve dos
+   rectángulos iguales. Se distinguen por FORMA y por TAMAÑO, que se leen
+   sin color y sin haber jugado nunca.
+
+   `--lado` va en PÍXELES y no en rem, y esto importa: el mínimo de 44px
+   es la regla de toque —lo que un dedo acierta con confianza— y un dedo no
+   se achica cuando se achica la tipografía. */
+.k-btn-icono {
+  --lado: clamp(84px, 18vmin, 186px);
+  width: var(--lado);
+  height: var(--lado);
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 1.6rem;
+  border: 4px solid #fff;
+}
+.k-btn-icono--circulo {
+  width: calc(var(--lado) * 0.6);
+  height: calc(var(--lado) * 0.6);
+  border-radius: 50%;
+}
+.k-btn-icono svg { width: 62%; height: 62%; fill: currentColor; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   DADO 3D — sin librerías
+   ══════════════════════════════════════════════════════════════════════
+
+   El original de este proyecto era Three.js con física real: 1.070 líneas
+   y 25MB de dependencias para tirar un dado. Precioso, e imposible de
+   regalar. Este hace lo mismo con `transform: rotate3d` y seis caras.
+
+   ►► Por qué las rotaciones son las que son. ◄◄
+
+   Un cubo con las seis caras puestas con `translateZ` queda con el 1 al
+   frente. Para mostrar otra cara hay que GIRAR EL CUBO hasta ponerla ahí,
+   y esos son los seis ángulos de `[data-cara]`. No se inventan: son la
+   rotación inversa de dónde quedó pegada cada cara.
+
+   ►► Y por qué la tirada suma vueltas en vez de reemplazar el ángulo. ◄◄
+
+   `--vueltas` multiplica 360°. Si el resultado se pusiera directo, sacar
+   dos veces el mismo número no movería nada: el dado se quedaría quieto y
+   el jugador no vería que tiró. Con las vueltas encima, cada tirada gira
+   aunque repita, que es lo que hace que se sienta una tirada.
+   ────────────────────────────────────────────────────────────────────── */
+
+.k-dado {
+  --tam: 12rem;
+  --vueltas: 0;
+  width: var(--tam);
+  height: var(--tam);
+  perspective: calc(var(--tam) * 5);
+}
+.k-dado__cubo {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotate3d(1, 1, 0, calc(var(--vueltas) * 360deg));
+  /* Curva con rebote: un dado que frena en seco parece un cartel dando
+     vuelta. El overshoot es lo que lo hace pesar. */
+  transition: transform 1.1s var(--ease-golpe);
+}
+.k-dado__cara {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  padding: 12%;
+  gap: 4%;
+  border-radius: 14%;
+  background: linear-gradient(145deg, #fdfcf7 0%, #e2ddcc 60%, #bdb7a2 100%);
+  box-shadow: inset 0 0 1.4rem rgba(0, 0, 0, 0.22);
+  backface-visibility: hidden;
+}
+/* Las seis caras, cada una empujada media arista hacia afuera. */
+.k-dado__cara:nth-child(1) { transform: translateZ(calc(var(--tam) / 2)); }
+.k-dado__cara:nth-child(2) { transform: rotateY(180deg) translateZ(calc(var(--tam) / 2)); }
+.k-dado__cara:nth-child(3) { transform: rotateY( 90deg) translateZ(calc(var(--tam) / 2)); }
+.k-dado__cara:nth-child(4) { transform: rotateY(-90deg) translateZ(calc(var(--tam) / 2)); }
+.k-dado__cara:nth-child(5) { transform: rotateX( 90deg) translateZ(calc(var(--tam) / 2)); }
+.k-dado__cara:nth-child(6) { transform: rotateX(-90deg) translateZ(calc(var(--tam) / 2)); }
+
+/* Los puntos se colocan en una grilla de 3x3 por su posición, no por su
+   cantidad: así el 3 comparte celdas con el 5 y no hay que dibujar seis
+   patrones distintos a mano. */
+.k-punto {
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #444 0%, #111 70%);
+  box-shadow: inset 0 -1px 2px rgba(255, 255, 255, 0.25);
+}
+.k-p1 { grid-area: 1 / 1; } .k-p2 { grid-area: 1 / 3; }
+.k-p3 { grid-area: 2 / 2; } .k-p4 { grid-area: 3 / 1; }
+.k-p5 { grid-area: 3 / 3; } .k-p6 { grid-area: 1 / 2; }
+.k-p7 { grid-area: 3 / 2; } .k-p8 { grid-area: 2 / 1; }
+.k-p9 { grid-area: 2 / 3; }
+
+/* Poner `data-cara` muestra ese número. Sumale vueltas con --vueltas. */
+.k-dado[data-cara="1"] .k-dado__cubo { transform: rotate3d(1,1,0, calc(var(--vueltas)*360deg)) rotateY(0deg)    rotateX(0deg); }
+.k-dado[data-cara="2"] .k-dado__cubo { transform: rotate3d(1,1,0, calc(var(--vueltas)*360deg)) rotateY(180deg)  rotateX(0deg); }
+.k-dado[data-cara="3"] .k-dado__cubo { transform: rotate3d(1,1,0, calc(var(--vueltas)*360deg)) rotateY(-90deg)  rotateX(0deg); }
+.k-dado[data-cara="4"] .k-dado__cubo { transform: rotate3d(1,1,0, calc(var(--vueltas)*360deg)) rotateY(90deg)   rotateX(0deg); }
+.k-dado[data-cara="5"] .k-dado__cubo { transform: rotate3d(1,1,0, calc(var(--vueltas)*360deg)) rotateX(-90deg); }
+.k-dado[data-cara="6"] .k-dado__cubo { transform: rotate3d(1,1,0, calc(var(--vueltas)*360deg)) rotateX(90deg); }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   CARTAS EN ABANICO
+   ══════════════════════════════════════════════════════════════════════
+
+   El abanico es CSS puro: cada carta lleva su índice en `--i` y de ahí
+   salen su ángulo, su desplazamiento lateral y su altura. Agregar o sacar
+   cartas no toca una línea de estilo.
+
+   ►► `--solape` es lo que hace que esto funcione en un teléfono. ◄◄
+
+   Con margen fijo, cinco cartas en 390px salen de la pantalla. Con solape
+   negativo, el abanico se CIERRA como un abanico de verdad: las cartas se
+   montan entre sí y el conjunto ocupa lo que haya. Es una variable y no
+   una media query porque el que lo use puede querer otro grado de cierre.
+
+   ►► `transform-origin` abajo, no al centro. ◄◄
+
+   Un abanico gira desde la MANO que lo sostiene, que está debajo de las
+   cartas. Con el origen al centro las cartas se abren como un molinete y
+   se pierde la lectura de "esto lo tiene alguien agarrado".
+   ────────────────────────────────────────────────────────────────────── */
+
+.k-abanico {
+  --solape: -3.2rem;
+  --paso-giro: 7deg;
+  --paso-alto: 0.9rem;
+  --n: 5;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 4rem 2rem 2rem;
+  min-height: 26rem;
+}
+.k-carta {
+  --i: 0;
+  /* El centro del abanico, en índices. Con 5 cartas es 2; la fórmula lo
+     saca solo para cualquier cantidad, así que --n es lo único que cambia. */
+  --centro: calc((var(--n) - 1) / 2);
+  --desde-centro: calc(var(--i) - var(--centro));
+
+  width: 12rem;
+  aspect-ratio: 5 / 7;
+  flex: 0 0 auto;
+  margin-inline: calc(var(--solape) / 2);
+  border-radius: 1rem;
+  background: #fff;
+  border: 0.4rem solid #fff;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transform-origin: 50% 160%;
+  transform:
+    rotate(calc(var(--desde-centro) * var(--paso-giro)))
+    translateY(calc(abs(var(--desde-centro)) * var(--paso-alto)));
+  box-shadow: 0 0.6rem 1.4rem rgba(0, 0, 0, 0.55);
+  transition: transform var(--dur-medio) var(--ease-suave),
+              box-shadow var(--dur-medio) ease;
+  z-index: 1;
+}
+/* La que se mira sale del abanico y se endereza: se lee entera y además
+   dice "ésta es la que estás por jugar" sin ningún texto. */
+.k-carta:hover, .k-carta:focus-visible {
+  transform:
+    rotate(calc(var(--desde-centro) * var(--paso-giro) * 0.3))
+    translateY(-2.6rem) scale(1.06);
+  box-shadow: 0 1.4rem 2.4rem rgba(0, 0, 0, 0.7);
+  z-index: 5;
+}
+.k-carta__arte {
+  /* CAMBIAR: acá va tu dibujo. Un <img> o un background-image.
+     El degradado es el placeholder. */
+  height: 72%;
+  background: linear-gradient(160deg, var(--carta-color, var(--c-blue)) 0%, #000 140%);
+  display: grid;
+  place-items: center;
+  font-size: 3.4rem;
+}
+.k-carta__nombre {
+  height: 28%;
+  display: grid;
+  place-items: center;
+  background: var(--carta-color, var(--c-blue));
+  color: #fff;
+  font-size: 1.3rem;
+  letter-spacing: 0.1rem;
+  text-align: center;
+  padding: 0 0.4rem;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
+}
+/* El reverso: la carta que todavía no se sabe qué es. */
+.k-carta--tapada .k-carta__arte {
+  background:
+    repeating-linear-gradient(45deg, #0b2f7a 0 8px, #0a2665 8px 16px);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   FICHAS DE JUGADOR
+   ══════════════════════════════════════════════════════════════════════
+
+   Una ficha de póker: anillo exterior con muescas, disco interior y el
+   número. Las muescas son un `repeating-conic-gradient`, no doce elementos.
+
+   El color sale de `--p1..--p4`, los MISMOS que identifican al jugador en
+   todo el resto de la interfaz. Un segundo juego de colores para lo mismo
+   obliga a aprender dos códigos para un solo dato.
+   ────────────────────────────────────────────────────────────────────── */
+
+.k-ficha {
+  --ficha: var(--p1);
+  width: 5.4rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: relative;
+  font-family: var(--display);
+  font-size: 1.9rem;
+  color: #000;
+  background:
+    repeating-conic-gradient(
+      from 0deg,
+      var(--ficha) 0deg 15deg,
+      color-mix(in srgb, var(--ficha) 55%, #000) 15deg 30deg
+    );
+  box-shadow:
+    0 0.3rem 0 color-mix(in srgb, var(--ficha) 45%, #000),
+    0 0.6rem 1rem rgba(0, 0, 0, 0.6);
+}
+/* El disco interior, donde va el número. Va como `::before` para que la
+   ficha entera siga siendo UN elemento con UN hijo de texto. */
+.k-ficha::before {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%,
+    color-mix(in srgb, var(--ficha) 88%, #fff) 0%,
+    var(--ficha) 60%,
+    color-mix(in srgb, var(--ficha) 70%, #000) 100%);
+  box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.3);
+}
+.k-ficha > * { position: relative; z-index: 1; }
+.k-ficha--p1 { --ficha: var(--p1); }
+.k-ficha--p2 { --ficha: var(--p2); }
+.k-ficha--p3 { --ficha: var(--p3); }
+.k-ficha--p4 { --ficha: var(--p4); }
+/* El hueco donde todavía no hay nadie. El punteado ya significa "acá va
+   algo" en esta interfaz, así que se reutiliza en vez de inventar otro. */
+.k-ficha--vacia {
+  background: transparent;
+  border: 0.3rem dashed rgba(232, 225, 204, 0.45);
+  box-shadow: none;
+  color: rgba(232, 225, 204, 0.6);
+}
+.k-ficha--vacia::before { display: none; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   CASILLAS DE TABLERO
+   ══════════════════════════════════════════════════════════════════════
+
+   Placas de madera atornilladas. Los cuatro colores van en variables: un
+   tipo de casilla nuevo son CUATRO LÍNEAS y el degradado, el marco, el
+   filete y los tornillos lo siguen solos.
+   ────────────────────────────────────────────────────────────────────── */
+
+.k-casilla {
+  --placa-claro:  #6b4a25;
+  --placa-oscuro: #3a2712;
+  --marco:        #a46928;
+  --filete:       rgba(255, 255, 255, 0.12);
+
+  position: relative;
+  width: 6.4rem;
+  aspect-ratio: 1;
+  border-radius: 0.8rem;
+  display: grid;
+  place-items: center;
+  font-size: 2.4rem;
+  background: linear-gradient(160deg, var(--placa-claro) 0%, var(--placa-oscuro) 100%);
+  border: 0.4rem solid var(--marco);
+  box-shadow:
+    inset 0 0 0 0.2rem var(--filete),
+    inset 0 -0.4rem 0.8rem rgba(0, 0, 0, 0.45),
+    0 0.3rem 0.6rem rgba(0, 0, 0, 0.5);
+}
+.k-casilla--castigo  { --placa-claro: #e05a4a; --placa-oscuro: #a11d0f; --marco: #ff8c7a; }
+.k-casilla--sorpresa { --placa-claro: #4d7fd6; --placa-oscuro: #14337d; --marco: #86b4ff; }
+.k-casilla--premio   { --placa-claro: #f0c14b; --placa-oscuro: #a97a00; --marco: #ffe08a; }
+
+/* Los cuatro tornillos. Cada uno es un `::before`/`::after` de dos capas
+   —no se puede con dos pseudo-elementos solos— así que van como spans.
+   La ranura girada distinto en cada uno es lo que los hace parecer
+   apretados a mano y no estampados. */
+.k-tornillo {
+  position: absolute;
+  width: 1.1rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f0c866 0%, #c18a2d 35%, #6b4718 70%, #2c1c0b 100%);
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.6);
+}
+.k-tornillo::after {
+  content: "";
+  position: absolute;
+  inset: 32% 12%;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 1px;
+  transform: rotate(var(--giro, 20deg));
+}
+.k-tornillo:nth-of-type(1) { top: 0.4rem;    left: 0.4rem;  --giro: 18deg; }
+.k-tornillo:nth-of-type(2) { top: 0.4rem;    right: 0.4rem; --giro: -42deg; }
+.k-tornillo:nth-of-type(3) { bottom: 0.4rem; left: 0.4rem;  --giro: 71deg; }
+.k-tornillo:nth-of-type(4) { bottom: 0.4rem; right: 0.4rem; --giro: -12deg; }
+
+/* Un tablero es una grilla de casillas y nada más. */
+.k-tablero {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 7), auto);
+  gap: 0.5rem;
+  padding: 1.2rem;
+  border-radius: 1.2rem;
+  background: linear-gradient(160deg, #2c1c0b, #150c04);
+  border: 0.5rem solid var(--c-bronze);
+  width: max-content;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   MARCO DE BOMBILLAS
+   ══════════════════════════════════════════════════════════════════════
+
+   El borde de luces de una máquina de feria. Es UN `repeating-linear-gradient`
+   por lado, no cuarenta elementos — y por eso escala a cualquier tamaño sin
+   que nadie recalcule cuántas bombillas entran.
+   ────────────────────────────────────────────────────────────────────── */
+
+.k-bombillas {
+  --luz: var(--c-gold);
+  --bombilla: 0.5rem;
+  --paso: 1.6rem;
+  padding: 1.4rem;
+  border-radius: 1rem;
+  background:
+    repeating-linear-gradient(90deg,  var(--luz) 0 var(--bombilla), transparent var(--bombilla) var(--paso)) top    / 100% 0.5rem no-repeat,
+    repeating-linear-gradient(90deg,  var(--luz) 0 var(--bombilla), transparent var(--bombilla) var(--paso)) bottom / 100% 0.5rem no-repeat,
+    repeating-linear-gradient(180deg, var(--luz) 0 var(--bombilla), transparent var(--bombilla) var(--paso)) left   / 0.5rem 100% no-repeat,
+    repeating-linear-gradient(180deg, var(--luz) 0 var(--bombilla), transparent var(--bombilla) var(--paso)) right  / 0.5rem 100% no-repeat,
+    #0a0a0c;
+  box-shadow: 0 0 3rem rgba(228, 167, 0, 0.25);
+  animation: k-parpadeo 2.4s ease-in-out infinite;
+}
+@keyframes k-parpadeo {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.35); }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   MODAL CON PESTAÑAS
+   ══════════════════════════════════════════════════════════════════════
+
+   ►► Las pestañas muestran PROGRESO, no sólo secciones. ◄◄
+
+   Una pestaña por la que ya pasaste se ve distinta de una a la que no
+   llegaste. Eso convierte una navegación en un mapa de "cuánto me falta",
+   que es lo que alguien leyendo instrucciones necesita saber.
+
+   ►► Y en pantallas angostas queda SÓLO EL NÚMERO. ◄◄
+
+   Recortar el texto con `overflow: hidden` produce "1 EL JUEG", que se lee
+   peor que no poner nada. El número entero más un `aria-label` con el
+   nombre completo dice lo mismo, entra siempre, y para un lector de
+   pantalla no cambia nada.
+   ────────────────────────────────────────────────────────────────────── */
+
+.k-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.82);
+  z-index: 100;
+}
+.k-modal {
+  width: min(92rem, 100%);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.k-modal__cabeza {
+  display: flex;
+  align-items: center;
+  gap: 1.6rem;
+  padding: 1.4rem 0.6rem 1.8rem;
+}
+.k-modal__titulo {
+  flex: 1;
+  text-align: center;
+  font-size: 3.2rem;
+  letter-spacing: 0.8rem;
+  color: var(--c-gold);
+  text-shadow: 0 0 2.4rem rgba(228, 167, 0, 0.55);
+}
+.k-cerrar {
+  width: 4.8rem; height: 4.8rem;
+  display: grid; place-items: center;
+  font-size: 2.2rem;
+  color: var(--bone);
+  background: transparent;
+  border: 0.2rem solid rgba(232, 225, 204, 0.35);
+  border-radius: 0.8rem;
+  cursor: pointer;
+}
+.k-cerrar:hover { background: rgba(232, 225, 204, 0.1); }
+
+.k-tabs { display: flex; gap: 0.6rem; border-bottom: 0.2rem solid rgba(228,167,0,.3); }
+.k-tab {
+  display: flex; align-items: center; gap: 0.8rem;
+  padding: 1rem 1.6rem;
+  font-family: var(--display);
+  font-size: 1.5rem;
+  letter-spacing: 0.15rem;
+  background: transparent;
+  color: rgba(232, 225, 204, 0.4);
+  border: none;
+  border-radius: 0.6rem 0.6rem 0 0;
+  cursor: pointer;
+}
+.k-tab[aria-selected="true"] { background: rgba(245,185,66,.09); color: var(--c-gold); }
+.k-tab--visto { color: rgba(232, 225, 204, 0.75); }
+/* El nombre se va, el número se queda. Nunca un texto cortado a la mitad. */
+@media (max-width: 640px) { .k-tab__nombre { display: none; } }
+
+.k-modal__cuerpo { padding: 2.4rem 0.6rem; overflow-y: auto; flex: 1; }
+.k-modal__pie {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1.4rem; padding: 1.4rem 0.6rem;
+  border-top: 0.2rem dashed rgba(232, 225, 204, 0.2);
+}
+.k-paso { font-family: var(--codigo); color: rgba(232,225,204,.55); font-size: 1.5rem; }
+
+/* Un párrafo destacado: lo que hay que entender sí o sí. Texto en hueso y
+   no en gris — si es lo importante, tiene que ser lo más legible. */
+.k-destacado {
+  border: 0.2rem solid rgba(199, 54, 95, 0.6);
+  border-radius: 1rem;
+  padding: 1.8rem;
+  background: linear-gradient(160deg, rgba(90, 10, 40, 0.35), transparent);
+  color: var(--bone);
+  font-family: system-ui, sans-serif;
+  line-height: 1.6;
+}
+.k-destacado em { color: var(--c-gold); font-style: normal; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   FORMULARIO
+   ══════════════════════════════════════════════════════════════════════
+
+   ►► Se abre PROGRESIVAMENTE, y ése es todo el diseño. ◄◄
+
+   Al principio se ven sólo las estrellas. El resto aparece cuando alguien
+   puntúa. Un formulario de seis campos ahuyenta; una sola pregunta de un
+   clic, no — y el que ya dio ese clic está mucho más dispuesto a seguir.
+
+   Las estrellas van en orden INVERSO en el marcado (5,4,3,2,1) para que
+   `~` pueda pintar las anteriores: CSS sólo mira hacia adelante, así que
+   invertir el orden es lo que permite hacer esto sin una línea de JS.
+   ────────────────────────────────────────────────────────────────────── */
+
+.k-form { display: flex; flex-direction: column; gap: 1.6rem; max-width: 48rem; }
+.k-campo { display: flex; flex-direction: column; gap: 0.6rem; }
+.k-label {
+  font-size: 1.4rem;
+  letter-spacing: 0.12rem;
+  color: rgba(232, 225, 204, 0.75);
+}
+.k-input, .k-textarea {
+  font-family: system-ui, sans-serif;
+  font-size: 1.6rem;
+  padding: 1.1rem 1.3rem;
+  color: var(--bone);
+  background: rgba(255, 255, 255, 0.05);
+  border: 0.2rem solid rgba(232, 225, 204, 0.25);
+  border-radius: 0.8rem;
+  transition: border-color var(--dur-rapido) ease;
+}
+.k-input:focus, .k-textarea:focus { outline: none; border-color: var(--c-gold); }
+.k-textarea { resize: vertical; min-height: 9rem; }
+
+.k-estrellas {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+.k-estrellas input { position: absolute; opacity: 0; pointer-events: none; }
+.k-estrellas label {
+  font-size: 3.4rem;
+  line-height: 1;
+  cursor: pointer;
+  color: rgba(232, 225, 204, 0.22);
+  transition: color var(--dur-rapido) ease, transform var(--dur-rapido) ease;
+}
+.k-estrellas label:hover,
+.k-estrellas label:hover ~ label,
+.k-estrellas input:checked ~ label { color: var(--c-gold); }
+.k-estrellas label:hover { transform: scale(1.18); }
+.k-estrellas input:focus-visible + label { outline: 2px solid var(--bone); outline-offset: 3px; }
+
+/* El resto del formulario, escondido hasta que haya puntuación. */
+.k-form__resto {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows var(--dur-lento) var(--ease-suave),
+              opacity var(--dur-lento) ease;
+}
+.k-form__resto > div { overflow: hidden; display: flex; flex-direction: column; gap: 1.6rem; }
+.k-form.abierto .k-form__resto { grid-template-rows: 1fr; opacity: 1; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   TARJETAS DE PERSONAJE
+   ══════════════════════════════════════════════════════════════════════
+
+   El arte del proyecto original no viaja. En su lugar hay un placeholder
+   CSS del mismo tamaño: reemplazá `.k-personaje__arte` por tu <img> y no
+   hay que tocar nada más.
+
+   ►► El tope del `clamp` va MUY alto a propósito. ◄◄
+
+   Con la escalera de `rem` de la sección BASE, un tope en `rem` se achica
+   en pantallas chicas y termina mandando ÉL en vez del `vmin` del medio.
+   Puesto fuera de alcance, quien decide el tamaño es el `min()`, que es lo
+   que uno quiere. Es el error más fácil de cometer con esta base.
+   ────────────────────────────────────────────────────────────────────── */
+
+.k-grilla-personajes {
+  --carta-w: clamp(4.5rem, min(30vw, 36dvh), 46rem);
+  display: grid;
+  grid-template-columns: repeat(3, var(--carta-w));
+  gap: clamp(0.6rem, 1.4vw, 1.6rem);
+  justify-content: center;
+}
+@media (max-width: 760px) {
+  .k-grilla-personajes {
+    grid-template-columns: repeat(2, var(--carta-w));
+    --carta-w: clamp(4.5rem, min(46vw, 27dvh), 40rem);
+  }
+}
+.k-personaje {
+  width: var(--carta-w);
+  border-radius: 1.2rem;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: transform var(--dur-medio) var(--ease-suave);
+}
+.k-personaje:hover { transform: translateY(-0.8rem); }
+.k-personaje__arte {
+  /* CAMBIAR: tu dibujo va acá. */
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  font-size: calc(var(--carta-w) * 0.34);
+  background: var(--pj-color, var(--c-gold));
+}
+.k-personaje__nombre {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 0.6rem;
+  text-align: center;
+  font-size: calc(var(--carta-w) * 0.075);
+  letter-spacing: 0.1rem;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.7);
+}
+/* El casillero reservado. Negro para que se lea como HUECO: los otros son
+   papel con un dibujo, éste es el sitio donde todavía no hay dibujo. */
+.k-personaje--proximo { cursor: default; }
+.k-personaje--proximo .k-personaje__arte {
+  background-color: #000;
+  border: 0.3rem dashed rgba(232, 225, 204, 0.45);
+  color: rgba(232, 225, 204, 0.6);
+}
+.k-personaje--proximo:hover { transform: none; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   BARRA DE TIEMPO CON SEMÁFORO
+   ══════════════════════════════════════════════════════════════════════
+
+   Dos animaciones sobre el mismo elemento: una vacía la barra, la otra le
+   cambia el color. Se separan porque son dos lecturas distintas — el largo
+   se compara con lo que había hace un rato; el color se entiende de un
+   vistazo, sin memoria.
+
+   ►► Los cortes son PORCENTAJES de la duración, no segundos. ◄◄
+
+   CSS no sabe cuántos ms vale un porcentaje de su propia animación. Con
+   `--dur-reloj: 8s`, 37,5% y 75% son los 5s y 2s restantes. Si cambiás la
+   duración, esos dos números hay que rehacerlos. Es lo único frágil acá.
+
+   ►► Y los pares de paradas son para que el color SALTE. ◄◄
+
+   `37.49%` y `37.5%` con colores distintos hacen el corte instantáneo. Con
+   una sola parada por tramo la animación interpolaría y el naranja iría
+   apareciendo desde el principio: eso es un degradado, no un semáforo.
+   ────────────────────────────────────────────────────────────────────── */
+
+.k-reloj {
+  --nar-oscuro: #a34a00; --nar-medio: #e06a00; --nar-claro: #ff9a3c; --nar-halo: 224,106,0;
+  --roj-oscuro: var(--c-red-deep); --roj-medio: var(--c-red); --roj-claro: #ff4d4d; --roj-halo: 199,0,0;
+  --oro-oscuro: #b98700; --oro-medio: var(--c-gold); --oro-claro: #ffc93d; --oro-halo: 228,167,0;
+
+  width: 100%;
+  height: 0.9rem;
+  border-radius: 999px;
+  overflow: hidden;
+  /* El carril oscuro es lo que hace legible lo que FALTA. Sin él, una barra
+     al 20% se lee como una barra chica, no como una casi vacía. */
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.k-reloj i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  background-image: linear-gradient(90deg, var(--oro-oscuro) 0%, var(--oro-medio) 45%, var(--oro-claro) 100%);
+  animation:
+    k-vaciar   var(--dur-reloj) linear forwards,
+    k-semaforo var(--dur-reloj) linear forwards;
+}
+@keyframes k-vaciar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes k-semaforo {
+  0%, 37.49% {
+    background-image: linear-gradient(90deg, var(--oro-oscuro) 0%, var(--oro-medio) 45%, var(--oro-claro) 100%);
+    box-shadow: 0 0 0.7rem rgba(var(--oro-halo), 0.75);
+  }
+  37.5%, 74.99% {
+    background-image: linear-gradient(90deg, var(--nar-oscuro) 0%, var(--nar-medio) 45%, var(--nar-claro) 100%);
+    box-shadow: 0 0 0.8rem rgba(var(--nar-halo), 0.85);
+  }
+  75%, 100% {
+    background-image: linear-gradient(90deg, var(--roj-oscuro) 0%, var(--roj-medio) 45%, var(--roj-claro) 100%);
+    box-shadow: 0 0 1rem rgba(var(--roj-halo), 0.95);
+  }
+}
+/* Sin movimiento se va el vaciado pero se QUEDA el color: tres saltos de
+   color no son movimiento, y son la única pista de cuánto falta que le
+   queda a quien pidió menos animación. */
+@media (prefers-reduced-motion: reduce) {
+  .k-reloj i { animation: k-semaforo var(--dur-reloj) linear forwards !important; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   MENÚ, CÓDIGO DE SALA Y AVISOS
+   ══════════════════════════════════════════════════════════════════════ */
+
+.k-menu { display: flex; flex-direction: column; gap: 1rem; width: min(46rem, 100%); }
+.k-menu__opcion {
+  display: flex; align-items: baseline; gap: 1rem;
+  padding: 1.4rem 1.8rem;
+  font-family: var(--display);
+  font-size: 2.4rem;
+  color: var(--bone);
+  text-align: left;
+  background: rgba(0, 0, 0, 0.5);
+  border: 0.2rem solid var(--bone);
+  border-radius: 0.8rem;
+  cursor: pointer;
+  transition: transform var(--dur-rapido) ease, background var(--dur-rapido) ease;
+}
+.k-menu__opcion:hover:not([aria-disabled="true"]) {
+  transform: translateX(0.6rem);
+  background: rgba(255, 255, 255, 0.08);
+}
+/* Lo que todavía no está se muestra APAGADO y no se esconde: una opción
+   que existirá dice hacia dónde va el proyecto; una que no aparece, no. */
+.k-menu__opcion[aria-disabled="true"] {
+  color: rgba(232, 225, 204, 0.35);
+  border-color: rgba(232, 225, 204, 0.2);
+  cursor: not-allowed;
+}
+.k-menu__nota { font-size: 1.1rem; letter-spacing: 0.1rem; color: var(--c-magenta); }
+
+/* El código de sala en monoespaciada y bien separado: son caracteres que
+   alguien va a DICTAR en voz alta o copiar a mano, no leer de corrido. */
+.k-codigo {
+  font-family: var(--codigo);
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: 0.8rem;
+  text-align: center;
+  padding: 1.2rem 1.6rem;
+  color: var(--c-gold);
+  background: rgba(0, 0, 0, 0.6);
+  border: 0.2rem solid var(--c-gold);
+  border-radius: 0.8rem;
+}
+
+.k-aviso {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1.1rem 1.6rem;
+  font-size: 1.5rem;
+  letter-spacing: 0.1rem;
+  border-radius: 0.8rem;
+  border-left: 0.5rem solid var(--aviso, var(--c-gold));
+  background: color-mix(in srgb, var(--aviso, var(--c-gold)) 14%, #111);
+  animation: k-entrar var(--dur-medio) var(--ease-suave);
+}
+.k-aviso--ok      { --aviso: #3fb950; }
+.k-aviso--error   { --aviso: var(--c-red); }
+.k-aviso--info    { --aviso: #4fc3f7; }
+@keyframes k-entrar {
+  from { opacity: 0; transform: translateY(-0.8rem); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Cartel de turno perdido, victoria, lo que sea. `nowrap` a propósito: el
+   texto tiene que ser CORTO, y si alguien escribe uno largo conviene que
+   se note enseguida y no que parta renglones en silencio. */
+.k-cartel {
+  font-size: clamp(2.4rem, 6vw, 5.2rem);
+  letter-spacing: 0.4rem;
+  white-space: nowrap;
+  color: var(--bone);
+  text-shadow: 0 0 3rem rgba(228, 167, 0, 0.7);
+  animation: k-golpe var(--dur-lento) var(--ease-golpe);
+}
+@keyframes k-golpe {
+  from { opacity: 0; transform: scale(1.6); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   LA GALERÍA — nada de acá abajo es parte de la librería
+   ══════════════════════════════════════════════════════════════════════ */
+
+.doc { max-width: 108rem; margin: 0 auto; padding: 4rem 2.4rem 10rem; }
+.doc h1 { font-size: clamp(3.4rem, 7vw, 6rem); color: var(--c-gold); margin: 0 0 .6rem;
+          text-shadow: 0 0 3rem rgba(228,167,0,.4); }
+.doc .sub { font-family: system-ui, sans-serif; font-size: 1.7rem; line-height: 1.6;
+            color: rgba(232,225,204,.72); max-width: 62rem; margin: 0 0 1.4rem; }
+.doc h2 { font-size: 2.4rem; letter-spacing: .3rem; color: var(--bone);
+          margin: 6rem 0 .6rem; padding-bottom: .8rem;
+          border-bottom: .2rem solid rgba(228,167,0,.3); }
+.doc .nota { font-family: system-ui, sans-serif; font-size: 1.5rem; line-height: 1.65;
+             color: rgba(232,225,204,.6); margin: 0 0 2rem; max-width: 62rem; }
+.doc .nota code { font-family: var(--codigo); color: var(--c-gold); font-size: .92em; }
+.muestra { display: flex; flex-wrap: wrap; gap: 2rem; align-items: center;
+           padding: 2.6rem; border-radius: 1.2rem; background: rgba(255,255,255,.03);
+           border: .1rem solid rgba(232,225,204,.12); }
+.muestra--col { flex-direction: column; align-items: flex-start; }
+.licencia { margin-top: 8rem; padding: 2.4rem; border-radius: 1.2rem;
+            background: rgba(228,167,0,.07); border: .2rem solid rgba(228,167,0,.3);
+            font-family: system-ui, sans-serif; font-size: 1.5rem; line-height: 1.7;
+            color: rgba(232,225,204,.8); }
+</style>
+
+<div class="doc">
+
+  <h1>Katz UI</h1>
+  <p class="sub">
+    Componentes de interfaz para juegos de mesa. HTML y CSS, cero dependencias,
+    cero build. Salieron de un juego real y están acá para que los uses en el tuyo.
+  </p>
+  <p class="sub">
+    Esta página <strong>es</strong> la librería: mirá el código fuente, copiá el bloque
+    que quieras del <code>&lt;style&gt;</code> junto con la sección <strong>BASE</strong>, y listo.
+  </p>
+
+
+  <h2>Botones</h2>
+  <p class="nota">
+    El truco no es la sombra, es el <strong>canto</strong>: un <code>box-shadow</code> sólido
+    debajo hace de grosor. Al apretarlo el botón baja exactamente lo que el canto se
+    acorta. Cambiá de estado redefiniendo seis variables — no hay reglas duplicadas.
+  </p>
+  <div class="muestra">
+    <button class="k-btn">Jugar</button>
+    <button class="k-btn k-btn--claro">Volver</button>
+    <button class="k-btn k-btn--peligro">Abandonar</button>
+    <button class="k-btn k-btn--maldito">Maldito</button>
+    <button class="k-btn k-btn--late">Tu turno</button>
+    <button class="k-btn" disabled>Esperando</button>
+  </div>
+
+
+  <h2>Dado 3D</h2>
+  <p class="nota">
+    Sin librerías: seis caras con <code>translateZ</code> y un cubo que gira. Tocá el dado
+    para tirarlo. Las vueltas se <em>suman</em> al ángulo para que sacar dos veces el mismo
+    número igual se vea como una tirada.
+  </p>
+  <div class="muestra">
+    <div class="k-dado" id="dado" data-cara="1">
+      <div class="k-dado__cubo">
+        <div class="k-dado__cara"><i class="k-punto k-p3"></i></div>
+        <div class="k-dado__cara"><i class="k-punto k-p1"></i><i class="k-punto k-p5"></i></div>
+        <div class="k-dado__cara"><i class="k-punto k-p1"></i><i class="k-punto k-p3"></i><i class="k-punto k-p5"></i></div>
+        <div class="k-dado__cara"><i class="k-punto k-p1"></i><i class="k-punto k-p2"></i><i class="k-punto k-p4"></i><i class="k-punto k-p5"></i></div>
+        <div class="k-dado__cara"><i class="k-punto k-p1"></i><i class="k-punto k-p2"></i><i class="k-punto k-p3"></i><i class="k-punto k-p4"></i><i class="k-punto k-p5"></i></div>
+        <div class="k-dado__cara"><i class="k-punto k-p1"></i><i class="k-punto k-p2"></i><i class="k-punto k-p8"></i><i class="k-punto k-p9"></i><i class="k-punto k-p4"></i><i class="k-punto k-p5"></i></div>
+      </div>
+    </div>
+    <button class="k-btn" id="tirar">Tirar</button>
+    <span id="salio" class="k-paso">saca 1</span>
+  </div>
+
+
+  <h2>Cartas en abanico</h2>
+  <p class="nota">
+    Cada carta lleva su índice en <code>--i</code> y de ahí salen ángulo, altura y solape.
+    Agregar o sacar cartas no toca una línea de CSS. En pantallas chicas el abanico
+    <em>se cierra</em>: las cartas se montan entre sí en vez de salirse.
+  </p>
+  <div class="muestra" style="justify-content:center">
+    <div class="k-abanico" style="--n:5">
+      <div class="k-carta" style="--i:0; --carta-color:var(--c-red)" tabindex="0">
+        <div class="k-carta__arte">💥</div><div class="k-carta__nombre">Golpe −2</div></div>
+      <div class="k-carta" style="--i:1; --carta-color:var(--c-blue)" tabindex="0">
+        <div class="k-carta__arte">🐈‍⬛</div><div class="k-carta__nombre">Saltar</div></div>
+      <div class="k-carta" style="--i:2; --carta-color:var(--c-purple)" tabindex="0">
+        <div class="k-carta__arte">🪄</div><div class="k-carta__nombre">Maldición</div></div>
+      <div class="k-carta" style="--i:3; --carta-color:var(--c-green)" tabindex="0">
+        <div class="k-carta__arte">🛡️</div><div class="k-carta__nombre">Escudo</div></div>
+      <div class="k-carta k-carta--tapada" style="--i:4" tabindex="0">
+        <div class="k-carta__arte">?</div><div class="k-carta__nombre">Sin ver</div></div>
+    </div>
+  </div>
+
+
+  <h2>Fichas de jugador</h2>
+  <p class="nota">
+    Las muescas del canto son un <code>repeating-conic-gradient</code>, no doce elementos.
+    Usan los mismos <code>--p1..--p4</code> que identifican al jugador en toda la interfaz:
+    un solo código de color para un solo dato.
+  </p>
+  <div class="muestra">
+    <span class="k-ficha k-ficha--p1"><span>1</span></span>
+    <span class="k-ficha k-ficha--p2"><span>2</span></span>
+    <span class="k-ficha k-ficha--p3"><span>3</span></span>
+    <span class="k-ficha k-ficha--p4"><span>4</span></span>
+    <span class="k-ficha k-ficha--vacia"><span>+</span></span>
+  </div>
+
+
+  <h2>Casillas y tablero</h2>
+  <p class="nota">
+    Placas de madera atornilladas. Un tipo de casilla nuevo son <strong>cuatro variables</strong>
+    y el degradado, el marco y el filete lo siguen solos. Las ranuras de los tornillos van
+    giradas distinto en cada esquina: apretados a mano, no estampados.
+  </p>
+  <div class="muestra">
+    <div class="k-tablero" style="--cols:6">
+      <div class="k-casilla"><i class="k-tornillo"></i><i class="k-tornillo"></i><i class="k-tornillo"></i><i class="k-tornillo"></i></div>
+      <div class="k-casilla k-casilla--castigo">💀<i class="k-tornillo"></i><i class="k-tornillo"></i><i class="k-tornillo"></i><i class="k-tornillo"></i></div>
+      <div class="k-casilla"><i class="k-tornillo"></i><i class="k-tornillo"></i><i class="k-tornillo"></i><i class="k-tornillo"></i></div>
+      <div class="k-casilla k-casilla--sorpresa">?<i class="k-tornillo"></i><i class="k-tornillo"></i><i class="k-tornillo"></i><i class="k-tornillo"></i></div>
+      <div class="k-casilla k-casilla--premio">★<i class="k-tornillo"></i><i class="k-tornillo"></i><i class="k-tornillo"></i><i class="k-tornillo"></i></div>
+      <div class="k-casilla"><span class="k-ficha k-ficha--p1" style="width:4.4rem"><span>1</span></span><i class="k-tornillo"></i><i class="k-tornillo"></i><i class="k-tornillo"></i><i class="k-tornillo"></i></div>
+    </div>
+  </div>
+
+
+  <h2>Marco de bombillas</h2>
+  <p class="nota">
+    Un <code>repeating-linear-gradient</code> por lado, no cuarenta elementos — por eso
+    escala a cualquier tamaño sin que nadie recalcule cuántas bombillas entran.
+  </p>
+  <div class="muestra">
+    <div class="k-bombillas" style="width:100%">
+      <p class="nota" style="margin:0; text-align:center">Cualquier cosa adentro queda enmarcada.</p>
+    </div>
+  </div>
+
+
+  <h2>Modal con pestañas</h2>
+  <p class="nota">
+    Las pestañas muestran <em>progreso</em>, no sólo secciones: una por la que ya pasaste se
+    ve distinta de una a la que no llegaste. En pantallas angostas queda sólo el número —
+    <code>"1 EL JUEG"</code> se lee peor que <code>"1"</code>, y el <code>aria-label</code>
+    conserva el nombre completo.
+  </p>
+  <div class="muestra">
+    <button class="k-btn" id="abrir">Abrir modal</button>
+  </div>
+
+
+  <h2>Formulario</h2>
+  <p class="nota">
+    Se abre <strong>progresivamente</strong>: primero sólo las estrellas, el resto aparece al
+    puntuar. Seis campos de golpe ahuyentan; una pregunta de un clic, no — y quien ya dio
+    ese clic sigue. Las estrellas son CSS puro (el marcado va en orden inverso para que
+    <code>~</code> pinte las anteriores).
+  </p>
+  <div class="muestra">
+    <form class="k-form" id="form" onsubmit="return false">
+      <div class="k-campo">
+        <span class="k-label">¿Qué te pareció?</span>
+        <div class="k-estrellas">
+          <input type="radio" name="r" id="r5"><label for="r5">★</label>
+          <input type="radio" name="r" id="r4"><label for="r4">★</label>
+          <input type="radio" name="r" id="r3"><label for="r3">★</label>
+          <input type="radio" name="r" id="r2"><label for="r2">★</label>
+          <input type="radio" name="r" id="r1"><label for="r1">★</label>
+        </div>
+      </div>
+      <div class="k-form__resto"><div>
+        <label class="k-campo">
+          <span class="k-label">Tu nombre <em style="opacity:.6">(opcional)</em></span>
+          <input class="k-input" type="text" placeholder="Como quieras que te llamemos">
+        </label>
+        <label class="k-campo">
+          <span class="k-label">¿Encontraste algún error?</span>
+          <textarea class="k-textarea" placeholder="Qué pasó y qué estabas haciendo"></textarea>
+        </label>
+        <label class="k-campo">
+          <span class="k-label">¿Qué le agregarías?</span>
+          <textarea class="k-textarea" placeholder="Lo primero que se te ocurra"></textarea>
+        </label>
+        <button class="k-btn" type="submit">Enviar</button>
+      </div></div>
+    </form>
+  </div>
+
+
+  <h2>Tarjetas de personaje</h2>
+  <p class="nota">
+    <strong>Placeholders:</strong> el arte del juego original no viaja. Reemplazá
+    <code>.k-personaje__arte</code> por tu <code>&lt;img&gt;</code> y no hay que tocar
+    nada más. Ojo con el tope del <code>clamp</code> — mirá el comentario en el CSS,
+    es el error más fácil de cometer con esta base.
+  </p>
+  <div class="muestra">
+    <div class="k-grilla-personajes" style="--carta-w:14rem">
+      <div class="k-personaje"><div class="k-personaje__arte" style="--pj-color:var(--c-gold)">🐱</div><div class="k-personaje__nombre">Uno</div></div>
+      <div class="k-personaje"><div class="k-personaje__arte" style="--pj-color:var(--c-blue)">😼</div><div class="k-personaje__nombre">Dos</div></div>
+      <div class="k-personaje"><div class="k-personaje__arte" style="--pj-color:var(--c-green)">🙀</div><div class="k-personaje__nombre">Tres</div></div>
+      <div class="k-personaje"><div class="k-personaje__arte" style="--pj-color:var(--c-bronze)">😹</div><div class="k-personaje__nombre">Cuatro</div></div>
+      <div class="k-personaje"><div class="k-personaje__arte" style="--pj-color:var(--c-magenta)">😾</div><div class="k-personaje__nombre">Cinco</div></div>
+      <div class="k-personaje k-personaje--proximo"><div class="k-personaje__arte">?</div><div class="k-personaje__nombre">En camino</div></div>
+    </div>
+  </div>
+
+
+  <h2>Barra de tiempo con semáforo</h2>
+  <p class="nota">
+    Oro → naranja → rojo, con cortes a los 5s y 2s restantes de 8. Dos animaciones sobre el
+    mismo elemento: una vacía, la otra colorea. Con <code>prefers-reduced-motion</code> se
+    va el vaciado pero <em>queda</em> el color — tres saltos de color no son movimiento, y
+    son la única pista de cuánto falta.
+  </p>
+  <div class="muestra muestra--col">
+    <div class="k-reloj" id="reloj"><i></i></div>
+    <button class="k-btn k-btn--claro" id="reiniciar">Reiniciar</button>
+  </div>
+
+
+  <h2>Menú, código de sala y avisos</h2>
+  <p class="nota">
+    Lo que todavía no existe se muestra <em>apagado</em> y no se esconde: una opción que
+    existirá dice hacia dónde va el proyecto. El código va en monoespaciada y bien
+    separado porque son caracteres que alguien va a dictar en voz alta.
+  </p>
+  <div class="muestra muestra--col">
+    <div class="k-menu">
+      <button class="k-menu__opcion">Mesa online <span class="k-menu__nota">2 a 4</span></button>
+      <button class="k-menu__opcion">Duelo local</button>
+      <button class="k-menu__opcion" aria-disabled="true">Vs. IA <span class="k-menu__nota">pronto</span></button>
+      <button class="k-menu__opcion" aria-disabled="true">Tienda <span class="k-menu__nota">pronto</span></button>
+    </div>
+    <div class="k-codigo">K4TZ7Q</div>
+    <div class="k-aviso k-aviso--ok">Se copió el código</div>
+    <div class="k-aviso k-aviso--error">La sala ya no existe</div>
+    <div class="k-aviso k-aviso--info">Esperando a los demás…</div>
+    <div class="k-cartel">TIEMPO AGOTADO</div>
+  </div>
+
+
+  <div class="licencia">
+    <strong>Licencia MIT.</strong> Copiá, cambiá, vendé, publicá. No hace falta pedir permiso
+    ni dar crédito — aunque si te sirvió, contarlo siempre está bien.
+    <br><br>
+    Lo único que <strong>no</strong> está bajo esta licencia son los dibujos del juego del que
+    salieron estos componentes: no viajan en este archivo. Todo lo que ves acá es CSS.
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     El modal, fuera del flujo. Empieza oculto.
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="k-overlay" id="overlay" hidden>
+  <div class="k-modal k-bombillas">
+    <div class="k-modal__cabeza">
+      <div class="k-modal__titulo">Reglas</div>
+      <button class="k-cerrar" id="cerrar" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="k-tabs" role="tablist">
+      <button class="k-tab" role="tab" aria-selected="true"  aria-label="1 El juego">
+        <span>1</span><span class="k-tab__nombre">El juego</span></button>
+      <button class="k-tab k-tab--visto" role="tab" aria-selected="false" aria-label="2 El dado">
+        <span>2</span><span class="k-tab__nombre">El dado</span></button>
+      <button class="k-tab" role="tab" aria-selected="false" aria-label="3 La mesa">
+        <span>3</span><span class="k-tab__nombre">La mesa</span></button>
+      <button class="k-tab" role="tab" aria-selected="false" aria-label="4 Las cartas">
+        <span>4</span><span class="k-tab__nombre">Las cartas</span></button>
+    </div>
+    <div class="k-modal__cuerpo">
+      <div class="k-destacado">
+        <strong>Lo que sumás en el turno <em>no es tuyo todavía</em>.</strong><br><br>
+        Cada tirada se suma a un acumulado que queda en el aire, y podés seguir tirando
+        todas las veces que quieras. Hasta que salga un 1: ahí perdés todo lo acumulado.
+        <br><br>
+        Plantarte es lo único que lo guarda.
+      </div>
+    </div>
+    <div class="k-modal__pie">
+      <button class="k-btn k-btn--claro">← Atrás</button>
+      <span class="k-paso">1 / 4</span>
+      <button class="k-btn">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   El JavaScript mínimo de la galería. Los componentes son CSS; esto sólo
+   los enciende. Nada acá es obligatorio para usarlos.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* EL DADO. Toda la lógica es: elegir un número, sumarle vueltas, y dejar
+   que CSS haga el giro. Las vueltas se ACUMULAN —nunca se reinician— para
+   que sacar dos veces seguidas el mismo número igual gire. */
+const dado = document.getElementById("dado");
+const salio = document.getElementById("salio");
+let vueltas = 0;
+
+function tirar() {
+  const n = 1 + Math.floor(Math.random() * 6);
+  vueltas += 2 + Math.floor(Math.random() * 3);
+  dado.style.setProperty("--vueltas", vueltas);
+  dado.dataset.cara = n;
+  salio.textContent = "saca " + n;
+}
+document.getElementById("tirar").addEventListener("click", tirar);
+dado.addEventListener("click", tirar);
+
+/* EL MODAL. `hidden` y no `display:none` inline: así el CSS del que lo use
+   puede decidir cómo se muestra sin pelearse con un estilo en línea. */
+const overlay = document.getElementById("overlay");
+document.getElementById("abrir").addEventListener("click", () => { overlay.hidden = false; });
+document.getElementById("cerrar").addEventListener("click", () => { overlay.hidden = true; });
+overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.hidden = true; });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") overlay.hidden = true; });
+
+/* EL FORMULARIO. Una clase, nada más: el despliegue es la transición de
+   `grid-template-rows` de 0fr a 1fr, que es la única forma de animar
+   "hasta el alto que tenga" sin medir nada con JS. */
+const form = document.getElementById("form");
+form.addEventListener("change", () => { form.classList.add("abierto"); });
+
+/* EL RELOJ. Reiniciar una animación CSS necesita este baile: quitarla,
+   forzar un reflow para que el navegador se entere, y volver a ponerla. */
+document.getElementById("reiniciar").addEventListener("click", () => {
+  const barra = document.querySelector("#reloj i");
+  barra.style.animation = "none";
+  void barra.offsetWidth;
+  barra.style.animation = "";
+});
+</script>
