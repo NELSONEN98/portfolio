@@ -1,0 +1,88 @@
+# ══════════════════════════════════════════════════════════════════════
+#  GAMBLING KATZ — su propio sitio, separado del portfolio
+# ══════════════════════════════════════════════════════════════════════
+#
+# Este archivo vive DENTRO de la carpeta del juego y no en la raíz del
+# repo, y eso es a propósito: en la raíz lo leería el sitio del PORTFOLIO
+# y le cambiaría el build. Netlify lo busca dentro de la "base directory"
+# que se configura en el dashboard, así que cada sitio lee el suyo.
+#
+# ►► Cómo se conecta esto en Netlify (una sola vez) ◄◄
+#
+#   Add new site → Import an existing project → el MISMO repo
+#   (NELSONEN98/portfolio), y en build settings:
+#
+#     Base directory     public/projects/AnimalGambling-Vite
+#     Build command      npm run build
+#     Publish directory  public/projects/AnimalGambling-Vite/dist
+#
+# Netlify permite varios sitios desde un mismo repo. No hace falta un repo
+# nuevo ni duplicar el código: sólo apuntar la base a esta carpeta.
+#
+# ►► Por qué NO hay redirect de SPA ◄◄
+#
+# Casi toda config de Netlify para una app de React lleva un
+# `/*  /index.html  200`. Acá NO hace falta, y conviene saber por qué en
+# vez de copiarlo por costumbre: ese redirect existe para routers que usan
+# la History API, donde `/sala/ABC123` es una URL que el servidor tiene
+# que resolver a index.html. Este juego usa un router de HASH — la ruta
+# viaja después del `#`, que el servidor nunca ve — y el código de sala
+# viaja en la query (`?sala=`). Las dos cosas las resuelve el navegador
+# solo. Un redirect de más acá no rompe nada, pero es config que nadie
+# entiende y que el día que estorbe nadie se anima a sacar.
+#
+# ►► Por qué NO hay variables de entorno ◄◄
+#
+# La URL del backend está escrita en `src/convex.js` y no en un `.env`.
+# No es un descuido: la URL de un deployment de Convex es pública por
+# diseño, las mutations validan del lado del servidor. El `.env.local`
+# que existe en local es para el CLI de `convex deploy`, no para el build.
+# O sea: este sitio compila sin un solo secreto configurado.
+
+[build]
+  command = "npm run build"
+  # Relativo a la base directory, no a la raíz del repo.
+  publish = "dist"
+
+[build.environment]
+  # Fijada a propósito. Sin esto Netlify elige la que tenga por defecto, y
+  # el día que la cambien el build empieza a fallar sin que nadie haya
+  # tocado el código. Es la misma mayor que la de desarrollo (v22).
+  NODE_VERSION = "22"
+
+# ►► Los bundles CON HASH se cachean para siempre; el resto NO. ◄◄
+#
+# Vite le pone un hash en el nombre a cada bundle —`index-BU5f_lc_.js`— y
+# los deja en la RAIZ del dist, no en una carpeta `assets/`. Ese archivo con
+# ese nombre no va a cambiar nunca: cachearlo un año es gratis y hace que la
+# segunda visita cargue al instante.
+#
+# El `index.html` es lo contrario: es el unico con nombre fijo y es el que
+# dice que bundles pedir. Si se cachea, el navegador sigue pidiendo los
+# bundles VIEJOS despues de cada publicacion —que ya se borraron— y el juego
+# queda roto hasta que alguien limpie a mano.
+#
+# ►► Y los dibujos y el audio NO llevan cache larga, a proposito. ◄◄
+#
+# Los `.webp` y los `.webm` salen de `public/`, y a esos Vite NO les pone
+# hash: se publican con el mismo nombre siempre. Cachearlos un año seria
+# garantizar que el dia que se retoque un dibujo, quien ya entro siga viendo
+# el viejo por meses. Este proyecto ya se comio ese problema con el
+# soundtrack, y la solucion de entonces fue renombrar el archivo a mano.
+# Sin cache-control propio quedan con el default de Netlify, que revalida —
+# que es justo lo que se quiere para un archivo de nombre fijo.
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
