@@ -30,8 +30,8 @@ const PROJECTS = [
   },
   {
     id: "animal", title: "Animal Gambling", url: "https://gambling-katz.netlify.app/",
-    img: "/img/animal.PNG", cat: "javascript", tags: ["js", "css", "html"], coord: "JX-108",
-    desc: "Two-player game in JS/HTML/CSS. Pick your character — first to 60 points wins.",
+    img: "/img/animal.PNG", cat: "react", tags: ["react", "js", "css"], coord: "JX-108",
+    desc: "Online multiplayer dice game for 2-4 players. React + Convex for real-time rooms, Three.js physics for the die. Push your luck or lose it all — first to 60 wins.",
     styleguide: "/projects/AnimalGambling/styleguide.html",
   },
   {
