@@ -29,9 +29,9 @@ const PROJECTS = [
     styleguide: "/projects/arquitectura/styleguide.html",
   },
   {
-    id: "animal", title: "Animal Gambling", url: "/projects/AnimalGambling/index.html",
+    id: "animal", title: "Animal Gambling", url: "https://gambling-katz.netlify.app/",
     img: "/img/animal.PNG", cat: "javascript", tags: ["js", "css", "html"], coord: "JX-108",
-    desc: "Two-player game in JS/HTML/CSS. Pick your character — first to 50 points wins.",
+    desc: "Two-player game in JS/HTML/CSS. Pick your character — first to 60 points wins.",
     styleguide: "/projects/AnimalGambling/styleguide.html",
   },
   {
