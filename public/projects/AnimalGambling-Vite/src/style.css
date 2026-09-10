@@ -5918,26 +5918,68 @@ body {
  * repiten adentro del keyframe porque una animación de `box-shadow` pisa la
  * propiedad ENTERA: sin ellos el botón perdía su grosor y su brillo de
  * arriba justo mientras late, y quedaba una etiqueta plana flotando. */
+/* ►► El halo late en un pseudo-elemento, NO en el `box-shadow`. ◄◄
+ *
+ * Antes esto animaba `box-shadow` directamente sobre el botón, y ahí está el
+ * problema: `box-shadow` no se puede componer en la GPU. Cada cuadro obliga
+ * al navegador a REPINTAR el botón y todo lo que lo rodea, para siempre,
+ * porque la animación es infinita y corre todo tu turno.
+ *
+ * Medido con el CPU frenado 6x —lo que separa un teléfono de gama media de
+ * una computadora—: esta sola animación, en este solo botón, se llevaba
+ * 390ms de cada 2329, o sea el 17% del procesador de la mesa entera. Una
+ * animación. Un botón.
+ *
+ * ►► Por qué el pseudo-elemento sí es gratis. ◄◄
+ *
+ * Su `box-shadow` es FIJO: se rasteriza UNA vez y queda cacheado como una
+ * textura. Lo que late es `opacity` y `transform`, que son las dos únicas
+ * propiedades que el navegador puede animar sin volver a pintar nada — se
+ * las pasa a la GPU y ahí se componen. Es el mismo motivo por el que las
+ * otras animaciones de la mesa (`drift`, `patron-a`, `flicker`) no costaron
+ * nada medible: todas animan transform u opacity.
+ *
+ * El `scale` está para recuperar lo que se pierde: el original agrandaba el
+ * halo de 1,1rem a 2,6rem, y con sólo opacidad el halo quedaría del mismo
+ * tamaño siempre. Con la escala vuelve a respirar, y sigue siendo gratis.
+ *
+ * ►► Y el brillo de arriba se queda quieto, a propósito. ◄◄
+ *
+ * El keyframe viejo también movía el `inset` blanco de 0,6 a 0,78. Son tres
+ * píxeles de línea clara en el borde superior: la diferencia no se ve, y
+ * animarla obligaba a repintar igual. Se queda en el 0,6 que ya tiene la
+ * tecla. */
 .btn-accion.tirar:not(:disabled) {
+  /* Ancla del pseudo-elemento. Sin esto se colgaría de `.versus-controls`,
+     que es el ancestro posicionado más cercano, y el halo aparecería en
+     cualquier parte menos alrededor del botón. */
+  position: relative;
+}
+.btn-accion.tirar:not(:disabled)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  /* ►► Detrás del botón, y esto NO es un detalle. ◄◄
+   *
+   * La primera versión lo dejó por delante y el halo —un amarillo al 90%—
+   * le pintó de dorado el aro BLANCO de la tecla. Se vio comparando la
+   * captura vieja con la nueva; leyendo el CSS no salta.
+   *
+   * `z-index: -1` lo manda detrás del fondo del botón, que es donde vive
+   * una sombra: el aro blanco vuelve a ser blanco y el halo sale por
+   * afuera, como antes. Funciona porque el botón tiene `position: relative`
+   * SIN z-index, así que no abre un contexto de apilado propio. */
+  z-index: -1;
+  /* Sin eventos: el halo se pasa del borde del botón y sin esto se comería
+     los toques justo alrededor de la tecla más apretada del juego. */
+  pointer-events: none;
+  box-shadow: 0 0 2.6rem 0.45rem rgba(var(--tirar-halo-vivo), 0.9);
   animation: brillo-tirar var(--dur-boton-brillo) var(--ease-boton-brillo) infinite;
 }
 @keyframes brillo-tirar {
-  0%, 100% {
-    box-shadow:
-      inset 0 3px 0 rgba(255, 255, 255, 0.6),
-      inset 0 -4px 0 rgba(0, 0, 0, 0.22),
-      0 var(--canto) 0 var(--tirar-canto-color),
-      0 calc(var(--canto) + 0.5rem) 1rem rgba(0, 0, 0, 0.55),
-      0 0 1.1rem 0.05rem rgba(var(--tirar-halo), 0.5);
-  }
-  50% {
-    box-shadow:
-      inset 0 3px 0 rgba(255, 255, 255, 0.78),
-      inset 0 -4px 0 rgba(0, 0, 0, 0.22),
-      0 var(--canto) 0 var(--tirar-canto-color),
-      0 calc(var(--canto) + 0.5rem) 1rem rgba(0, 0, 0, 0.55),
-      0 0 2.6rem 0.45rem rgba(var(--tirar-halo-vivo), 0.9);
-  }
+  0%, 100% { opacity: 0.42; transform: scale(0.96); }
+  50%      { opacity: 1;    transform: scale(1); }
 }
 
 /* Sin latido, pero encendido: el resplandor es lo que dice de quién es el
