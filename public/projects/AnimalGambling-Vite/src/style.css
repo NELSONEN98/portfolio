@@ -3048,10 +3048,115 @@ body {
    * (`@keyframes boil`, más abajo en este archivo), y va a SU misma
    * velocidad: 125ms por cuadro, la cadencia de `tituloBoil` y vecina de
    * `boilCat1`/`boilCat2` — el detalle en `motion.js`, `tablero.fieltroVivo`. */
-  background-image: var(--fieltro-luz), url("board/felt-0.webp");
-  background-size: cover, cover;
-  background-position: center, center;
-  animation: fieltro-vivo var(--dur-tablero-fieltro-vivo) var(--ease-tablero-fieltro-vivo) infinite;
+  /* ►► El paño ya no es una foto que respira: es CSS quieto. ◄◄
+   *
+   * Todo el comentario de arriba cuenta un trabajo real y bien hecho —de
+   * 2,6MB a 228KB, la diferencia entre cuadros amplificada x3 porque a x4
+   * ya recortaba— y aun asi este era, con diferencia, lo mas caro del juego.
+   *
+   * Medido con el CPU frenado 6x, en la mesa quieta y sin que nadie juegue:
+   *
+   *     el fieltro (4 fotos)     747ms de cada 4000   <- la MITAD del trabajo
+   *     los boil de los gatos    -10ms                <- gratis
+   *     brillo-tirar             97ms
+   *
+   * El fieltro solo se llevaba mas que todo el resto junto. Y el motivo no
+   * es la animacion en si sino el AREA: los gatos miden 160x183 en un
+   * telefono, el fieltro cubre el centro entero del tablero. Cambiar esa
+   * imagen ocho veces por segundo —con `image-rendering: auto`, o sea
+   * resuavizandola en cada cuadro— es repintar la superficie mas grande de
+   * la pantalla, ocho veces por segundo, para siempre.
+   *
+   * ►► Los colores NO son inventados. ◄◄
+   *
+   * Salen de medir `felt-0.webp` pixel a pixel: promedio #1b3d2c, el mas
+   * oscuro #153727 y el mas claro #254636. O sea que el grano real de esa
+   * foto vive en una franja del 4% — por eso las dos tramas de abajo van a
+   * opacidades tan bajas. Subirlas se veria como tela a cuadros, no como
+   * pano.
+   *
+   * Las dos `repeating-linear-gradient` cruzadas a 45 y -45 imitan la trama
+   * del pano de billar, que es un tejido cruzado. Se rasterizan UNA vez y
+   * quedan cacheadas: no se animan, asi que no cuestan nada por cuadro.
+   *
+   * ►► Lo que se pierde, dicho de frente. ◄◄
+   *
+   * El grano fotografico real, que era irregular como la tela de verdad;
+   * esto es un patron regular y de cerca se nota. A cambio: 222KB menos de
+   * descarga (los cuatro `felt-*.webp` quedan sin usar) y la mitad del CPU
+   * de la mesa. Si algun dia hace falta volver, el keyframe y las fotos
+   * siguen en su sitio — es cambiar estas cuatro lineas. */
+  background-color: #1b3d2c;
+  /* ►► El grano es RUIDO de verdad, no un patron. ◄◄
+   *
+   * Hubo tres intentos con gradientes puros y los tres fallaron, cada uno
+   * por su lado, y vale dejarlos escritos porque el motivo es el mismo:
+   *
+   *   1. Dos `repeating-linear-gradient` cruzados a 4px → se leia a RAYAS.
+   *      Dos patrones del mismo periodo se alinean en cada repeticion.
+   *   2. Los mismos a 3px y 5px —coprimos— → se leia a MALLA. Las rayas se
+   *      fueron, pero dos tramas de lineas cruzadas siempre dibujan grilla.
+   *   3. Tres radiales de 1px en mosaicos de 7, 11 y 13px → se leia a
+   *      LUNARES. Y aca esta el error que vale la pena entender: los
+   *      periodos coprimos rompen la COMBINACION de las capas, pero cada
+   *      capa sigue siendo, ella sola, una grilla perfecta de puntos. Con
+   *      lineas de bajo contraste eso no se ve; con motas aisladas, si.
+   *
+   * La conclusion no es "buscar mejores numeros". Es que **un gradiente CSS
+   * es periodico por definicion**: no hay combinacion de gradientes que
+   * produzca ruido irregular, porque ninguno de sus ingredientes lo es.
+   *
+   * Ruido de verdad lo da `feTurbulence`, que es un generador de Perlin
+   * dentro de SVG. Va como data-URI —no es un archivo mas que descargar,
+   * son 400 bytes de texto dentro del CSS— y, lo que importa para el motivo
+   * de todo este cambio: **es una imagen ESTATICA**. Se rasteriza una vez,
+   * queda en la cache de la capa y no cuesta NADA por cuadro. Lo caro nunca
+   * fue que el fieltro fuera una imagen; fue que la imagen CAMBIABA ocho
+   * veces por segundo sobre la superficie mas grande de la pantalla.
+   *
+   * `stitchTiles='stitch'` es lo que hace que el mosaico de 160px pegue con
+   * el de al lado sin costura: sin eso, el ruido se corta en cada borde y
+   * vuelve a aparecer la grilla por la puerta de atras.
+   *
+   * La `feColorMatrix` de cada capa hace una sola cosa: tira el color del
+   * ruido y se queda con un canal como ALFA. La clara sale
+   * `alfa = 0.30·R - 0.10` sobre blanco, la oscura `alfa = 0.34·G - 0.10`
+   * sobre negro —canales distintos, o sea dos ruidos independientes—. Ese
+   * -0.10 recorta a cero la mitad baja, asi que queda mota suelta y no
+   * niebla pareja, y el 0.30 mantiene el pico por debajo del 20%.
+   *
+   * Que las opacidades vivan tan abajo no es timidez: el grano REAL de
+   * `felt-0.webp`, medido pixel a pixel, va de #153727 a #254636 sobre un
+   * promedio de #1b3d2c —una franja del 4%—. Mas fuerte que eso deja de
+   * leerse como pano y pasa a leerse como textil estampado.
+   *
+   * ►► Y arriba del grano, las nubes. ◄◄
+   *
+   * Lo que mas separaba el CSS de la foto no era el grano fino sino la
+   * escala grande: la foto tiene manchas suaves —zonas mas gastadas, o
+   * donde la luz pega distinto— y el CSS estaba perfectamente parejo.
+   * Cuatro elipses sin simetria, dos claras y dos oscuras, tapan eso. Van a
+   * `cover`: son UNA por mesa, no un mosaico. */
+  background-image:
+    var(--fieltro-luz),
+    /* nubes: la escala grande, una sola por mesa */
+    radial-gradient(ellipse 62% 48% at 17% 14%, rgba(255, 255, 255, 0.030), transparent 70%),
+    radial-gradient(ellipse 48% 58% at 83% 33%, rgba(255, 255, 255, 0.020), transparent 72%),
+    radial-gradient(ellipse 74% 42% at 41% 89%, rgba(0, 0, 0, 0.048), transparent 70%),
+    radial-gradient(ellipse 36% 44% at 69% 61%, rgba(0, 0, 0, 0.030), transparent 74%),
+    /* grano claro — ruido Perlin, alfa = 0.30·R - 0.10 sobre blanco */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.3 0 0 0 -0.1'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23c)'/%3E%3C/svg%3E"),
+    /* grano oscuro — otro canal, o sea otro ruido; alfa = 0.34·G - 0.10 */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='o'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.34 0 0 -0.1'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23o)'/%3E%3C/svg%3E");
+  background-size:
+    cover, cover, cover, cover, cover,
+    160px 160px, 160px 160px;
+  background-position:
+    center, center, center, center, center,
+    0 0, 0 0;
+  background-repeat:
+    no-repeat, no-repeat, no-repeat, no-repeat, no-repeat,
+    repeat, repeat;
 
   /* La regla global `* { image-rendering: pixelated }` existe para los
      dibujos a mano de los gatos, que son pixel art y se arruinan si el
@@ -3088,6 +3193,9 @@ body {
    lo que hace que el salto ocurra JUSTO en 0/25/50/75% y no a mitad de
    trayecto: sin él, el navegador interpola el cambio de foto a su manera
    —a la mitad de cada tramo— y el corte deja de caer donde dice el número. */
+/* SIN USO desde que el pano paso a CSS — ver `.board-track::after`. Se deja
+   escrito, junto con `board/felt-*.webp`, porque volver atras es reponer
+   cuatro lineas y no reconstruir un trabajo de horas. */
 @keyframes fieltro-vivo {
   0%   { background-image: var(--fieltro-luz), url("board/felt-0.webp"); }
   25%  { background-image: var(--fieltro-luz), url("board/felt-1.webp"); }
@@ -3095,9 +3203,7 @@ body {
   75%  { background-image: var(--fieltro-luz), url("board/felt-3.webp"); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .board-track::after { animation: none; }
-}
+/* Ya no hay animacion que apagar acá: el paño quedó quieto para todos. */
 
 /* Cada casilla llena su celda, así el camino se lee como una cadena y no
    como puntos sueltos.
