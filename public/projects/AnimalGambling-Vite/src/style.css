@@ -9737,3 +9737,65 @@ body {
     transform: translateX(50%);
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   EL BADGE DE NETLIFY
+
+   Netlify inyecta, en los sitios creados de un tiempo a esta parte, un
+   iframe fijo abajo a la derecha con su marca. No viene en el HTML: lo mete
+   en tiempo de ejecucion un script propio suyo,
+
+       /.netlify/scripts/hud?variant=public
+
+   que se pide solo en este sitio. Los otros sitios del mismo dueño
+   —el portfolio, spacevrplus, lou-reed-archive, moonframe, todos mas
+   viejos— no lo piden: quedaron fuera del rollout.
+
+   ►► Por que se esconde. ◄◄
+
+   Medido sobre el sitio publicado, en 390x844: el iframe ocupa 197x64 en
+   (193, 780), con `z-index: 2147483645`, y desde ahi tapa
+
+       JUGAR        100%      <- el boton principal del juego
+       Siguiente →   50%
+       ‹ Volver      52%
+       Iniciar       36%
+
+   No es que moleste a la vista: se COME el clic del boton mas importante
+   de la pantalla. Un jugador anonimo en un telefono no puede empezar la
+   partida. Eso no es una marca de agua, es un bloqueo funcional.
+
+   ►► Por que `!important`, que no es decoracion. ◄◄
+
+   El badge trae sus medidas en el atributo `style` del propio iframe, y un
+   estilo en linea le gana a cualquier regla de hoja de estilos por mucha
+   especificidad que se le apile: los estilos en linea viven un escalon mas
+   arriba en la cascada. Lo unico que los pasa es `!important`. Sin el, esta
+   regla se escribe, se lee, no da error, y no hace absolutamente nada.
+
+   ►► ESTO SE VA A ROMPER, y conviene saber cuando. ◄◄
+
+   Se apoya en que el iframe (a) vive en el DOM de esta pagina y (b) se
+   llama `nl-badge-frame`. Las dos cosas son de Netlify, no nuestras. El dia
+   que lo muevan a un shadow DOM cerrado, o le cambien el nombre, esta regla
+   deja de alcanzarlo — y no va a avisar: simplemente el badge reaparece.
+
+   Por eso van tres redes y no una: el id exacto, cualquier id que empiece
+   con `nl-badge`, y cualquier iframe cuyo origen sea el propio `.netlify`.
+   Un renombre lo agarra alguna de las tres. Un shadow DOM cerrado no lo
+   agarra ninguna, y ahi hay que cambiar de estrategia —mover los controles,
+   dominio propio o plan pago—, no buscar otro selector.
+
+   La senal de que paso: el badge vuelve a verse abajo a la derecha en el
+   sitio publicado, estando esta regla intacta.
+
+   `display: none` y no `visibility`/`opacity`: los dos ultimos dejan la
+   caja ocupando su lugar y siguen robando el clic, que es justo el problema
+   que se viene a resolver. Con `pointer-events: none` solo tampoco alcanza:
+   se veria igual. */
+#nl-badge-frame,
+iframe[id^="nl-badge"],
+iframe[src*="/.netlify/"] {
+  display: none !important;
+}
