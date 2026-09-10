@@ -13,7 +13,24 @@ export const MENU_ITEMS = [
      tamaños posibles el nombre estaba mintiendo sobre dos tercios de los
      casos. */
   { id: "online", label: "Mesa Online", listo: true, ruta: "room-choice", modo: "online", nota: "2 a 4" },
-  { id: "local", label: "Duelo Local", listo: true, ruta: "select", modo: "local" },
+  /* ►► Vivo en desarrollo, apagado en el juego publicado. ◄◄
+   *
+   * `import.meta.env.DEV` es una constante que Vite reemplaza al construir,
+   * asi que en produccion esto queda `listo: false` —la entrada se dibuja
+   * muerta, con su nota— y en `npm run dev` sigue entero.
+   *
+   * Es el mismo recurso que usa el boton de silencio de `src/dev/`, y por un
+   * motivo parecido: hay cosas que le sirven a quien construye el juego y
+   * estorban a quien lo juega. Probar un cambio de tablero no deberia exigir
+   * abrir dos pestañas y armar una sala.
+   *
+   * NO se borra la linea, como se hizo con "Vs. IA": esa no se va a
+   * construir nunca, esta ya existe y vuelve. `ruta` y `modo` se quedan
+   * escritos para que reactivarla sea cambiar esta bandera y nada mas.
+   *
+   * El guardia de rutas de `App.jsx` lleva la misma condicion: sin el, en
+   * produccion se entraba igual escribiendo `#/select` en la barra. */
+  { id: "local", label: "Duelo Local", listo: import.meta.env.DEV, ruta: "select", modo: "local", nota: "en pausa" },
   /* ►► Acá estaban "Mesa de 3" y "Mesa de 4", locales. Se fueron del menú. ◄◄
    *
    * No se borró nada más que estas dos líneas, y es a propósito: el camino
@@ -53,7 +70,11 @@ export default function MenuScreen({ onPick, onBack }) {
             <span className="opt-label">{it.label}</span>
             {it.listo
               ? it.nota && <span className="opt-note">{it.nota}</span>
-              : <span className="opt-note locked-note">pronto</span>}
+              /* La nota propia si la hay, y si no "pronto". Antes era
+                 "pronto" fijo, y eso mentia sobre el Duelo Local: ese modo
+                 EXISTE y esta en pausa, no es una promesa. Los que de
+                 verdad no estan construidos no traen nota y siguen igual. */
+              : <span className="opt-note locked-note">{it.nota ?? "pronto"}</span>}
           </button>
         ))}
       </nav>

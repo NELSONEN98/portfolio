@@ -491,9 +491,25 @@ export default function App() {
       if ((destino === "game" || destino === "gameover") && !juego.hayPartida.current) {
         return "title";
       }
+      /* ►► En PRODUCCION, `#/select` fuera del online tampoco entra. ◄◄
+       *
+       * Apagar el boton del menu no alcanza para desactivar un modo: `modo`
+       * arranca en "local" cuando no hay sala guardada, y `select` no estaba
+       * en este guardia. O sea que en el juego publicado se entraba a elegir
+       * gato escribiendo `#/select` en la barra, con el boton apagado y todo.
+       *
+       * Va detras de `DEV` por lo mismo que la entrada del menu: en
+       * desarrollo el duelo local sigue entero, y sin esto el guardia lo
+       * rebotaria justo donde hace falta para probar.
+       *
+       * Se mira el MODO y no la ruta porque en online esta pantalla si se
+       * usa: es donde cada uno elige su gato. */
+      if (!import.meta.env.DEV && destino === "select" && modo !== "online") {
+        return "menu";
+      }
       return destino;
     },
-    [juego.hayPartida]
+    [juego.hayPartida, modo]
   );
 
   const { screen, go } = useRouter({ puedeEntrar });
