@@ -431,10 +431,26 @@ export default function Fighter({
               queda un número inflándose sin motivo a la vista. El conteo
               hacia arriba se conserva — eso no es el aviso, es el número
               yendo a su valor nuevo. */}
+          {/* ►► `tres-cifras`: el ancho de la meta, no un adorno. ◄◄
+
+              La meta subió a 100 y ahí el marcador pasa a tener TRES
+              dígitos. `--marcador` escala con el ALTO del peleador, no con
+              su ancho, así que la cifra no se achica sola: se ensancha. En
+              la mesa de tres, en un teléfono, eso rompía el renglón —la
+              pila de cartas del primero se metía encima del retrato del
+              segundo, y la del segundo se salía de la pantalla—.
+
+              Se marca acá y no en CSS porque CSS no sabe contar dígitos.
+
+              Y el estado dura poco: `rules.ts` topea el puntaje en `GOAL`
+              (`Math.min(raw, GOAL)`), así que tres cifras ocurre en un
+              único valor —exactamente 100— y por lo tanto sólo en el
+              instante de ganar. No es un modo del juego, es el último
+              fotograma. */}
           <div
             className={`f-score${score.bajando ? " down" : ""}${
               anunciaCambio ? (score.bajando ? " baja" : " sube") : ""
-            }`}
+            }${String(score.shown).length > 2 ? " tres-cifras" : ""}`}
           >
             {score.shown}
           </div>

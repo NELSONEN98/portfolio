@@ -12,28 +12,53 @@
 
 /* ►► A cuánto se gana. ◄◄
  *
- * Pasó por 100, por 50 y ahora está en 60. Con +7,7 de promedio por turno
- * eso son unos ocho turnos por jugador, contra los seis y medio de 50 y los
- * trece de 100.
+ * Pasó por 100, por 50, por 60, y volvió a 100. Con +7,7 de promedio por
+ * turno eso son unos trece turnos por jugador, contra los ocho de 60 y los
+ * seis y medio de 50.
  *
- * ►► Por qué subió de 50 a 60. ◄◄
+ * ►► Por qué volvió a 100. ◄◄
  *
- * Con 50 un turno afortunado alcanzaba para ganar de una: el acumulado no
- * tiene techo mientras no salga un 1, y con los dos dados, los bonus y el
- * martini una racha larga pasa los 50 sin despeinarse. Una partida que se
- * puede terminar en el primer turno de alguien no es una partida, es una
- * tirada.
+ * Porque lo dijo la mesa. El dueño del juego jugó varias partidas seguidas
+ * y reportó dos cosas: que 60 se termina demasiado rápido para una partida
+ * sola, y que seguía pasando que un turno alcanzara para cerrarla.
  *
- * Vale decir que 60 no lo IMPIDE, sólo lo hace menos frecuente: la racha
- * que llega a 50 llega a 60 casi con la misma probabilidad, porque lo que
- * la corta es el 1 y no el número de la meta. Si el objetivo es que nadie
- * gane en un turno, la palanca no es ésta — sería un tope al acumulado o
- * un mínimo de turnos, y las dos son reglas nuevas, no un número.
+ * Lo segundo ya estaba escrito acá abajo como advertencia cuando la meta
+ * subió de 50 a 60, y conviene no borrarlo porque sigue siendo cierto:
+ *
+ *     "60 no lo IMPIDE, sólo lo hace menos frecuente: la racha que llega a
+ *      50 llega a 60 casi con la misma probabilidad, porque lo que la corta
+ *      es el 1 y no el número de la meta."
+ *
+ * Eso vale igual para 100, y hay que decirlo sin maquillaje: **100 tampoco
+ * lo impide**. Lo que cambia es cuánto cuesta. Un turno se corta cuando sale
+ * un 1, o sea con probabilidad 1/6 por tirada; llegar a la meta pide
+ * encadenar tiradas sin ese 1. Con el dado pelado —sin bonus, sin dos
+ * dados, sin martini, que empujan los dos números para arriba— hacen falta
+ * unas 15 tiradas limpias para 60 y unas 25 para 100:
+ *
+ *     (5/6)^15 ≈ 6,5 %      (5/6)^25 ≈ 1,0 %
+ *
+ * O sea alrededor de seis veces menos frecuente. No es un arreglo, es un
+ * precio: pasó de "cada tantas partidas" a "rareza". El salto de 50 a 60
+ * movía esa aguja un 30%; éste la mueve seis veces. Por eso 100 sí se siente
+ * distinto y 60 no se sintió.
+ *
+ * Si algún día el objetivo pasa a ser que nadie pueda ganar en un turno —y
+ * no sólo que sea raro—, la palanca sigue sin ser este número: sería un
+ * tope al acumulado o un mínimo de turnos, y las dos son reglas nuevas.
+ *
+ * ►► Lo que este número arrastra. ◄◄
+ *
+ * 100 tiene TRES dígitos y 60 tenía dos. El marcador escala con el alto del
+ * peleador (`--marcador`, en `style.css`), no con su ancho, así que la
+ * cifra no se achica sola: se ensancha. Se midió en 390×844 con las cuatro
+ * mesas y los dos jugadores en 100 —ver el commit— y entra; si algún día la
+ * meta se va a cuatro dígitos, esto hay que volver a medirlo.
  *
  * El número vive acá solo y lo leen las reglas, el motor local, el servidor
  * y el reglamento en pantalla. Cambiarlo es una línea justamente porque
  * nadie más lo escribe. */
-export const GOAL = 60;
+export const GOAL = 100;
 
 /* Un 1 quema el turno. Es la regla original y sigue siendo la que sostiene
    toda la tensión del juego. */

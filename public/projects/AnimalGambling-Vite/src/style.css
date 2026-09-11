@@ -1909,6 +1909,34 @@ body {
   color: var(--side, var(--bone));
   transition: color 0.3s, text-shadow 0.3s;
 }
+
+/* ►► Tres dígitos entran en el ancho de dos. ◄◄
+ *
+ * Con la meta en 100 el marcador llega a tener tres cifras, y `--marcador`
+ * escala con el ALTO del peleador: la cifra no se achica sola, se ENSANCHA.
+ * Medido en 390×844 con la mesa de tres y los tres en 100: la pila de
+ * cartas del primero se metía encima del retrato del segundo, y la del
+ * segundo se salía de la pantalla. No generaba scroll —por eso mirar el
+ * desborde del documento no lo detectaba—, recortaba.
+ *
+ * El 2/3 no es un número probado hasta que quedó lindo: es la compensación
+ * EXACTA. Los dígitos de la tipografía son tabulares —todos del mismo
+ * ancho—, así que tres de ellos a dos tercios de tamaño miden lo mismo que
+ * dos a tamaño entero. Dicho de otra forma: "100" ocupa el ancho de "99", y
+ * por lo tanto entra en cualquier sitio donde ya entraban dos cifras. No
+ * hace falta volver a medir mesa por mesa; se deduce.
+ *
+ * Lo paga un solo valor. `rules.ts` topea el puntaje en `GOAL`
+ * (`Math.min(raw, GOAL)`), o sea que tres cifras existe únicamente en 100 —
+ * el instante de ganar. Achicar ahí no compite con nada: la partida
+ * terminó.
+ *
+ * La clase la pone `Fighter.jsx` contando los caracteres, porque CSS no
+ * sabe contar dígitos. Si algún día la meta pasa a cuatro cifras, esto hay
+ * que rehacerlo —sería 2/4—, no estirarlo. */
+.f-score.tres-cifras {
+  font-size: calc(var(--marcador) * 2 / 3);
+}
 .f-current {
   font-family: var(--display);
   /* Atado al puntaje, no a la ventana: es el mismo dato dicho en chico y

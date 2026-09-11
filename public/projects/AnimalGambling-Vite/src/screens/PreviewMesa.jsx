@@ -40,14 +40,21 @@ import { makeBoard, GOAL, A_LA_DERECHA } from "../../convex/rules";
  */
 
 /* Los estados que de verdad rompen la vista, no todos los posibles.
-   El marcador en dos cifras está acá porque un "0" mide la mitad que un
-   "50" y la meta son 50: probar con una sola cifra miente sobre el ancho. */
-const PUNTAJES = [0, 7, 50];
+   El marcador con TODAS sus cifras está acá porque un "0" mide un tercio
+   que un "100": probar con una sola cifra miente sobre el ancho, que es
+   justamente lo que este andamiaje viene a mirar.
+
+   El tope sale de `GOAL` y ya no de un 50 escrito a mano. Ese 50 era la
+   meta del día que se escribió esta línea y se quedó viejo dos veces —la
+   meta pasó a 60 y después a 100—, así que el preview terminaba probando
+   un ancho que el juego ya no usaba: exactamente el error que este archivo
+   existe para evitar. */
+const PUNTAJES = [0, 7, GOAL];
 
 export default function PreviewMesa({ inicial = 4 }) {
   const [cuantos, setCuantos] = useState(Math.min(4, Math.max(2, inicial)));
   const [miLado, setMiLado] = useState(cuantos - 1);
-  const [puntaje, setPuntaje] = useState(50);
+  const [puntaje, setPuntaje] = useState(GOAL);
   const [etapa, setEtapa] = useState(0);
   const [turno, setTurno] = useState(true);
 
@@ -90,10 +97,13 @@ export default function PreviewMesa({ inicial = 4 }) {
   }, [cuantos, puntaje, lado, enMesa]);
 
   /* Puntajes distintos, sólo para el ranking del final: en la mesa de
-     verdad todos entran empatados a 50 (`puntaje`), y con eso el final
-     mostraría cuatro empates sin decir nada del layout. */
+     verdad todos entran empatados en `puntaje`, y con eso el final
+     mostraría cuatro empates sin decir nada del layout.
+
+     El ganador va en `GOAL` y no en un número suelto: el podio tiene que
+     mostrar el ancho del puntaje con el que de verdad se gana. */
   const jugadoresFinal = useMemo(
-    () => players.map((p, i) => ({ ...p, score: [50, 33, 18, 4][i] ?? 0 })),
+    () => players.map((p, i) => ({ ...p, score: [GOAL, 33, 18, 4][i] ?? 0 })),
     [players]
   );
 
